@@ -1,0 +1,24 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/site/index.html"
+    },
+    {
+      "source": "/styles.css",
+      "destination": "/site/styles.css"
+    },
+    {
+      "source": "/app.js",
+      "destination": "/site/app.js"
+    },
+    {
+      "source": "/mercadolivre-setup.html",
+      "destination": "/site/mercadolivre-setup.html"
+    },
+    {
+      "source": "/mercadolivre-setup.js",
+      "destination": "/site/mercadolivre-setup.js"
+    }
+  ]
+}

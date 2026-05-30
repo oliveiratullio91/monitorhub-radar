@@ -1,0 +1,418 @@
+{
+  "id": "marketplaces-amazon-mercado-livre",
+  "name": "Monitoramento de marketplaces - Amazon e Mercado Livre",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "fb2ff143-45ff-437d-8466-03cf2fa8a001",
+      "name": "Executar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1180,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "2b25f97d-3d53-4f42-a3f8-06fd81e3a002",
+      "name": "Agendamento - a cada 1 hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1180,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "currency",
+              "name": "currency",
+              "value": "BRL",
+              "type": "string"
+            },
+            {
+              "id": "limit",
+              "name": "limit",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "min-percent-change",
+              "name": "minPercentChange",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "spreadsheet-id",
+              "name": "spreadsheetId",
+              "value": "COLE_AQUI_O_ID_DA_PLANILHA",
+              "type": "string"
+            },
+            {
+              "id": "sheet-name",
+              "name": "sheetName",
+              "value": "historico",
+              "type": "string"
+            },
+            {
+              "id": "telegram-chat-id",
+              "name": "telegramChatId",
+              "value": "COLE_AQUI_O_CHAT_ID",
+              "type": "string"
+            },
+            {
+              "id": "gmail-to",
+              "name": "gmailTo",
+              "value": "seu-email@exemplo.com",
+              "type": "string"
+            },
+            {
+              "id": "ml-enabled",
+              "name": "mercadoLivreEnabled",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "ml-query",
+              "name": "mercadoLivreQuery",
+              "value": "notebook",
+              "type": "string"
+            },
+            {
+              "id": "ml-token",
+              "name": "mercadoLivreAccessToken",
+              "value": "COLE_AQUI_O_ACCESS_TOKEN_MERCADO_LIVRE",
+              "type": "string"
+            },
+            {
+              "id": "amazon-enabled",
+              "name": "amazonEnabled",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "amazon-query",
+              "name": "amazonQuery",
+              "value": "fone bluetooth",
+              "type": "string"
+            },
+            {
+              "id": "amazon-url",
+              "name": "amazonApiUrl",
+              "value": "COLE_AQUI_ENDPOINT_AUTORIZADO_DA_AMAZON_COM_{{query}}_E_{{limit}}",
+              "type": "string"
+            },
+            {
+              "id": "amazon-auth",
+              "name": "amazonAuthHeader",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "demo-fallback",
+              "name": "demoFallbackEnabled",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "80e757f5-57fb-4965-a38a-f9286ac8a003",
+      "name": "Configuracao geral",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -900,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $input.first().json;\n\nfunction bool(value) {\n  return value === true || String(value).toLowerCase() === 'true';\n}\n\nfunction hasRealValue(value) {\n  const text = String(value || '').trim();\n  return text !== '' && !text.includes('COLE_AQUI');\n}\n\nconst limit = Math.max(1, Math.min(Number(cfg.limit || 10), 50));\nconst sources = [];\n\nif (bool(cfg.mercadoLivreEnabled) && hasRealValue(cfg.mercadoLivreAccessToken)) {\n  const query = String(cfg.mercadoLivreQuery || '').trim();\n  sources.push({\n    json: {\n      source_kind: 'mercadolivre',\n      source: 'Mercado Livre',\n      query,\n      currency: cfg.currency || 'BRL',\n      url: `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(query)}&limit=${limit}&sort=price_asc`,\n      authHeader: `Bearer ${String(cfg.mercadoLivreAccessToken).trim()}`\n    }\n  });\n}\n\nif (bool(cfg.amazonEnabled) && hasRealValue(cfg.amazonApiUrl)) {\n  const query = String(cfg.amazonQuery || '').trim();\n  const url = String(cfg.amazonApiUrl)\n    .replaceAll('{{query}}', encodeURIComponent(query))\n    .replaceAll('{{limit}}', String(limit));\n  sources.push({\n    json: {\n      source_kind: 'amazon',\n      source: 'Amazon',\n      query,\n      currency: cfg.currency || 'BRL',\n      url,\n      authHeader: hasRealValue(cfg.amazonAuthHeader) ? String(cfg.amazonAuthHeader).trim() : ''\n    }\n  });\n}\n\nif (sources.length === 0 && bool(cfg.demoFallbackEnabled)) {\n  sources.push({\n    json: {\n      source_kind: 'generic',\n      source: 'Fonte demo',\n      query: 'produtos de teste',\n      currency: cfg.currency || 'BRL',\n      url: `https://fakestoreapi.com/products?limit=${Math.min(limit, 10)}`,\n      authHeader: ''\n    }\n  });\n}\n\nreturn sources;"
+      },
+      "id": "99c424db-1de7-4b21-bf10-bbd36a8f9004",
+      "name": "Preparar fontes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -620,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "n8n-monitoramento-precos/1.0"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $json.authHeader || '' }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "f9ba0697-6329-498e-9b4c-5f99e1fe8005",
+      "name": "Buscar fonte",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -340,
+        260
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sourceItems = $('Preparar fontes').all();\nconst inputItems = $input.all();\nconst output = [];\n\nfunction valueAt(value, path) {\n  return path.split('.').reduce((current, key) => {\n    if (current === undefined || current === null) return undefined;\n    if (/^\\d+$/.test(key)) return current[Number(key)];\n    return current[key];\n  }, value);\n}\n\nfunction pick(record, paths) {\n  for (const path of paths) {\n    const value = valueAt(record, path);\n    if (value !== undefined && value !== null && value !== '') return value;\n  }\n  return '';\n}\n\nfunction firstArray(payload, sourceKind) {\n  if (Array.isArray(payload)) return payload;\n  if (sourceKind === 'mercadolivre') return Array.isArray(payload?.results) ? payload.results : [];\n  if (sourceKind === 'amazon') {\n    const candidates = [\n      payload?.SearchResult?.Items,\n      payload?.searchResult?.items,\n      payload?.items,\n      payload?.Items,\n      payload?.data?.items,\n      payload?.data?.SearchResult?.Items\n    ];\n    return candidates.find(Array.isArray) || [];\n  }\n  const candidates = [payload?.results, payload?.items, payload?.data, payload?.products, payload?.ads, payload?.data?.results, payload?.data?.items];\n  return candidates.find(Array.isArray) || [];\n}\n\nfunction toNumber(value) {\n  if (value === null || value === undefined || value === '') return null;\n  if (typeof value === 'number') return Number.isFinite(value) ? value : null;\n  const cleaned = String(value)\n    .replace(/\\s/g, '')\n    .replace(/R\\$/gi, '')\n    .replace(/\\./g, '')\n    .replace(',', '.')\n    .replace(/[^0-9.-]/g, '');\n  const number = Number(cleaned);\n  return Number.isFinite(number) ? number : null;\n}\n\nfunction normalizeRecord(record, source) {\n  const sourceKind = source.source_kind;\n  if (sourceKind === 'mercadolivre') {\n    return {\n      item_id: String(pick(record, ['id'])).trim(),\n      title: String(pick(record, ['title'])).trim(),\n      price: toNumber(pick(record, ['price'])),\n      item_url: String(pick(record, ['permalink'])).trim(),\n      image_url: String(pick(record, ['thumbnail', 'pictures.0.url'])).trim(),\n      seller: String(pick(record, ['seller.nickname', 'seller.id'])).trim(),\n      availability: String(pick(record, ['available_quantity', 'status'])).trim()\n    };\n  }\n\n  if (sourceKind === 'amazon') {\n    return {\n      item_id: String(pick(record, ['ASIN', 'asin', 'id'])).trim(),\n      title: String(pick(record, ['ItemInfo.Title.DisplayValue', 'itemInfo.title.displayValue', 'title', 'name'])).trim(),\n      price: toNumber(pick(record, [\n        'OffersV2.Listings.0.Price.Money.Amount',\n        'Offers.Listings.0.Price.Amount',\n        'offersV2.listings.0.price.money.amount',\n        'offers.listings.0.price.amount',\n        'price.amount',\n        'price',\n        'buybox.price'\n      ])),\n      item_url: String(pick(record, ['DetailPageURL', 'detailPageUrl', 'url', 'link'])).trim(),\n      image_url: String(pick(record, [\n        'Images.Primary.Large.URL',\n        'Images.Primary.Medium.URL',\n        'images.primary.large.url',\n        'images.primary.medium.url',\n        'image',\n        'image_url'\n      ])).trim(),\n      seller: String(pick(record, ['OffersV2.Listings.0.MerchantInfo.Name', 'Offers.Listings.0.MerchantInfo.Name', 'seller', 'merchant'])).trim(),\n      availability: String(pick(record, ['OffersV2.Listings.0.Availability.Message', 'Offers.Listings.0.Availability.Message', 'availability'])).trim()\n    };\n  }\n\n  return {\n    item_id: String(pick(record, ['id', 'item_id', 'sku', 'asin', 'url', 'permalink', 'link', 'title', 'name'])).trim(),\n    title: String(pick(record, ['title', 'name', 'description'])).trim(),\n    price: toNumber(pick(record, ['price', 'amount', 'current_price', 'sale_price', 'value', 'prices.price'])),\n    item_url: String(pick(record, ['permalink', 'url', 'link', 'href'])).trim(),\n    image_url: String(pick(record, ['thumbnail', 'image', 'picture', 'image_url', 'pictures.0.url'])).trim(),\n    seller: String(pick(record, ['seller.nickname', 'seller_name', 'store_name'])).trim(),\n    availability: String(pick(record, ['available_quantity', 'availability', 'status'])).trim()\n  };\n}\n\nfor (let index = 0; index < inputItems.length; index++) {\n  const payload = inputItems[index].json;\n  const source = sourceItems[index]?.json || {};\n  if (!source.url || payload?.error || payload?.statusCode >= 400) continue;\n\n  const records = firstArray(payload, source.source_kind);\n  for (const record of records) {\n    const normalized = normalizeRecord(record, source);\n    if (!normalized.item_id || !normalized.title) continue;\n\n    output.push({\n      json: {\n        checked_at: new Date().toISOString(),\n        source: source.source,\n        source_kind: source.source_kind,\n        query: source.query,\n        item_id: normalized.item_id,\n        title: normalized.title,\n        price: normalized.price,\n        currency: source.currency || 'BRL',\n        item_url: normalized.item_url,\n        image_url: normalized.image_url,\n        seller: normalized.seller,\n        availability: normalized.availability,\n        raw_json: JSON.stringify(record)\n      }\n    });\n  }\n}\n\nreturn output;"
+      },
+      "id": "72781ce9-5d41-430d-b77c-08e88d1e1006",
+      "name": "Normalizar ofertas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -60,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Configuracao geral').first().json;\nconst state = $getWorkflowStaticData('global');\nstate.itemsById = state.itemsById || {};\n\nfunction money(value, currency) {\n  if (value === null || value === undefined || value === '') return 'preco indisponivel';\n  return `${currency} ${Number(value).toFixed(2)}`;\n}\n\nconst minPercentChange = Number(cfg.minPercentChange || 0);\nconst now = new Date().toISOString();\nconst alerts = [];\n\nfor (const item of $input.all()) {\n  const current = item.json;\n  const stateKey = `${current.source}:${current.item_id}`;\n  const previous = state.itemsById[stateKey];\n  const previousPrice = previous?.price ?? null;\n  const price = current.price ?? null;\n  let eventType = null;\n  let priceDiff = null;\n  let percentDiff = null;\n\n  if (!previous) {\n    eventType = 'novo_anuncio';\n  } else if (price !== null && previousPrice !== null && price !== previousPrice) {\n    priceDiff = Number((price - previousPrice).toFixed(2));\n    percentDiff = previousPrice === 0 ? null : Number(((priceDiff / previousPrice) * 100).toFixed(2));\n    eventType = price < previousPrice ? 'queda_preco' : 'aumento_preco';\n  }\n\n  state.itemsById[stateKey] = {\n    title: current.title,\n    price,\n    itemUrl: current.item_url,\n    lastSeenAt: now,\n    source: current.source,\n    query: current.query\n  };\n\n  if (!eventType) continue;\n  if (percentDiff !== null && Math.abs(percentDiff) < minPercentChange) continue;\n\n  const eventLabel = eventType === 'novo_anuncio'\n    ? 'Novo anuncio'\n    : eventType === 'queda_preco'\n      ? 'Queda de preco'\n      : 'Aumento de preco';\n\n  const previousLine = previous\n    ? `Preco anterior: ${money(previousPrice, current.currency)}\\nVariacao: ${priceDiff > 0 ? '+' : ''}${priceDiff} (${percentDiff > 0 ? '+' : ''}${percentDiff}%)\\n`\n    : '';\n\n  const message = `[${current.source}] ${eventLabel}\\n${current.title}\\nBusca: ${current.query}\\nPreco atual: ${money(price, current.currency)}\\n${previousLine}${current.item_url ? `Link: ${current.item_url}` : 'Link indisponivel'}`;\n\n  alerts.push({\n    json: {\n      checked_at: now,\n      source: current.source,\n      query: current.query,\n      event_type: eventType,\n      item_id: current.item_id,\n      title: current.title,\n      price,\n      previous_price: previousPrice,\n      price_diff: priceDiff,\n      percent_diff: percentDiff,\n      currency: current.currency,\n      item_url: current.item_url,\n      image_url: current.image_url,\n      seller: current.seller,\n      availability: current.availability,\n      message,\n      raw_json: current.raw_json,\n      spreadsheet_id: cfg.spreadsheetId,\n      sheet_name: cfg.sheetName,\n      telegram_chat_id: cfg.telegramChatId,\n      gmail_to: cfg.gmailTo\n    }\n  });\n}\n\nconst keys = Object.keys(state.itemsById);\nif (keys.length > 2000) {\n  keys\n    .sort((a, b) => String(state.itemsById[a].lastSeenAt).localeCompare(String(state.itemsById[b].lastSeenAt)))\n    .slice(0, keys.length - 2000)\n    .forEach(key => delete state.itemsById[key]);\n}\n\nstate.lastExecutionAt = now;\nreturn alerts;"
+      },
+      "id": "cf0434dc-3d39-4ad5-a9ff-d2b456969007",
+      "name": "Comparar e gerar alertas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.spreadsheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $json.sheet_name }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "checked_at": "={{ $json.checked_at }}",
+            "source": "={{ $json.source }}",
+            "query": "={{ $json.query }}",
+            "event_type": "={{ $json.event_type }}",
+            "item_id": "={{ $json.item_id }}",
+            "title": "={{ $json.title }}",
+            "price": "={{ $json.price }}",
+            "previous_price": "={{ $json.previous_price }}",
+            "price_diff": "={{ $json.price_diff }}",
+            "percent_diff": "={{ $json.percent_diff }}",
+            "currency": "={{ $json.currency }}",
+            "item_url": "={{ $json.item_url }}",
+            "image_url": "={{ $json.image_url }}",
+            "seller": "={{ $json.seller }}",
+            "availability": "={{ $json.availability }}",
+            "message": "={{ $json.message }}",
+            "raw_json": "={{ $json.raw_json }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "507f97e5-8c5f-450d-a1cb-f15e1f31a008",
+      "name": "Registrar no Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        500,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.telegram_chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "8c5acb99-bf72-469c-901c-37e16c028009",
+      "name": "Enviar Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        780,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.gmail_to }}",
+        "subject": "={{ 'Alerta marketplace: ' + $json.source + ' - ' + $json.title }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "c1efe852-37a3-4615-8f1c-1cdf5044a010",
+      "name": "Enviar Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        780,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Amazon: use API autorizada. A PA-API antiga foi depreciada em 15/05/2026; prefira Creators API ou endpoint autorizado.\n\nMercado Livre: preencha mercadoLivreAccessToken. Sem token, a API pode retornar 403.\n\nEnquanto nenhuma fonte real estiver configurada, demoFallbackEnabled usa uma fonte demo para testar o fluxo.",
+        "height": 260,
+        "width": 360,
+        "color": 4
+      },
+      "id": "b069e4cc-f616-40ee-b89e-df49ee391011",
+      "name": "Notas - fontes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        -120
+      ]
+    }
+  ],
+  "connections": {
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Configuracao geral",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agendamento - a cada 1 hora": {
+      "main": [
+        [
+          {
+            "node": "Configuracao geral",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuracao geral": {
+      "main": [
+        [
+          {
+            "node": "Preparar fontes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar fontes": {
+      "main": [
+        [
+          {
+            "node": "Buscar fonte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar fonte": {
+      "main": [
+        [
+          {
+            "node": "Normalizar ofertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar ofertas": {
+      "main": [
+        [
+          {
+            "node": "Comparar e gerar alertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comparar e gerar alertas": {
+      "main": [
+        [
+          {
+            "node": "Registrar no Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar no Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Enviar Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enviar Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-05-27T00:00:00.000Z",
+  "versionId": "marketplaces-v1"
+}

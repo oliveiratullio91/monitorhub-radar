@@ -1,0 +1,7 @@
+.env
+node_modules/
+.vercel/
+.n8n-local/
+.site-local/
+site/preview-*.png
+site/preview-*.jpg

@@ -1,0 +1,315 @@
+{
+  "name": "Monitoramento automatico de anuncios, precos e oportunidades",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "d8f46a7a-cf62-4f88-b51e-8f7d04f9f001",
+      "name": "Executar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "4a5f1be0-0e42-4cd7-9de6-b0f74b66f002",
+      "name": "Agendamento - a cada 1 hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -820,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "source-url",
+              "name": "sourceUrl",
+              "value": "https://fakestoreapi.com/products?limit=10",
+              "type": "string"
+            },
+            {
+              "id": "source-name",
+              "name": "sourceName",
+              "value": "Fake Store API",
+              "type": "string"
+            },
+            {
+              "id": "query-name",
+              "name": "queryName",
+              "value": "produtos de teste",
+              "type": "string"
+            },
+            {
+              "id": "currency",
+              "name": "currency",
+              "value": "BRL",
+              "type": "string"
+            },
+            {
+              "id": "min-percent-change",
+              "name": "minPercentChange",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "spreadsheet-id",
+              "name": "spreadsheetId",
+              "value": "COLE_AQUI_O_ID_DA_PLANILHA",
+              "type": "string"
+            },
+            {
+              "id": "sheet-name",
+              "name": "sheetName",
+              "value": "historico",
+              "type": "string"
+            },
+            {
+              "id": "telegram-chat-id",
+              "name": "telegramChatId",
+              "value": "COLE_AQUI_O_CHAT_ID",
+              "type": "string"
+            },
+            {
+              "id": "gmail-to",
+              "name": "gmailTo",
+              "value": "seu-email@exemplo.com",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6d05ec8b-9414-4acd-9db9-09373c96f003",
+      "name": "Configuracao",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -560,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.sourceUrl }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "8cc098fd-92bd-44a6-88af-5d6d2d4bf004",
+      "name": "Buscar dados da fonte",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -300,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Configuracao').first().json;\nconst state = $getWorkflowStaticData('global');\nstate.itemsById = state.itemsById || {};\n\nfunction firstArray(value) {\n  if (Array.isArray(value)) return value;\n  const candidates = [\n    value?.results,\n    value?.items,\n    value?.data,\n    value?.products,\n    value?.ads,\n    value?.data?.results,\n    value?.data?.items,\n  ];\n  return candidates.find(Array.isArray) || [];\n}\n\nfunction toNumber(value) {\n  if (value === null || value === undefined || value === '') return null;\n  if (typeof value === 'number') return Number.isFinite(value) ? value : null;\n  const cleaned = String(value)\n    .replace(/\\s/g, '')\n    .replace(/R\\$/gi, '')\n    .replace(/\\./g, '')\n    .replace(',', '.')\n    .replace(/[^0-9.-]/g, '');\n  const number = Number(cleaned);\n  return Number.isFinite(number) ? number : null;\n}\n\nfunction pick(record, paths) {\n  for (const path of paths) {\n    const value = path.split('.').reduce((current, key) => current?.[key], record);\n    if (value !== undefined && value !== null && value !== '') return value;\n  }\n  return '';\n}\n\nfunction money(value, currency) {\n  if (value === null || value === undefined) return 'preco indisponivel';\n  return `${currency} ${Number(value).toFixed(2)}`;\n}\n\nconst payload = items.length === 1 ? items[0].json : items.map(item => item.json);\nconst records = firstArray(payload);\nconst now = new Date().toISOString();\nconst minPercentChange = Number(config.minPercentChange || 0);\nconst output = [];\n\nfor (const record of records) {\n  const itemId = String(pick(record, ['id', 'item_id', 'sku', 'url', 'permalink', 'link', 'title', 'name'])).trim();\n  if (!itemId) continue;\n\n  const title = String(pick(record, ['title', 'name', 'description']) || itemId).trim();\n  const price = toNumber(pick(record, ['price', 'amount', 'current_price', 'sale_price', 'value', 'prices.price']));\n  const itemUrl = String(pick(record, ['permalink', 'url', 'link', 'href'])).trim();\n  const imageUrl = String(pick(record, ['thumbnail', 'image', 'picture', 'image_url', 'pictures.0.url'])).trim();\n  const seller = String(pick(record, ['seller.nickname', 'seller_name', 'store_name'])).trim();\n  const availability = String(pick(record, ['available_quantity', 'availability', 'status'])).trim();\n\n  const previous = state.itemsById[itemId];\n  const previousPrice = previous?.price ?? null;\n  let eventType = null;\n  let priceDiff = null;\n  let percentDiff = null;\n\n  if (!previous) {\n    eventType = 'novo_anuncio';\n  } else if (price !== null && previousPrice !== null && price !== previousPrice) {\n    priceDiff = Number((price - previousPrice).toFixed(2));\n    percentDiff = previousPrice === 0 ? null : Number(((priceDiff / previousPrice) * 100).toFixed(2));\n    eventType = price < previousPrice ? 'queda_preco' : 'aumento_preco';\n  }\n\n  state.itemsById[itemId] = {\n    title,\n    price,\n    itemUrl,\n    lastSeenAt: now,\n    source: config.sourceName,\n    query: config.queryName\n  };\n\n  if (!eventType) continue;\n  if (percentDiff !== null && Math.abs(percentDiff) < minPercentChange) continue;\n\n  const eventLabel = eventType === 'novo_anuncio'\n    ? 'Novo anuncio'\n    : eventType === 'queda_preco'\n      ? 'Queda de preco'\n      : 'Aumento de preco';\n\n  const previousLine = previous\n    ? `Preco anterior: ${money(previousPrice, config.currency)}\\nVariacao: ${priceDiff > 0 ? '+' : ''}${priceDiff} (${percentDiff > 0 ? '+' : ''}${percentDiff}%)\\n`\n    : '';\n\n  const message = `[${config.sourceName}] ${eventLabel}\\n${title}\\nPreco atual: ${money(price, config.currency)}\\n${previousLine}${itemUrl ? `Link: ${itemUrl}` : 'Link indisponivel'}`;\n\n  output.push({\n    json: {\n      checked_at: now,\n      source: config.sourceName,\n      query: config.queryName,\n      event_type: eventType,\n      item_id: itemId,\n      title,\n      price,\n      previous_price: previousPrice,\n      price_diff: priceDiff,\n      percent_diff: percentDiff,\n      currency: config.currency,\n      item_url: itemUrl,\n      image_url: imageUrl,\n      seller,\n      availability,\n      message,\n      raw_json: JSON.stringify(record),\n      spreadsheet_id: config.spreadsheetId,\n      sheet_name: config.sheetName,\n      telegram_chat_id: config.telegramChatId,\n      gmail_to: config.gmailTo\n    }\n  });\n}\n\nconst keys = Object.keys(state.itemsById);\nif (keys.length > 1000) {\n  keys\n    .sort((a, b) => String(state.itemsById[a].lastSeenAt).localeCompare(String(state.itemsById[b].lastSeenAt)))\n    .slice(0, keys.length - 1000)\n    .forEach(key => delete state.itemsById[key]);\n}\n\nstate.lastExecutionAt = now;\nreturn output;"
+      },
+      "id": "3c28a816-5e94-4629-acd5-2dd4e156f005",
+      "name": "Normalizar, comparar e gerar alertas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $json.spreadsheet_id }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $json.sheet_name }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "checked_at": "={{ $json.checked_at }}",
+            "source": "={{ $json.source }}",
+            "query": "={{ $json.query }}",
+            "event_type": "={{ $json.event_type }}",
+            "item_id": "={{ $json.item_id }}",
+            "title": "={{ $json.title }}",
+            "price": "={{ $json.price }}",
+            "previous_price": "={{ $json.previous_price }}",
+            "price_diff": "={{ $json.price_diff }}",
+            "percent_diff": "={{ $json.percent_diff }}",
+            "currency": "={{ $json.currency }}",
+            "item_url": "={{ $json.item_url }}",
+            "image_url": "={{ $json.image_url }}",
+            "seller": "={{ $json.seller }}",
+            "availability": "={{ $json.availability }}",
+            "message": "={{ $json.message }}",
+            "raw_json": "={{ $json.raw_json }}"
+          },
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "b69f42bb-2e14-4f59-b0f0-70e6e246f006",
+      "name": "Registrar no Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        280,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.telegram_chat_id }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "70874d61-c933-4ced-a9dd-5bc061179007",
+      "name": "Enviar Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        580,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.gmail_to }}",
+        "subject": "={{ 'Alerta de oportunidade: ' + $json.title }}",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "6be66f2b-ee3a-4a8e-a8d4-6b00fb8a7008",
+      "name": "Enviar Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        580,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Configurar antes de ativar:\n1. sourceUrl da fonte real\n2. spreadsheetId da planilha\n3. credenciais Google Sheets, Telegram e Gmail\n4. telegramChatId e gmailTo\n\nA URL atual e apenas um exemplo publico para teste.",
+        "height": 220,
+        "width": 320,
+        "color": 4
+      },
+      "id": "a54c9d2d-c6a1-43fd-a5f2-e81d678ec009",
+      "name": "Notas de configuracao",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        -80
+      ]
+    }
+  ],
+  "connections": {
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Configuracao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agendamento - a cada 1 hora": {
+      "main": [
+        [
+          {
+            "node": "Configuracao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuracao": {
+      "main": [
+        [
+          {
+            "node": "Buscar dados da fonte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar dados da fonte": {
+      "main": [
+        [
+          {
+            "node": "Normalizar, comparar e gerar alertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar, comparar e gerar alertas": {
+      "main": [
+        [
+          {
+            "node": "Registrar no Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar no Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Enviar Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enviar Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-05-27T00:00:00.000Z",
+  "versionId": "starter-v0"
+}

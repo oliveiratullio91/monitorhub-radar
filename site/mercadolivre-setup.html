@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Conectar Mercado Livre - MonitorHub</title>
+    <link rel="stylesheet" href="./styles.css?v=dashboard3" />
+  </head>
+  <body>
+    <main class="setup-page">
+      <form class="setup-card" id="mercadoLivreSetupForm">
+        <a class="setup-back" href="/">Voltar ao dashboard</a>
+        <span class="setup-kicker">Integracao real</span>
+        <h1>Conectar Mercado Livre</h1>
+        <p>
+          Use o APP ID e a Secret Key da sua aplicacao no Mercado Livre Developers. A autorizacao salva
+          o token apenas no arquivo local .env deste projeto.
+        </p>
+
+        <label class="field-group">
+          <span>Redirect URI para cadastrar no app</span>
+          <input id="redirectUri" type="text" readonly />
+        </label>
+
+        <label class="field-group">
+          <span>APP ID</span>
+          <input id="clientId" name="clientId" type="text" autocomplete="off" />
+        </label>
+
+        <label class="field-group">
+          <span>Secret Key</span>
+          <input id="clientSecret" name="clientSecret" type="password" autocomplete="off" />
+        </label>
+
+        <div class="setup-actions">
+          <a class="secondary-button" href="https://developers.mercadolivre.com.br/devcenter" target="_blank" rel="noreferrer">
+            Abrir Developers
+          </a>
+          <button class="primary-button" type="submit">Autorizar Mercado Livre</button>
+        </div>
+
+        <div class="config-status" id="setupStatus">Aguardando credenciais do app.</div>
+      </form>
+    </main>
+
+    <script src="./mercadolivre-setup.js" defer></script>
+  </body>
+</html>

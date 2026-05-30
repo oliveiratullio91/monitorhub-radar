@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="MonitorHub automatiza o monitoramento de anúncios, preços e oportunidades com n8n, APIs, histórico e alertas."
+    />
+    <title>MonitorHub - Dashboard</title>
+    <link rel="stylesheet" href="./styles.css?v=dashboard3" />
+  </head>
+  <body>
+    <div class="dashboard-shell">
+      <header class="topbar">
+        <a class="topbar-brand" href="#dashboard" aria-label="MonitorHub">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" role="img">
+              <path d="M7 8.5A5.5 5.5 0 0 1 12.5 3h7A5.5 5.5 0 0 1 25 8.5v7a5.5 5.5 0 0 1-5.5 5.5H17l-6 6v-6h-1.5A5.5 5.5 0 0 1 4 15.5v-7Z" />
+              <path d="M13 13.5a3 3 0 1 0 6 0 3 3 0 0 0-6 0Zm6 0h5" />
+            </svg>
+          </span>
+          <span>
+            <strong>MonitorHub</strong>
+            <small>Monitoramento automático de anúncios, preços e oportunidades</small>
+            <small class="sr-only" id="connectionText">Aguardando atualização</small>
+          </span>
+        </a>
+
+        <div class="topbar-actions">
+          <button class="icon-action" type="button" aria-label="Notificações">
+            <span class="notification-dot" aria-hidden="true"></span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z" />
+              <path d="M9.5 20a2.8 2.8 0 0 0 5 0" />
+            </svg>
+          </button>
+          <button class="icon-action" type="button" aria-label="Configurações visuais">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
+              <circle cx="12" cy="12" r="4" />
+            </svg>
+          </button>
+          <button class="date-pill" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M7 3v3M17 3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
+            </svg>
+            <span>28 de Maio de 2026</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m8 10 4 4 4-4" />
+            </svg>
+          </button>
+          <div class="user-chip">
+            <span class="avatar" aria-hidden="true">TO</span>
+            <span>
+              <strong>Tullio Oliveira</strong>
+              <small>Product Owner</small>
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <aside class="sidebar" aria-label="Navegação principal">
+        <nav class="sidebar-nav">
+          <a class="active" href="#dashboard">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-8Z" /></svg>
+            </span>
+            Dashboard
+          </a>
+          <a href="#anuncios">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 5h16v12H4z" /><path d="M8 21h8M12 17v4" /></svg>
+            </span>
+            Anúncios Monitorados
+          </a>
+          <a href="#historico">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 8v5l3 2" /><path d="M4 12a8 8 0 1 0 2.3-5.6L4 8.8" /></svg>
+            </span>
+            Histórico
+          </a>
+          <a href="#alertas">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z" /><path d="M9.5 20a2.8 2.8 0 0 0 5 0" /></svg>
+            </span>
+            Alertas
+          </a>
+          <a href="#oportunidades">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="m12 3 2.4 5 5.6.8-4 3.9.9 5.5L12 15.6 7.1 18.2l.9-5.5-4-3.9 5.6-.8L12 3Z" /></svg>
+            </span>
+            Oportunidades
+          </a>
+          <a href="#fontes">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16" /><path d="M7 5v14M17 5v14" /></svg>
+            </span>
+            Fontes
+          </a>
+          <a href="#relatorios">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M5 20V4h14v16H5Z" /><path d="M9 16v-4M12 16V8M15 16v-6" /></svg>
+            </span>
+            Relatórios
+          </a>
+          <a href="#configuracoes">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" /><path d="m4 12-1.3-2.2 2-3.4h2.6L9 5h6l1.7 1.4h2.6l2 3.4L20 12l1.3 2.2-2 3.4h-2.6L15 19H9l-1.7-1.4H4.7l-2-3.4L4 12Z" /></svg>
+            </span>
+            Configurações
+          </a>
+          <a href="#integracoes">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M8 7h8M8 17h8" /><circle cx="5" cy="7" r="2" /><circle cx="19" cy="7" r="2" /><circle cx="5" cy="17" r="2" /><circle cx="19" cy="17" r="2" /></svg>
+            </span>
+            Integrações
+          </a>
+        </nav>
+
+        <section class="automation-status-card" aria-label="Status da automação">
+          <h2>Status da Automação</h2>
+          <div class="status-row">
+            <span class="status-dot"></span>
+            <strong>Ativo</strong>
+          </div>
+          <dl>
+            <div>
+              <dt>Última execução</dt>
+              <dd id="automationLastRun">Aguardando coleta</dd>
+            </div>
+            <div>
+              <dt>Próxima execução</dt>
+              <dd id="automationNextRun">Calculando</dd>
+            </div>
+            <div>
+              <dt>Execuções hoje</dt>
+              <dd><span id="automationToday">8</span> de 24</dd>
+            </div>
+          </dl>
+        </section>
+
+        <footer class="sidebar-footer">
+          <span>Desenvolvido com</span>
+          <strong>n8n</strong>
+        </footer>
+      </aside>
+
+      <main class="dashboard-main" id="dashboard">
+        <section class="welcome-row">
+          <div>
+            <h1>Olá, Tullio! 👋</h1>
+            <p>Aqui está o resumo do monitoramento de hoje.</p>
+          </div>
+          <div class="monitor-actions">
+            <button class="primary-button" id="refreshNowButton" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6" /><path d="M20 4v6h-6" /></svg>
+              Atualizar
+            </button>
+            <button class="secondary-button" id="toggleLiveButton" type="button">Pausar</button>
+          </div>
+        </section>
+
+        <section class="kpi-grid" aria-label="Indicadores principais">
+          <article class="kpi-card blue">
+            <span class="kpi-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 5h16v12H4z" /><path d="M8 21h8M12 17v4" /></svg>
+            </span>
+            <div>
+              <h2>Anúncios Monitorados</h2>
+              <strong id="totalProducts">0</strong>
+              <p><span>↑ 12%</span> em relação a ontem</p>
+            </div>
+          </article>
+          <article class="kpi-card green">
+            <span class="kpi-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M20 12 12 20 4 12l8-8 8 8Z" /><path d="M8.5 8.5h.01" /></svg>
+            </span>
+            <div>
+              <h2>Mudanças de Preço</h2>
+              <strong id="dropProducts">0</strong>
+              <p><span>↑ 8%</span> em relação a ontem</p>
+            </div>
+          </article>
+          <article class="kpi-card purple">
+            <span class="kpi-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+            </span>
+            <div>
+              <h2>Novos Anúncios</h2>
+              <strong id="newProducts">0</strong>
+              <p><span>↑ 21%</span> em relação a ontem</p>
+            </div>
+          </article>
+          <article class="kpi-card orange">
+            <span class="kpi-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z" /><path d="M9.5 20a2.8 2.8 0 0 0 5 0" /></svg>
+            </span>
+            <div>
+              <h2>Alertas Enviados</h2>
+              <strong id="alertsSent">57</strong>
+              <p><span>↑ 15%</span> em relação a ontem</p>
+            </div>
+          </article>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="panel-card chart-panel" id="relatorios">
+            <div class="panel-heading">
+              <h2>Atividade dos Últimos 7 Dias</h2>
+              <div class="chart-legend">
+                <span><i class="legend-dot green"></i>Novos Anúncios</span>
+                <span><i class="legend-dot blue"></i>Mudanças de Preço</span>
+                <span><i class="legend-dot orange"></i>Alertas Enviados</span>
+              </div>
+            </div>
+            <svg class="activity-chart" id="activityChart" viewBox="0 0 760 300" role="img" aria-label="Gráfico de atividade dos últimos sete dias"></svg>
+          </article>
+
+          <aside class="panel-card sources-panel" id="fontes">
+            <h2>Fontes Monitoradas</h2>
+            <div class="donut-layout">
+              <div class="donut-chart" aria-hidden="true">
+                <span id="activeSources">0</span>
+              </div>
+              <ul class="source-list">
+                <li><span class="source-dot green"></span><strong>Mercado Livre</strong><em>45%</em></li>
+                <li><span class="source-dot blue"></span><strong>OLX</strong><em>25%</em></li>
+                <li><span class="source-dot orange"></span><strong>Amazon</strong><em>15%</em></li>
+                <li><span class="source-dot purple"></span><strong>Shopee</strong><em>10%</em></li>
+                <li><span class="source-dot gray"></span><strong>Outros</strong><em>5%</em></li>
+              </ul>
+            </div>
+          </aside>
+
+          <aside class="panel-card flow-card" id="historico">
+            <h2>Execuções do Fluxo (n8n)</h2>
+            <div class="flow-success">
+              <span class="flow-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
+              </span>
+              <div>
+                <p>Última execução bem-sucedida</p>
+                <strong id="lastUpdatedText">Nenhuma coleta realizada</strong>
+              </div>
+              <dl>
+                <dt>Duração</dt>
+                <dd>00:01:24</dd>
+              </dl>
+            </div>
+          </aside>
+        </section>
+
+        <section class="content-grid" id="oportunidades">
+          <article class="panel-card alerts-card" id="alertas">
+            <div class="table-heading">
+              <h2>Alertas Recentes</h2>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Título</th>
+                    <th>Fonte</th>
+                    <th>Mudança</th>
+                    <th>Data/Hora</th>
+                    <th>Ação</th>
+                  </tr>
+                </thead>
+                <tbody id="recentAlertsBody"></tbody>
+              </table>
+            </div>
+            <a class="panel-link" href="#historico">Ver todos os alertas <span>→</span></a>
+          </article>
+
+          <aside class="panel-card upcoming-card">
+            <h2>Próximas Execuções</h2>
+            <div class="upcoming-list">
+              <article>
+                <span class="clock-icon" aria-hidden="true"></span>
+                <strong>Coleta - Mercado Livre</strong>
+                <time>Hoje 11:15</time>
+              </article>
+              <article>
+                <span class="clock-icon" aria-hidden="true"></span>
+                <strong>Coleta - OLX</strong>
+                <time>Hoje 11:15</time>
+              </article>
+              <article>
+                <span class="clock-icon" aria-hidden="true"></span>
+                <strong>Coleta - Amazon</strong>
+                <time>Hoje 11:30</time>
+              </article>
+              <article>
+                <span class="clock-icon" aria-hidden="true"></span>
+                <strong>Coleta - Shopee</strong>
+                <time>Hoje 11:30</time>
+              </article>
+            </div>
+            <a class="panel-link" href="#configuracoes">Ver agenda completa <span>→</span></a>
+          </aside>
+        </section>
+
+        <section class="monitor-console" id="configuracoes">
+          <aside class="panel-card filter-panel" aria-label="Filtros de produtos">
+            <div class="panel-heading">
+              <h2>Fontes e buscas</h2>
+              <button class="secondary-button compact" id="saveConfigButton" type="button" title="Salvar configuração">Salvar</button>
+            </div>
+
+            <label class="toggle-row">
+              <input id="demoEnabled" type="checkbox" />
+              <span>Demo local</span>
+            </label>
+
+            <label class="toggle-row">
+              <input id="mercadoLivreEnabled" type="checkbox" checked />
+              <span>Mercado Livre</span>
+            </label>
+            <label class="field-group">
+              <span>Busca Mercado Livre</span>
+              <input id="mercadoLivreQuery" type="text" value="notebook" autocomplete="off" />
+            </label>
+            <div class="config-status" id="mercadoLivreStatus">Mercado Livre: aguardando servidor</div>
+            <a class="setup-inline-link" href="./mercadolivre-setup.html">Conectar Mercado Livre</a>
+
+            <label class="toggle-row">
+              <input id="amazonEnabled" type="checkbox" checked />
+              <span>Amazon</span>
+            </label>
+            <label class="field-group">
+              <span>Busca Amazon</span>
+              <input id="amazonQuery" type="text" value="fone bluetooth" autocomplete="off" />
+            </label>
+            <div class="config-status" id="amazonStatus">Amazon: aguardando servidor</div>
+
+            <div class="two-columns">
+              <label class="field-group">
+                <span>Intervalo</span>
+                <select id="refreshInterval">
+                  <option value="15000">15s</option>
+                  <option value="30000" selected>30s</option>
+                  <option value="60000">1min</option>
+                  <option value="300000">5min</option>
+                </select>
+              </label>
+              <label class="field-group">
+                <span>Limite</span>
+                <input id="itemLimit" type="number" min="1" max="50" value="12" />
+              </label>
+            </div>
+          </aside>
+
+          <section class="panel-card products-area" id="anuncios" aria-label="Lista de produtos">
+            <div class="panel-heading">
+              <div>
+                <h2>Anúncios Monitorados</h2>
+                <p class="panel-subtitle">Produtos coletados em tempo real pelas fontes configuradas.</p>
+              </div>
+            </div>
+            <div class="toolbar">
+              <label class="search-box">
+                <span class="sr-only">Buscar nos produtos</span>
+                <input id="globalSearch" type="search" placeholder="Buscar produto, fonte ou vendedor" />
+              </label>
+              <select id="sortMode" aria-label="Ordenar produtos">
+                <option value="change">Mudanças primeiro</option>
+                <option value="priceAsc">Menor preço</option>
+                <option value="priceDesc">Maior preço</option>
+                <option value="source">Fonte</option>
+              </select>
+              <label class="toggle-row compact-toggle">
+                <input id="onlyChanges" type="checkbox" />
+                <span>Só mudanças</span>
+              </label>
+            </div>
+
+            <div class="category-tabs" aria-label="Categorias">
+              <button class="category-button active" type="button" data-category="all">Todos</button>
+              <button class="category-button" type="button" data-category="informatica">Informática</button>
+              <button class="category-button" type="button" data-category="audio">Áudio</button>
+              <button class="category-button" type="button" data-category="casa">Casa</button>
+              <button class="category-button" type="button" data-category="games">Games</button>
+              <button class="category-button" type="button" data-category="outros">Outros</button>
+            </div>
+
+            <div class="product-grid" id="productGrid" aria-live="polite"></div>
+          </section>
+
+          <aside class="panel-card events-panel" aria-label="Eventos recentes">
+            <div class="panel-heading">
+              <h2>Histórico recente</h2>
+              <button class="text-button" id="clearHistoryButton" type="button">Limpar</button>
+            </div>
+            <div class="timeline" id="timeline"></div>
+          </aside>
+        </section>
+
+        <section class="disclosure-band" id="integracoes" aria-label="Aviso de afiliado">
+          <strong>Aviso de afiliado:</strong>
+          como Associado da Amazon, podemos receber comissão por compras qualificadas feitas por links deste site.
+          Preços e disponibilidade podem mudar sem aviso.
+        </section>
+      </main>
+    </div>
+
+    <template id="productCardTemplate">
+      <article class="product-card">
+        <a class="product-image-link" target="_blank" rel="noreferrer">
+          <img class="product-image" alt="" loading="lazy" />
+        </a>
+        <div class="product-body">
+          <div class="product-meta">
+            <span class="source-badge"></span>
+            <span class="change-badge"></span>
+          </div>
+          <h3 class="product-title"></h3>
+          <p class="product-seller"></p>
+          <p class="product-note"></p>
+          <div class="price-row">
+            <strong class="product-price"></strong>
+            <span class="price-change"></span>
+          </div>
+          <div class="history-strip" aria-label="Histórico de preço"></div>
+          <a class="product-link" target="_blank" rel="noreferrer">Abrir produto</a>
+        </div>
+      </article>
+    </template>
+
+    <template id="timelineItemTemplate">
+      <article class="timeline-item">
+        <div class="timeline-dot" aria-hidden="true"></div>
+        <div>
+          <strong class="timeline-title"></strong>
+          <p class="timeline-detail"></p>
+          <time class="timeline-time"></time>
+        </div>
+      </article>
+    </template>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>
