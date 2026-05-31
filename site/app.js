@@ -1268,6 +1268,15 @@ function sourceInitial(source) {
   return source.slice(0, 2).toUpperCase();
 }
 
+function compactSourceName(source = "") {
+  const normalized = source.toLowerCase();
+  if (normalized.includes("mercado")) return "Mercado Livre";
+  if (normalized.includes("amazon")) return "Amazon";
+  if (normalized.includes("shopee")) return "Shopee";
+  if (normalized.includes("olx")) return "OLX";
+  return source || "Fonte";
+}
+
 function renderProducts(products) {
   if (!elements.productGrid || !elements.productTemplate) return;
   elements.productGrid.textContent = "";
@@ -1321,19 +1330,26 @@ function renderProducts(products) {
     image.src = product.image || placeholderImage(product.source);
     image.alt = product.title;
     imageLink.href = product.url || "#";
-    sourceBadge.textContent = product.source;
+    sourceBadge.textContent = compactSourceName(product.source);
+    sourceBadge.title = product.source;
     changeBadge.textContent = formatChange(product);
+    changeBadge.title = changeBadge.textContent;
     changeBadge.classList.add(product.changeType);
     changeBadge.classList.toggle("promotion", isPromotion(product));
+    const sellerText = product.seller || product.availability || product.query || "Fonte sem vendedor informado";
     title.textContent = product.title;
-    seller.textContent = product.seller || product.availability || product.query || "Fonte sem vendedor informado";
+    title.title = product.title;
+    seller.textContent = sellerText;
+    seller.title = sellerText;
     note.textContent = curationNote(product);
     price.textContent = formatMoney(product.price, product.currency);
     priceChange.textContent = changeText(product);
+    priceChange.title = priceChange.textContent;
     priceChange.classList.add(product.changeType);
     rating.textContent = ratingText(product);
     productLink.href = product.url || "#";
-    productLink.textContent = product.url ? "Ver anúncio" : "Link indisponivel";
+    productLink.textContent = product.url ? "Ver oferta" : "Link indisponivel";
+    productAlertButton.textContent = "Alerta";
     productAlertButton.addEventListener("click", () => prefillAlertFromProduct(product));
 
     renderHistoryStrip(historyStrip, product.history || []);
