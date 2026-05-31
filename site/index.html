@@ -5,27 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="MonitorHub automatiza o monitoramento de anúncios, preços e oportunidades com n8n, APIs, histórico e alertas."
+      content="Garimpanda monitora ofertas, compara preços e envia alertas quando o valor ideal aparece."
     />
-    <title>MonitorHub - Dashboard</title>
-    <link rel="stylesheet" href="./styles.css?v=supabase1" />
+    <title>Garimpanda - Radar de Ofertas</title>
+    <link rel="stylesheet" href="./styles.css?v=garimpanda1" />
   </head>
   <body>
     <div class="dashboard-shell">
       <header class="topbar">
-        <a class="topbar-brand" href="#dashboard" aria-label="MonitorHub">
+        <a class="topbar-brand" href="#dashboard" aria-label="Garimpanda">
           <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 32 32" role="img">
-              <path d="M7 8.5A5.5 5.5 0 0 1 12.5 3h7A5.5 5.5 0 0 1 25 8.5v7a5.5 5.5 0 0 1-5.5 5.5H17l-6 6v-6h-1.5A5.5 5.5 0 0 1 4 15.5v-7Z" />
-              <path d="M13 13.5a3 3 0 1 0 6 0 3 3 0 0 0-6 0Zm6 0h5" />
-            </svg>
+            <img src="./assets/garimpanda-panda.png" alt="" />
           </span>
           <span>
-            <strong>MonitorHub</strong>
-            <small>Monitoramento automático de anúncios, preços e oportunidades</small>
+            <strong>Garim<span>panda</span></strong>
+            <small>Encontre os melhores preços no Mercado Livre e economize mais.</small>
             <small class="sr-only" id="connectionText">Aguardando atualização</small>
           </span>
         </a>
+
+        <nav class="top-nav" aria-label="Navegação principal">
+          <a class="active" href="#dashboard">Início</a>
+          <a href="#anuncios">Produtos</a>
+          <a href="#como-funciona">Como funciona</a>
+          <a href="#meus-alertas">Radar</a>
+          <a href="#alertas">Alertas</a>
+        </nav>
 
         <div class="topbar-actions">
           <button class="icon-action" type="button" aria-label="Notificações">
@@ -41,20 +46,18 @@
               <circle cx="12" cy="12" r="4" />
             </svg>
           </button>
-          <button class="date-pill" type="button">
+          <a class="date-pill" href="#configuracoes">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M7 3v3M17 3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />
+              <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" />
+              <path d="m4 12-1.3-2.2 2-3.4h2.6L9 5h6l1.7 1.4h2.6l2 3.4L20 12l1.3 2.2-2 3.4h-2.6L15 19H9l-1.7-1.4H4.7l-2-3.4L4 12Z" />
             </svg>
-            <span>28 de Maio de 2026</span>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="m8 10 4 4 4-4" />
-            </svg>
-          </button>
+            <span>Configurar fontes</span>
+          </a>
           <div class="user-chip">
             <span class="avatar" aria-hidden="true">TO</span>
             <span>
-              <strong>Tullio Oliveira</strong>
-              <small>Product Owner</small>
+              <strong>Olá, Tullio</strong>
+              <small>Radar ativo</small>
             </span>
           </div>
         </div>
@@ -153,17 +156,26 @@
       </aside>
 
       <main class="dashboard-main" id="dashboard">
-        <section class="welcome-row">
-          <div>
-            <h1>Olá, Tullio! 👋</h1>
-            <p>Aqui está o resumo do monitoramento de hoje.</p>
+        <section class="welcome-row hero-panel">
+          <div class="hero-copy">
+            <span class="hero-kicker">Monitore • Compare • Economize</span>
+            <h1>O Garimpanda encontra os <span>melhores preços</span> para você</h1>
+            <p>Comparamos ofertas reais, monitoramos produtos e avisamos quando o preço ideal aparece.</p>
+            <div class="hero-benefits" id="como-funciona">
+              <span><i aria-hidden="true">M</i> Monitore preços</span>
+              <span><i aria-hidden="true">A</i> Receba alertas</span>
+              <span><i aria-hidden="true">E</i> Economize tempo</span>
+            </div>
+          </div>
+          <div class="hero-visual" aria-hidden="true">
+            <img src="./assets/garimpanda-panda.png" alt="" />
           </div>
           <div class="monitor-actions">
             <button class="primary-button" id="refreshNowButton" type="button">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6" /><path d="M20 4v6h-6" /></svg>
               Atualizar
             </button>
-            <button class="secondary-button" id="toggleLiveButton" type="button">Pausar</button>
+            <button class="secondary-button" id="toggleLiveButton" type="button">Pausar radar</button>
           </div>
         </section>
 
@@ -318,6 +330,24 @@
           </div>
 
           <div class="supabase-warning" id="supabaseStatus">Supabase aguardando configuração.</div>
+
+          <div class="radar-guide">
+            <article>
+              <span aria-hidden="true">1</span>
+              <strong>Escolha um produto</strong>
+              <p>Use um nome específico, marca e o preço máximo que cabe no seu bolso.</p>
+            </article>
+            <article>
+              <span aria-hidden="true">2</span>
+              <strong>O n8n compara ofertas</strong>
+              <p>A cada coleta, o radar cruza seus alertas com produtos reais do feed.</p>
+            </article>
+            <article>
+              <span aria-hidden="true">3</span>
+              <strong>Você recebe o aviso</strong>
+              <p>Quando bater o valor, o match fica pronto para disparo por e-mail ou WhatsApp.</p>
+            </article>
+          </div>
 
           <div class="alert-auth-grid" id="authForms">
             <form class="alert-form" id="signupForm">
@@ -555,6 +585,6 @@
       </article>
     </template>
 
-    <script src="./app.js?v=supabase1" defer></script>
+    <script src="./app.js?v=garimpanda1" defer></script>
   </body>
 </html>
