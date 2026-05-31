@@ -68,12 +68,12 @@ Para listar apenas produtos que estao em promocao, importe `workflows/monitorhub
 
 No node `Configuracao Promocoes`, preencha:
 
-- `mercadoLivreUserId`: ID do usuario/vendedor autorizado.
-- `mercadoLivreAccessToken`: token OAuth do Mercado Livre.
+- `promotionsSourceUrl`: endpoint seguro que busca promocoes usando as credenciais do backend.
 - `minDiscountPercent`: desconto minimo para entrar no painel.
 - `promotionTypes`: tipos de promocao aceitos.
 
 O filtro exige `status=started`, `original_price` maior que `price` e preco promocional maior que zero.
+Com o workflow ativo no n8n local, voce tambem pode disparar uma coleta imediata em `http://127.0.0.1:5678/webhook/monitorhub-promocoes`.
 
 ## Painel local
 

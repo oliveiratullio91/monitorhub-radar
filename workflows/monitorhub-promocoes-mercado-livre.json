@@ -35,6 +35,22 @@
     },
     {
       "parameters": {
+        "path": "monitorhub-promocoes",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "4a105f2e-7d55-47b7-b0f3-f2d4a8020107",
+      "name": "Webhook - executar agora",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -820,
+        560
+      ],
+      "webhookId": "monitorhub-promocoes"
+    },
+    {
+      "parameters": {
         "assignments": {
           "assignments": [
             {
@@ -59,6 +75,12 @@
               "id": "ml-access-token",
               "name": "mercadoLivreAccessToken",
               "value": "",
+              "type": "string"
+            },
+            {
+              "id": "promotions-source-url",
+              "name": "promotionsSourceUrl",
+              "value": "https://monitorhub-radar.vercel.app/api/mercadolivre/promotions?limit={{limitPerPromotion}}&minDiscountPercent={{minDiscountPercent}}&promotionTypes={{promotionTypes}}",
               "type": "string"
             },
             {
@@ -100,7 +122,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const cfg = $input.first().json;\nconst now = new Date().toISOString();\nconst token = String(cfg.mercadoLivreAccessToken || '').trim();\nconst userId = String(cfg.mercadoLivreUserId || '').trim();\nconst maxPromotions = Math.max(1, Math.min(Number(cfg.maxPromotions || 20), 50));\nconst limitPerPromotion = Math.max(1, Math.min(Number(cfg.limitPerPromotion || 50), 100));\nconst minDiscountPercent = Math.max(0, Number(cfg.minDiscountPercent || 0));\nconst allowedTypes = new Set(String(cfg.promotionTypes || '').split(',').map((type) => type.trim()).filter(Boolean));\nconst errors = [];\n\nfunction basePayload(products = []) {\n  return {\n    runId: $execution?.id || `promocoes-${Date.now()}`,\n    source: 'n8n',\n    sourceName: 'Mercado Livre Promocoes',\n    query: 'Promocoes ativas Mercado Livre',\n    currency: 'BRL',\n    products,\n    errors,\n    fetchedAt: now,\n    monitorHubEndpoint: cfg.monitorHubEndpoint,\n    monitorHubIngestToken: cfg.monitorHubIngestToken\n  };\n}\n\nif (!token || !userId) {\n  errors.push('n8n: preencha mercadoLivreAccessToken e mercadoLivreUserId no node Configuracao Promocoes.');\n  return [{ json: basePayload([]) }];\n}\n\nfunction toNumber(value) {\n  if (value === null || value === undefined || value === '') return null;\n  if (typeof value === 'number') return Number.isFinite(value) ? value : null;\n  const raw = String(value).replace(/\\s/g, '').replace(/R\\$/gi, '').replace(/[^0-9,.-]/g, '');\n  if (!raw) return null;\n  const hasComma = raw.includes(',');\n  const hasDot = raw.includes('.');\n  let normalized = raw;\n  if (hasComma && hasDot) normalized = raw.lastIndexOf(',') > raw.lastIndexOf('.') ? raw.replace(/\\./g, '').replace(',', '.') : raw.replace(/,/g, '');\n  else if (hasComma) normalized = raw.replace(',', '.');\n  const number = Number(normalized);\n  return Number.isFinite(number) ? number : null;\n}\n\nfunction statusValue(value) {\n  return String(value?.id || value || '').toLowerCase();\n}\n\nfunction discountPercent(price, originalPrice) {\n  if (!price || !originalPrice || originalPrice <= price) return 0;\n  return Number((((originalPrice - price) / originalPrice) * 100).toFixed(2));\n}\n\nasync function mlGet(path) {\n  const response = await fetch(`https://api.mercadolibre.com${path}`, {\n    headers: {\n      Accept: 'application/json',\n      Authorization: `Bearer ${token}`,\n      'User-Agent': 'n8n-monitorhub-promocoes/1.0'\n    }\n  });\n  const text = await response.text();\n  let payload = null;\n  try { payload = text ? JSON.parse(text) : null; } catch { payload = { raw: text }; }\n  if (!response.ok) {\n    const detail = payload?.message || payload?.error || payload?.raw || response.statusText;\n    throw new Error(`HTTP ${response.status}: ${detail}`);\n  }\n  return payload;\n}\n\nlet campaigns = [];\ntry {\n  const campaignPayload = await mlGet(`/seller-promotions/users/${encodeURIComponent(userId)}?app_version=v2&limit=${maxPromotions}`);\n  campaigns = (Array.isArray(campaignPayload?.results) ? campaignPayload.results : [])\n    .filter((campaign) => statusValue(campaign.status) === 'started')\n    .filter((campaign) => !allowedTypes.size || allowedTypes.has(String(campaign.type || '').trim()))\n    .slice(0, maxPromotions);\n} catch (error) {\n  errors.push(`n8n: falha ao consultar promocoes do Mercado Livre (${error.message}).`);\n  return [{ json: basePayload([]) }];\n}\n\nconst promotedById = new Map();\nfor (const campaign of campaigns) {\n  const promotionId = String(campaign.id || '').trim();\n  const promotionType = String(campaign.type || '').trim();\n  if (!promotionId || !promotionType) continue;\n\n  try {\n    const path = `/seller-promotions/promotions/${encodeURIComponent(promotionId)}/items?promotion_type=${encodeURIComponent(promotionType)}&status=started&app_version=v2&limit=${limitPerPromotion}`;\n    const itemPayload = await mlGet(path);\n    const items = Array.isArray(itemPayload?.results) ? itemPayload.results : [];\n\n    for (const item of items) {\n      const id = String(item.id || item.item_id || '').trim();\n      const price = toNumber(item.price);\n      const originalPrice = toNumber(item.original_price);\n      const discount = discountPercent(price, originalPrice);\n      if (!id || !price || !originalPrice || originalPrice <= price || discount < minDiscountPercent) continue;\n\n      const previous = promotedById.get(id);\n      if (previous && previous.discountPercent >= discount) continue;\n      promotedById.set(id, {\n        id,\n        price,\n        originalPrice,\n        discountPercent: discount,\n        promotionId,\n        promotionType,\n        promotionName: String(campaign.name || promotionType),\n        promotionStatus: statusValue(item.status) || 'started'\n      });\n    }\n  } catch (error) {\n    errors.push(`n8n: falha ao consultar itens da promocao ${promotionId} (${error.message}).`);\n  }\n}\n\nconst promotedItems = [...promotedById.values()];\nconst detailsById = new Map();\nfor (let index = 0; index < promotedItems.length; index += 20) {\n  const ids = promotedItems.slice(index, index + 20).map((item) => item.id);\n  try {\n    const detailPayload = await mlGet(`/items?ids=${ids.join(',')}`);\n    const details = Array.isArray(detailPayload) ? detailPayload : [];\n    for (const detail of details) {\n      const body = detail?.body || detail;\n      if (body?.id) detailsById.set(String(body.id), body);\n    }\n  } catch (error) {\n    errors.push(`n8n: falha ao buscar detalhes de ${ids.length} itens (${error.message}).`);\n  }\n}\n\nconst products = promotedItems.map((promo) => {\n  const detail = detailsById.get(promo.id) || {};\n  const title = String(detail.title || promo.id);\n  const url = String(detail.permalink || `https://produto.mercadolivre.com.br/${promo.id}`);\n  return {\n    id: promo.id,\n    title,\n    price: promo.price,\n    originalPrice: promo.originalPrice,\n    discountPercent: promo.discountPercent,\n    currency: detail.currency_id || 'BRL',\n    url,\n    image: detail.secure_thumbnail || detail.thumbnail || detail.pictures?.[0]?.url || '',\n    seller: detail.seller?.nickname || String(detail.seller_id || ''),\n    availability: detail.available_quantity ? `${detail.available_quantity} disponivel` : String(detail.status || promo.promotionStatus),\n    source: 'Mercado Livre Promocoes',\n    sourceKind: 'mercadolivre',\n    query: 'Promocoes ativas Mercado Livre',\n    fetchedAt: now,\n    opportunityScore: Math.min(100, Math.max(1, Math.round(70 + promo.discountPercent))),\n    promotionId: promo.promotionId,\n    promotionType: promo.promotionType,\n    promotionName: promo.promotionName,\n    notes: `${promo.promotionName} (${promo.promotionType}) - ${Math.round(promo.discountPercent)}% OFF`\n  };\n});\n\nproducts.sort((a, b) => (b.discountPercent || 0) - (a.discountPercent || 0));\nif (!products.length && !errors.length) {\n  errors.push('n8n: nenhuma promocao ativa com preco promocional/original foi encontrada para esta conta.');\n}\n\nreturn [{ json: basePayload(products) }];"
+        "jsCode": "const cfg = $input.first().json;\nconst now = new Date().toISOString();\nconst errors = [];\n\nfunction basePayload(products = []) {\n  return {\n    runId: $execution?.id || `promocoes-${Date.now()}`,\n    source: 'n8n',\n    sourceName: 'Mercado Livre Promocoes',\n    query: 'Promocoes ativas Mercado Livre',\n    currency: 'BRL',\n    products,\n    errors,\n    fetchedAt: now,\n    monitorHubEndpoint: cfg.monitorHubEndpoint,\n    monitorHubIngestToken: cfg.monitorHubIngestToken\n  };\n}\n\nfunction buildSourceUrl() {\n  const template = String(cfg.promotionsSourceUrl || '').trim();\n  if (!template) return '';\n  return template\n    .replaceAll('{{limitPerPromotion}}', encodeURIComponent(String(cfg.limitPerPromotion || 50)))\n    .replaceAll('{{minDiscountPercent}}', encodeURIComponent(String(cfg.minDiscountPercent || 0)))\n    .replaceAll('{{promotionTypes}}', encodeURIComponent(String(cfg.promotionTypes || '')));\n}\n\nconst sourceUrl = buildSourceUrl();\nif (sourceUrl) {\n  try {\n    const response = await fetch(sourceUrl, { headers: { Accept: 'application/json' } });\n    const payload = await response.json();\n    const sourceErrors = Array.isArray(payload?.errors) ? payload.errors : [];\n    errors.push(...sourceErrors.map((message) => `n8n: ${message}`));\n    return [{ json: basePayload(Array.isArray(payload?.products) ? payload.products : []) }];\n  } catch (error) {\n    errors.push(`n8n: falha ao consultar endpoint seguro de promocoes (${error.message}).`);\n    return [{ json: basePayload([]) }];\n  }\n}\n\nerrors.push('n8n: configure promotionsSourceUrl ou preencha credenciais Mercado Livre para consulta direta.');\nreturn [{ json: basePayload([]) }];"
       },
       "id": "12c9df4e-8493-4f69-9944-bdbf9f220104",
       "name": "Coletar somente itens em promocao",
@@ -174,6 +196,17 @@
       ]
     },
     "Agendamento - a cada 30 minutos": {
+      "main": [
+        [
+          {
+            "node": "Configuracao Promocoes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - executar agora": {
       "main": [
         [
           {
