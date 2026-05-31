@@ -398,9 +398,7 @@ async function getMercadoLivreSellerProducts({ query, limit, accessToken, userId
     }
   }
 
-  const normalizedQuery = query.trim().toLowerCase();
   return products
-    .filter((product) => !normalizedQuery || String(product.title || "").toLowerCase().includes(normalizedQuery))
     .slice(0, limit)
     .map((record) => normalizeMercadoLivre(record, query));
 }
