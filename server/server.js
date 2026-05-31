@@ -19,6 +19,7 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 const siteDir = path.join(rootDir, "site");
 const port = Number(process.env.PORT || 8080);
+const maxJsonBodyBytes = 5_000_000;
 let mercadoLivreOAuthSession = null;
 
 const contentTypes = {
@@ -164,7 +165,7 @@ async function readJson(request) {
   let size = 0;
   for await (const chunk of request) {
     size += chunk.length;
-    if (size > 1_000_000) throw new Error("Payload muito grande");
+    if (size > maxJsonBodyBytes) throw new Error("Payload muito grande");
     chunks.push(chunk);
   }
 
