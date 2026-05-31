@@ -6,9 +6,9 @@ O painel agora usa um backend local em Node.js. As credenciais ficam no arquivo 
 
 O caminho mais simples no modo local e usar o assistente do projeto:
 
-1. Abra `http://127.0.0.1:8080/mercadolivre-setup.html`.
+1. Abra `http://127.0.0.1:8090/mercadolivre-setup.html`.
 2. No Mercado Livre Developers, cadastre no aplicativo o redirect URI:
-   `http://127.0.0.1:8080/api/mercadolivre/oauth/callback`.
+   `http://127.0.0.1:8090/api/mercadolivre/oauth/callback`.
 3. Cole o `APP ID` e a `Secret Key` no assistente local.
 4. Autorize a conta no Mercado Livre.
 
@@ -23,7 +23,7 @@ MERCADO_LIVRE_ACCESS_TOKEN=SEU_ACCESS_TOKEN
 MERCADO_LIVRE_REFRESH_TOKEN=SEU_REFRESH_TOKEN
 MERCADO_LIVRE_CLIENT_ID=SEU_APP_ID
 MERCADO_LIVRE_CLIENT_SECRET=SUA_SECRET_KEY
-MERCADO_LIVRE_REDIRECT_URI=http://127.0.0.1:8080/api/mercadolivre/oauth/callback
+MERCADO_LIVRE_REDIRECT_URI=http://127.0.0.1:8090/api/mercadolivre/oauth/callback
 ```
 
 O backend usa:
@@ -72,7 +72,7 @@ Depois de preencher `.env` manualmente, reinicie o servidor:
 Teste a API:
 
 ```powershell
-Invoke-RestMethod "http://127.0.0.1:8080/api/products?sources=mercadolivre,amazon&mercadoLivreQuery=notebook&amazonQuery=fone%20bluetooth&limit=5"
+Invoke-RestMethod "http://127.0.0.1:8090/api/products?sources=mercadolivre,amazon&mercadoLivreQuery=notebook&amazonQuery=fone%20bluetooth&limit=5"
 ```
 
 Sem credenciais, o site fica em modo real aguardando configuracao e mostra quais variaveis ainda faltam. Para dados reais, use sempre Mercado Livre, Amazon Creators API ou outro endpoint autorizado.

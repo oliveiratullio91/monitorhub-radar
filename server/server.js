@@ -30,7 +30,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 const siteDir = path.join(rootDir, "site");
-const port = Number(process.env.PORT || 8080);
+const port = Number(process.env.PORT || 8090);
 const maxJsonBodyBytes = 5_000_000;
 let mercadoLivreOAuthSession = null;
 

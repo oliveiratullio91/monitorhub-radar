@@ -57,7 +57,7 @@ O painel agora prioriza produtos enviados pelo n8n em `POST /api/n8n/products`.
 
 1. Importe `workflows/monitorhub-feed-n8n-mercado-livre.json` no n8n.
 2. No node `Configuracao MonitorHub`, confira:
-   - `monitorHubEndpoint`: `https://monitorhub-radar.vercel.app/api/n8n/products` ou `http://127.0.0.1:8080/api/n8n/products`.
+   - `monitorHubEndpoint`: `https://monitorhub-radar.vercel.app/api/n8n/products` ou `http://127.0.0.1:8090/api/n8n/products`.
    - `query`: termo buscado no Mercado Livre.
    - `limit`: quantidade de produtos.
    - `mercadoLivreAccessToken`: token do app, se a fonte exigir.
@@ -136,11 +136,11 @@ npm install
 .\start-site-local.ps1
 ```
 
-Depois acesse `http://127.0.0.1:8080`.
+Depois acesse `http://127.0.0.1:8090`.
 
 Preencha o arquivo `.env` para ativar Mercado Livre e Amazon reais.
 O painel principal esta em modo real: sem credenciais, ele mostra quais variaveis faltam em vez de preencher a tela com produtos demonstrativos.
-Para conectar Mercado Livre com OAuth local, acesse `http://127.0.0.1:8080/mercadolivre-setup.html` e use o APP ID/Secret Key do aplicativo criado no Mercado Livre Developers.
+Para conectar Mercado Livre com OAuth local, acesse `http://127.0.0.1:8090/mercadolivre-setup.html` e use o APP ID/Secret Key do aplicativo criado no Mercado Livre Developers.
 
 Na Vercel, use as mesmas chaves do `.env` como Environment Variables.
 Depois do deploy, cadastre no app do Mercado Livre:
