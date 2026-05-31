@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.git/
+.n8n-local/
+.site-local/
+.vercel/
+site/preview-*.png
+site/preview-*.jpg

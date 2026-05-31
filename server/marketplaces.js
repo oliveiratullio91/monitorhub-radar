@@ -240,8 +240,8 @@ export async function getProducts(searchParams) {
 }
 
 function loadEnv(filePath) {
-  const values = { ...process.env };
-  if (!existsSync(filePath)) return values;
+  const values = {};
+  if (!existsSync(filePath)) return { ...process.env };
 
   const content = readFileSync(filePath, "utf8");
   for (const rawLine of content.split(/\r?\n/)) {
@@ -257,7 +257,7 @@ function loadEnv(filePath) {
     }
     values[key] = value;
   }
-  return values;
+  return { ...values, ...process.env };
 }
 
 function writeEnvValues(filePath, values) {
