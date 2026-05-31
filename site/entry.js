@@ -3,6 +3,7 @@ const ALERT_AUTH_KEY = "monitorhub-alert-auth-v1";
 const form = document.querySelector("#entryLoginForm");
 const emailInput = document.querySelector("#entryLoginEmail");
 const passwordInput = document.querySelector("#entryLoginPassword");
+const passwordToggle = document.querySelector("#passwordToggle");
 const statusText = document.querySelector("#entryLoginStatus");
 
 function setStatus(message, ready = false) {
@@ -52,4 +53,11 @@ form?.addEventListener("submit", async (event) => {
     setLoading(false);
     if (passwordInput) passwordInput.value = "";
   }
+});
+
+passwordToggle?.addEventListener("click", () => {
+  if (!passwordInput) return;
+  const shouldShow = passwordInput.type === "password";
+  passwordInput.type = shouldShow ? "text" : "password";
+  passwordToggle.setAttribute("aria-label", shouldShow ? "Ocultar senha" : "Mostrar senha");
 });

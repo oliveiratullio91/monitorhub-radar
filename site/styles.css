@@ -3400,3 +3400,320 @@ table td {
     margin: 0 auto -40px;
   }
 }
+
+/* Login reference screen */
+.login-screen {
+  display: grid;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 16% -8%, rgba(15, 163, 115, 0.18), transparent 34%),
+    radial-gradient(circle at 94% 8%, rgba(15, 163, 115, 0.12), transparent 30%),
+    linear-gradient(180deg, #f7fbf8 0%, #eef8f3 100%);
+}
+
+.login-screen::before {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 190px;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(15, 163, 115, 0.24) 1.8px, transparent 1.8px);
+  background-size: 28px 28px;
+  opacity: 0.38;
+  content: "";
+}
+
+.login-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 100vh;
+  padding: 22px;
+}
+
+.login-card {
+  position: relative;
+  display: grid;
+  width: min(100%, 430px);
+  min-height: 760px;
+  overflow: hidden;
+  border: 1px solid rgba(24, 57, 46, 0.12);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 26px 70px rgba(22, 93, 68, 0.16);
+  padding: 42px 46px 210px;
+}
+
+.login-logo {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-self: center;
+  gap: 12px;
+  color: #101820;
+  text-decoration: none;
+}
+
+.login-logo-mark {
+  width: 58px;
+  height: 50px;
+  border-radius: 18px;
+  background: url("./assets/garimpanda-panda.png") 64% 86% / 178px auto no-repeat;
+}
+
+.login-logo strong {
+  font-size: 2.05rem;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.login-logo strong span,
+.login-header h1 span {
+  color: var(--green);
+}
+
+.login-header {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  gap: 10px;
+  margin-top: 42px;
+  text-align: center;
+}
+
+.login-header h1 {
+  font-size: clamp(2.15rem, 7vw, 2.75rem);
+  line-height: 1.04;
+}
+
+.login-header p {
+  max-width: 330px;
+  margin: 0 auto;
+  color: #75818a;
+  font-size: 1rem;
+}
+
+.login-form {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  gap: 17px;
+  margin-top: 32px;
+}
+
+.login-field {
+  display: grid;
+  gap: 8px;
+}
+
+.login-field > span {
+  color: #1d282f;
+  font-weight: 900;
+}
+
+.login-input-shell {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  border: 1px solid rgba(24, 57, 46, 0.12);
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(20, 37, 31, 0.04);
+  padding: 0 14px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.login-input-shell:focus-within {
+  border-color: rgba(15, 163, 115, 0.42);
+  box-shadow: 0 0 0 4px rgba(15, 163, 115, 0.11);
+}
+
+.login-input-shell svg {
+  width: 20px;
+  height: 20px;
+  color: #9ba6ad;
+}
+
+.login-input-shell input {
+  min-height: 50px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #101820;
+  padding: 0;
+}
+
+.login-input-shell input:focus {
+  box-shadow: none;
+}
+
+.password-toggle {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #8f9aa2;
+  padding: 0;
+}
+
+.password-toggle:hover {
+  background: #eef8f3;
+  color: var(--green);
+}
+
+.forgot-link,
+.guest-link {
+  width: fit-content;
+  color: #73808a;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.forgot-link {
+  margin-top: -7px;
+}
+
+.login-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 54px;
+  border-radius: 10px;
+  font-size: 1rem;
+}
+
+.login-submit svg {
+  width: 17px;
+  height: 17px;
+}
+
+.login-divider {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 14px 0;
+  color: #9aa6ad;
+  font-weight: 800;
+}
+
+.login-divider::before,
+.login-divider::after {
+  flex: 1;
+  height: 1px;
+  background: rgba(24, 57, 46, 0.1);
+  content: "";
+}
+
+.create-account-button {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 52px;
+  border: 1px solid rgba(24, 57, 46, 0.12);
+  border-radius: 10px;
+  background: #fff;
+  color: #101820;
+  font-weight: 900;
+  text-decoration: none;
+  box-shadow: 0 8px 20px rgba(20, 37, 31, 0.03);
+}
+
+.create-account-button:hover {
+  border-color: rgba(15, 163, 115, 0.28);
+  background: #f6fbf8;
+}
+
+.guest-link {
+  position: relative;
+  z-index: 3;
+  justify-self: center;
+  margin-top: 10px;
+  color: var(--green);
+}
+
+.login-security {
+  position: absolute;
+  z-index: 2;
+  left: 46px;
+  bottom: 56px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 160px);
+  gap: 12px;
+  align-items: center;
+}
+
+.login-security > span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--green);
+}
+
+.login-security svg {
+  width: 34px;
+  height: 34px;
+}
+
+.login-security strong {
+  display: block;
+  color: #1f2d31;
+  font-size: 0.92rem;
+}
+
+.login-security p {
+  color: #7c8991;
+  font-size: 0.78rem;
+}
+
+.login-panda {
+  position: absolute;
+  z-index: 1;
+  right: -20px;
+  bottom: -4px;
+  width: 300px;
+  height: 245px;
+  background: url("./assets/garimpanda-panda.png") 68% 100% / 430px auto no-repeat;
+  pointer-events: none;
+}
+
+@media (max-width: 520px) {
+  .login-shell {
+    padding: 8px;
+  }
+
+  .login-card {
+    min-height: 100vh;
+    border-radius: 18px;
+    padding: 34px 28px 218px;
+  }
+
+  .login-header {
+    margin-top: 34px;
+  }
+
+  .login-security {
+    left: 28px;
+    bottom: 52px;
+    grid-template-columns: 32px minmax(0, 160px);
+  }
+
+  .login-panda {
+    right: -54px;
+    width: 292px;
+  }
+}

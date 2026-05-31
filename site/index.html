@@ -5,75 +5,90 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Garimpanda monitora ofertas, compara precos e envia alertas quando o valor ideal aparece." />
     <title>Garimpanda - Entrar</title>
-    <link rel="stylesheet" href="./styles.css?v=pages1" />
+    <link rel="stylesheet" href="./styles.css?v=login2" />
   </head>
-  <body class="entry-body">
-    <main class="entry-shell">
-      <section class="entry-hero" aria-label="Boas-vindas">
-        <a class="entry-brand" href="./index.html" aria-label="Garimpanda">
-          <span class="brand-mark" aria-hidden="true">
-            <img src="./assets/garimpanda-panda.png" alt="" />
-          </span>
+  <body class="entry-body login-screen">
+    <main class="login-shell">
+      <section class="login-card" aria-label="Acesso ao Garimpanda">
+        <a class="login-logo" href="./index.html" aria-label="Garimpanda">
+          <span class="login-logo-mark" aria-hidden="true"></span>
           <strong>Garim<span>panda</span></strong>
         </a>
 
-        <div class="entry-copy">
-          <span class="hero-kicker">Radar de ofertas com n8n</span>
-          <h1>Encontre bons garimpos antes que o preco suba.</h1>
-          <p>
-            Monitore ofertas do Mercado Livre e Amazon, filtre os melhores produtos e crie alertas de preco
-            com uma plataforma pronta para evoluir.
-          </p>
-        </div>
+        <header class="login-header">
+          <h1>Entre no <span>Garimpanda</span></h1>
+          <p>Monitore precos no Mercado Livre, compare ofertas e receba alertas para economizar sempre.</p>
+        </header>
 
-        <div class="entry-benefits" aria-label="Recursos principais">
-          <article>
-            <span>01</span>
-            <strong>Produtos reais</strong>
-            <p>Feed alimentado pelo n8n com ofertas coletadas em intervalos fixos.</p>
-          </article>
-          <article>
-            <span>02</span>
-            <strong>Radar de preco</strong>
-            <p>Defina um valor alvo e deixe o sistema comparar em cada nova coleta.</p>
-          </article>
-          <article>
-            <span>03</span>
-            <strong>Sem travar no login</strong>
-            <p>Entre como visitante para navegar e use cadastro apenas para salvar alertas.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="entry-card" aria-label="Acesso ao Garimpanda">
-        <div class="entry-card-header">
-          <img src="./assets/garimpanda-panda.png" alt="" />
-          <div>
-            <h2>Entre no Garimpanda</h2>
-            <p>Use sua conta para salvar alertas ou continue como visitante.</p>
-          </div>
-        </div>
-
-        <form class="entry-form" id="entryLoginForm">
-          <label class="field-group">
+        <form class="login-form" id="entryLoginForm">
+          <label class="login-field">
             <span>E-mail</span>
-            <input id="entryLoginEmail" type="email" autocomplete="email" placeholder="seu@email.com" required />
+            <div class="login-input-shell">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h16v12H4z" />
+                <path d="m4 7 8 6 8-6" />
+              </svg>
+              <input id="entryLoginEmail" type="email" autocomplete="email" placeholder="seu@email.com" required />
+            </div>
           </label>
-          <label class="field-group">
+
+          <label class="login-field">
             <span>Senha</span>
-            <input id="entryLoginPassword" type="password" autocomplete="current-password" placeholder="********" required />
+            <div class="login-input-shell">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+                <path d="M6 11h12v9H6z" />
+              </svg>
+              <input id="entryLoginPassword" type="password" autocomplete="current-password" placeholder="********" required />
+              <button class="password-toggle" id="passwordToggle" type="button" aria-label="Mostrar senha">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              </button>
+            </div>
           </label>
-          <button class="primary-button full-button" type="submit">Entrar</button>
+
+          <a class="forgot-link" href="./radar.html#meus-alertas">Esqueci minha senha</a>
+          <button class="primary-button login-submit" type="submit">
+            Entrar
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z" />
+              <path d="M9.5 20a2.8 2.8 0 0 0 5 0" />
+            </svg>
+          </button>
           <p class="form-status" id="entryLoginStatus" role="status"></p>
         </form>
 
-        <div class="entry-divider"><span>ou</span></div>
+        <div class="login-divider"><span>ou</span></div>
 
-        <a class="secondary-button full-button" href="./produtos.html">Entrar sem login</a>
-        <a class="text-button entry-link" href="./radar.html#meus-alertas">Criar conta para alertas</a>
+        <a class="create-account-button" href="./radar.html#meus-alertas">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 21a8 8 0 0 0-16 0" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          Criar conta
+        </a>
+
+        <a class="guest-link" href="./produtos.html">Entrar sem login</a>
+
+        <footer class="login-security">
+          <span aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 3 5 6v5c0 4.3 2.9 8.4 7 10 4.1-1.6 7-5.7 7-10V6l-7-3Z" />
+              <path d="m9 12 2 2 4-5" />
+            </svg>
+          </span>
+          <div>
+            <strong>Seguro, rapido e facil</strong>
+            <p>Seus dados estao protegidos com criptografia de ponta.</p>
+          </div>
+        </footer>
+
+        <div class="login-panda" aria-hidden="true"></div>
       </section>
     </main>
 
-    <script src="./entry.js?v=pages1" defer></script>
+    <script src="./entry.js?v=login2" defer></script>
   </body>
 </html>
