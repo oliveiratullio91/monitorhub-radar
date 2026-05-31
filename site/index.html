@@ -5,90 +5,123 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Garimpanda monitora ofertas, compara precos e envia alertas quando o valor ideal aparece." />
     <title>Garimpanda - Entrar</title>
-    <link rel="stylesheet" href="./styles.css?v=login2" />
+    <link rel="stylesheet" href="./styles.css?v=login3" />
   </head>
   <body class="entry-body login-screen">
     <main class="login-shell">
       <section class="login-card" aria-label="Acesso ao Garimpanda">
-        <a class="login-logo" href="./index.html" aria-label="Garimpanda">
-          <span class="login-logo-mark" aria-hidden="true"></span>
-          <strong>Garim<span>panda</span></strong>
-        </a>
+        <aside class="login-showcase" aria-label="Resumo do Garimpanda">
+          <a class="login-logo" href="./index.html" aria-label="Garimpanda">
+            <span class="login-logo-mark" aria-hidden="true"></span>
+            <strong>Garim<span>panda</span></strong>
+          </a>
 
-        <header class="login-header">
-          <h1>Entre no <span>Garimpanda</span></h1>
-          <p>Monitore precos no Mercado Livre, compare ofertas e receba alertas para economizar sempre.</p>
-        </header>
-
-        <form class="login-form" id="entryLoginForm">
-          <label class="login-field">
-            <span>E-mail</span>
-            <div class="login-input-shell">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 6h16v12H4z" />
-                <path d="m4 7 8 6 8-6" />
-              </svg>
-              <input id="entryLoginEmail" type="email" autocomplete="email" placeholder="seu@email.com" required />
-            </div>
-          </label>
-
-          <label class="login-field">
-            <span>Senha</span>
-            <div class="login-input-shell">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M7 11V8a5 5 0 0 1 10 0v3" />
-                <path d="M6 11h12v9H6z" />
-              </svg>
-              <input id="entryLoginPassword" type="password" autocomplete="current-password" placeholder="********" required />
-              <button class="password-toggle" id="passwordToggle" type="button" aria-label="Mostrar senha">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
-                  <circle cx="12" cy="12" r="3" />
-                </svg>
-              </button>
-            </div>
-          </label>
-
-          <a class="forgot-link" href="./radar.html#meus-alertas">Esqueci minha senha</a>
-          <button class="primary-button login-submit" type="submit">
-            Entrar
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z" />
-              <path d="M9.5 20a2.8 2.8 0 0 0 5 0" />
-            </svg>
-          </button>
-          <p class="form-status" id="entryLoginStatus" role="status"></p>
-        </form>
-
-        <div class="login-divider"><span>ou</span></div>
-
-        <a class="create-account-button" href="./radar.html#meus-alertas">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M20 21a8 8 0 0 0-16 0" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-          Criar conta
-        </a>
-
-        <a class="guest-link" href="./produtos.html">Entrar sem login</a>
-
-        <footer class="login-security">
-          <span aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path d="M12 3 5 6v5c0 4.3 2.9 8.4 7 10 4.1-1.6 7-5.7 7-10V6l-7-3Z" />
-              <path d="m9 12 2 2 4-5" />
-            </svg>
-          </span>
-          <div>
-            <strong>Seguro, rapido e facil</strong>
-            <p>Seus dados estao protegidos com criptografia de ponta.</p>
+          <div class="login-showcase-copy">
+            <span>Radar inteligente de ofertas</span>
+            <h2>Garimpe oportunidades reais sem perder tempo.</h2>
+            <p>
+              Compare precos, acompanhe ofertas e configure alertas para ser avisado quando
+              o valor ideal aparecer.
+            </p>
           </div>
-        </footer>
 
-        <div class="login-panda" aria-hidden="true"></div>
+          <div class="login-showcase-grid" aria-label="Destaques da plataforma">
+            <article>
+              <strong>1.000+</strong>
+              <span>produtos monitorados</span>
+            </article>
+            <article>
+              <strong>30 min</strong>
+              <span>intervalo de coleta</span>
+            </article>
+            <article>
+              <strong>n8n</strong>
+              <span>automacao integrada</span>
+            </article>
+          </div>
+
+          <footer class="login-security">
+            <span aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 3 5 6v5c0 4.3 2.9 8.4 7 10 4.1-1.6 7-5.7 7-10V6l-7-3Z" />
+                <path d="m9 12 2 2 4-5" />
+              </svg>
+            </span>
+            <div>
+              <strong>Seguro, rapido e facil</strong>
+              <p>Seus dados estao protegidos com criptografia de ponta.</p>
+            </div>
+          </footer>
+
+          <div class="login-panda" aria-hidden="true"></div>
+        </aside>
+
+        <section class="login-panel">
+          <a class="login-logo login-logo-mobile" href="./index.html" aria-label="Garimpanda">
+            <span class="login-logo-mark" aria-hidden="true"></span>
+            <strong>Garim<span>panda</span></strong>
+          </a>
+
+          <header class="login-header">
+            <h1>Entre no <span>Garimpanda</span></h1>
+            <p>Monitore precos no Mercado Livre, compare ofertas e receba alertas para economizar sempre.</p>
+          </header>
+
+          <form class="login-form" id="entryLoginForm">
+            <label class="login-field">
+              <span>E-mail</span>
+              <div class="login-input-shell">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 6h16v12H4z" />
+                  <path d="m4 7 8 6 8-6" />
+                </svg>
+                <input id="entryLoginEmail" type="email" autocomplete="email" placeholder="seu@email.com" required />
+              </div>
+            </label>
+
+            <label class="login-field">
+              <span>Senha</span>
+              <div class="login-input-shell">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+                  <path d="M6 11h12v9H6z" />
+                </svg>
+                <input id="entryLoginPassword" type="password" autocomplete="current-password" placeholder="********" required />
+                <button class="password-toggle" id="passwordToggle" type="button" aria-label="Mostrar senha">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+              </div>
+            </label>
+
+            <a class="forgot-link" href="./radar.html#meus-alertas">Esqueci minha senha</a>
+            <button class="primary-button login-submit" type="submit">
+              Entrar
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z" />
+                <path d="M9.5 20a2.8 2.8 0 0 0 5 0" />
+              </svg>
+            </button>
+            <p class="form-status" id="entryLoginStatus" role="status"></p>
+          </form>
+
+          <div class="login-divider"><span>ou</span></div>
+
+          <a class="create-account-button" href="./radar.html#meus-alertas">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 21a8 8 0 0 0-16 0" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+            Criar conta
+          </a>
+
+          <a class="guest-link" href="./produtos.html">Entrar sem login</a>
+        </section>
       </section>
     </main>
 
-    <script src="./entry.js?v=login2" defer></script>
+    <script src="./entry.js?v=login3" defer></script>
   </body>
 </html>
