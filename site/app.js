@@ -252,6 +252,18 @@ function prepareDemoMode() {
   elements.demoEnabled.closest(".toggle-row")?.classList.toggle("is-hidden", !DEMO_MODE_AVAILABLE);
 }
 
+function normalizeRadarSourceSelection(changedElement = null) {
+  if (!elements.mercadoLivreEnabled || !elements.amazonEnabled) return;
+  if (elements.mercadoLivreEnabled.checked || elements.amazonEnabled.checked) return;
+
+  if (changedElement === elements.mercadoLivreEnabled) {
+    elements.amazonEnabled.checked = true;
+    return;
+  }
+
+  elements.mercadoLivreEnabled.checked = true;
+}
+
 async function fetchProductsFromBackend(config) {
   const n8nPayload = await fetchN8nProducts(config.itemLimit);
   if (n8nPayload && (n8nPayload.products?.length || n8nPayload.updatedAt || n8nPayload.errors?.length)) {
@@ -1533,6 +1545,7 @@ function bindEvents() {
     elements.itemLimit,
   ].filter(Boolean).forEach((element) => {
     element.addEventListener("change", () => {
+      normalizeRadarSourceSelection(element);
       saveConfig();
       clearTimeout(state.timer);
       refreshProducts();
@@ -1560,6 +1573,7 @@ async function init() {
   const shouldLoadProducts = Boolean(elements.productGrid || elements.totalProducts || elements.recentAlertsBody || elements.activityChart);
   prepareDemoMode();
   applyConfig(readStorage(CONFIG_KEY, null));
+  normalizeRadarSourceSelection();
   state.pageSize = Number(elements.pageSizeSelect?.value || 20);
   bindEvents();
   render();

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Catalogo Garimpanda com ofertas monitoradas pelo n8n." />
     <title>Garimpanda - Produtos</title>
-    <link rel="stylesheet" href="./styles.css?v=pages1" />
+    <link rel="stylesheet" href="./styles.css?v=products2" />
   </head>
   <body class="page-body products-page">
     <div class="dashboard-shell">
@@ -123,8 +123,6 @@
                   <option value="all">Todos os marketplaces</option>
                   <option value="mercadolivre">Mercado Livre</option>
                   <option value="amazon">Amazon</option>
-                  <option value="shopee">Shopee</option>
-                  <option value="olx">OLX</option>
                 </select>
               </label>
               <label class="toggle-row compact-toggle">
@@ -137,46 +135,22 @@
               <div class="filter-section-title static">
                 <span>Fontes do radar</span>
               </div>
-              <label class="toggle-row">
-                <input id="demoEnabled" type="checkbox" />
-                <span>Demo local</span>
-              </label>
-              <label class="toggle-row">
-                <input id="mercadoLivreEnabled" type="checkbox" checked />
-                <span>Mercado Livre</span>
-              </label>
-              <label class="field-group">
-                <span>Busca Mercado Livre</span>
-                <input id="mercadoLivreQuery" type="text" value="ofertas" autocomplete="off" />
-              </label>
-              <div class="config-status" id="mercadoLivreStatus">Mercado Livre: aguardando servidor</div>
-              <a class="setup-inline-link" href="./mercadolivre-setup.html">Conectar Mercado Livre</a>
-
-              <label class="toggle-row">
-                <input id="amazonEnabled" type="checkbox" checked />
-                <span>Amazon</span>
-              </label>
-              <label class="field-group">
-                <span>Busca Amazon</span>
-                <input id="amazonQuery" type="text" value="ofertas do dia" autocomplete="off" />
-              </label>
-              <div class="config-status" id="amazonStatus">Amazon: aguardando servidor</div>
-
-              <div class="two-columns">
-                <label class="field-group">
-                  <span>Intervalo</span>
-                  <select id="refreshInterval">
-                    <option value="30000" selected>30s</option>
-                    <option value="60000">1min</option>
-                    <option value="300000">5min</option>
-                  </select>
+              <div class="source-choice-grid" aria-label="Fontes usadas na busca">
+                <label class="source-choice">
+                  <input id="mercadoLivreEnabled" type="checkbox" checked />
+                  <span>
+                    <strong>Mercado Livre</strong>
+                    <small>Ofertas e promocoes</small>
+                  </span>
                 </label>
-                <label class="field-group">
-                  <span>Produtos</span>
-                  <input id="itemLimit" type="number" min="20" max="2000" value="1000" />
+                <label class="source-choice">
+                  <input id="amazonEnabled" type="checkbox" checked />
+                  <span>
+                    <strong>Amazon</strong>
+                    <small>Ofertas do dia</small>
+                  </span>
                 </label>
               </div>
-              <button class="primary-button filter-apply-button" id="saveConfigButton" type="button">Aplicar filtros</button>
             </section>
 
             <div class="filter-trust-card">
@@ -267,6 +241,6 @@
       </article>
     </template>
 
-    <script src="./app.js?v=pages1" defer></script>
+    <script src="./app.js?v=products2" defer></script>
   </body>
 </html>
