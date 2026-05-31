@@ -13,9 +13,15 @@
         <span class="setup-kicker">Integracao real</span>
         <h1>Conectar Mercado Livre</h1>
         <p>
-          Use o APP ID e a Secret Key da sua aplicacao no Mercado Livre Developers. A autorizacao salva
-          o token apenas no arquivo local .env deste projeto.
+          Use o APP ID e a Secret Key da sua aplicacao no Mercado Livre Developers. Na Vercel, as
+          credenciais ficam nas Environment Variables e a autorizacao ativa a sessao deste navegador.
         </p>
+
+        <div class="setup-note">
+          <strong>Antes de autorizar:</strong>
+          no DevCenter, deixe Mercado Livre ativo e habilite permissao de leitura para Items/Publicacao e sincronizacao.
+          Se a API responder 403, atualize essas permissoes e autorize novamente.
+        </div>
 
         <label class="field-group">
           <span>Redirect URI para cadastrar no app</span>

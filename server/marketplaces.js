@@ -333,20 +333,37 @@ async function getMercadoLivreProducts({ query, limit }, options = {}) {
     });
   } catch (error) {
     if (![401, 403].includes(Number(error.status)) || !canRefreshMercadoLivreToken(options)) {
-      throw error;
+      throw enhanceMercadoLivreSearchError(error);
     }
 
     const refreshedToken = await refreshMercadoLivreToken(options.mercadoLivreAuth?.refreshToken, !options.mercadoLivreAuth);
     if (options.mercadoLivreAuth && options.onMercadoLivreAuthUpdate) {
       options.onMercadoLivreAuthUpdate(refreshedToken.auth);
     }
-    payload = await fetchJson(url, {
-      Authorization: `Bearer ${refreshedToken.accessToken}`,
-      Accept: "application/json",
-    });
+    try {
+      payload = await fetchJson(url, {
+        Authorization: `Bearer ${refreshedToken.accessToken}`,
+        Accept: "application/json",
+      });
+    } catch (retryError) {
+      throw enhanceMercadoLivreSearchError(retryError);
+    }
   }
 
   return firstArray(payload, "mercadolivre").map((record) => normalizeMercadoLivre(record, query));
+}
+
+function enhanceMercadoLivreSearchError(error) {
+  const status = Number(error.status);
+  if (![401, 403].includes(status)) return error;
+
+  const enhanced = new Error(
+    status === 403
+      ? "HTTP 403: o Mercado Livre negou a busca de anuncios. Ative no app as permissoes funcionais de Items/Publicacao e sincronizacao em leitura e autorize novamente."
+      : "HTTP 401: token do Mercado Livre invalido ou expirado. Autorize o app novamente.",
+  );
+  enhanced.status = status;
+  return enhanced;
 }
 
 async function getAmazonProducts({ query, limit }) {

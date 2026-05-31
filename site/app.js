@@ -240,6 +240,8 @@ async function refreshProducts() {
     state.lastUpdated = payload.fetchedAt ? new Date(payload.fetchedAt) : new Date();
     if (state.fallbackActive || (config.demoEnabled && !state.serverConfig?.realSourcesReady && !config.mercadoLivreEnabled && !config.amazonEnabled)) {
       setConnectionText("Demo local ativo");
+    } else if (state.sourceErrors.some((message) => message.includes("HTTP 403"))) {
+      setConnectionText("Permissoes pendentes");
     } else {
       setConnectionText(state.sourceErrors.length ? "Credenciais pendentes" : "Atualizado agora");
     }

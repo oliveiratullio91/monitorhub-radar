@@ -1406,6 +1406,19 @@ select option {
   line-height: 1.7;
 }
 
+.setup-note {
+  border: 1px solid rgba(255, 138, 0, 0.28);
+  border-radius: var(--radius);
+  background: rgba(255, 138, 0, 0.08);
+  color: #ffd393;
+  line-height: 1.55;
+  padding: 12px 14px;
+}
+
+.setup-note strong {
+  color: #fff2cf;
+}
+
 .setup-actions {
   display: flex;
   flex-wrap: wrap;
