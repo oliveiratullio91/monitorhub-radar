@@ -80,7 +80,7 @@
             {
               "id": "promotions-source-url",
               "name": "promotionsSourceUrl",
-              "value": "https://monitorhub-radar.vercel.app/api/mercadolivre/promotions?limit={{limitPerPromotion}}&minDiscountPercent={{minDiscountPercent}}&promotionTypes={{promotionTypes}}",
+              "value": "https://monitorhub-radar.vercel.app/api/mercadolivre/promotions?limit=50&minDiscountPercent=1",
               "type": "string"
             },
             {
@@ -122,7 +122,33 @@
     },
     {
       "parameters": {
-        "jsCode": "const cfg = $input.first().json;\nconst now = new Date().toISOString();\nconst errors = [];\n\nfunction basePayload(products = []) {\n  return {\n    runId: $execution?.id || `promocoes-${Date.now()}`,\n    source: 'n8n',\n    sourceName: 'Mercado Livre Promocoes',\n    query: 'Promocoes ativas Mercado Livre',\n    currency: 'BRL',\n    products,\n    errors,\n    fetchedAt: now,\n    monitorHubEndpoint: cfg.monitorHubEndpoint,\n    monitorHubIngestToken: cfg.monitorHubIngestToken\n  };\n}\n\nfunction buildSourceUrl() {\n  const template = String(cfg.promotionsSourceUrl || '').trim();\n  if (!template) return '';\n  return template\n    .replaceAll('{{limitPerPromotion}}', encodeURIComponent(String(cfg.limitPerPromotion || 50)))\n    .replaceAll('{{minDiscountPercent}}', encodeURIComponent(String(cfg.minDiscountPercent || 0)))\n    .replaceAll('{{promotionTypes}}', encodeURIComponent(String(cfg.promotionTypes || '')));\n}\n\nconst sourceUrl = buildSourceUrl();\nif (sourceUrl) {\n  try {\n    const response = await fetch(sourceUrl, { headers: { Accept: 'application/json' } });\n    const payload = await response.json();\n    const sourceErrors = Array.isArray(payload?.errors) ? payload.errors : [];\n    errors.push(...sourceErrors.map((message) => `n8n: ${message}`));\n    return [{ json: basePayload(Array.isArray(payload?.products) ? payload.products : []) }];\n  } catch (error) {\n    errors.push(`n8n: falha ao consultar endpoint seguro de promocoes (${error.message}).`);\n    return [{ json: basePayload([]) }];\n  }\n}\n\nerrors.push('n8n: configure promotionsSourceUrl ou preencha credenciais Mercado Livre para consulta direta.');\nreturn [{ json: basePayload([]) }];"
+        "url": "={{ $json.promotionsSourceUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "ad991919-6ba3-473c-8b01-8f4424720108",
+      "name": "Buscar endpoint seguro de promocoes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -260,
+        260
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Configuracao Promocoes').first().json;\nconst payload = $input.first()?.json || {};\nconst now = new Date().toISOString();\nconst errors = [];\n\nfunction basePayload(products = []) {\n  return {\n    runId: $execution?.id || `promocoes-${Date.now()}`,\n    source: 'n8n',\n    sourceName: 'Mercado Livre Promocoes',\n    query: 'Promocoes ativas Mercado Livre',\n    currency: 'BRL',\n    products,\n    errors,\n    fetchedAt: now,\n    monitorHubEndpoint: cfg.monitorHubEndpoint,\n    monitorHubIngestToken: cfg.monitorHubIngestToken\n  };\n}\n\nif (payload?.error) {\n  const detail = payload.error.message || payload.error.description || payload.error;\n  errors.push(`n8n: falha ao consultar endpoint seguro de promocoes (${detail}).`);\n}\n\nif (payload?.message && Number(payload?.statusCode) >= 400) {\n  errors.push(`n8n: endpoint seguro retornou ${payload.statusCode}: ${payload.message}`);\n}\n\nconst sourceErrors = Array.isArray(payload?.errors) ? payload.errors : [];\nerrors.push(...sourceErrors.map((message) => `n8n: ${message}`));\nconst products = Array.isArray(payload?.products) ? payload.products : [];\nreturn [{ json: basePayload(products) }];"
       },
       "id": "12c9df4e-8493-4f69-9944-bdbf9f220104",
       "name": "Coletar somente itens em promocao",
@@ -218,6 +244,17 @@
       ]
     },
     "Configuracao Promocoes": {
+      "main": [
+        [
+          {
+            "node": "Buscar endpoint seguro de promocoes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar endpoint seguro de promocoes": {
       "main": [
         [
           {
