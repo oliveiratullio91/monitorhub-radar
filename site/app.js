@@ -240,6 +240,8 @@ async function refreshProducts() {
     state.lastUpdated = payload.fetchedAt ? new Date(payload.fetchedAt) : new Date();
     if (state.fallbackActive || (config.demoEnabled && !state.serverConfig?.realSourcesReady && !config.mercadoLivreEnabled && !config.amazonEnabled)) {
       setConnectionText("Demo local ativo");
+    } else if (state.sourceErrors.some((message) => message.includes("sem itens publicados"))) {
+      setConnectionText("Sem anuncios na conta");
     } else if (state.sourceErrors.some((message) => message.includes("HTTP 403"))) {
       setConnectionText("Permissoes pendentes");
     } else {

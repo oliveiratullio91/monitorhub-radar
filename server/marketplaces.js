@@ -329,8 +329,8 @@ async function getMercadoLivreProducts({ query, limit }, options = {}) {
     return await getMercadoLivreSearchProducts({ query, limit, authHeaders });
   } catch (error) {
     if (![401, 403].includes(Number(error.status)) || !canRefreshMercadoLivreToken(options)) {
-      return getMercadoLivreSellerProducts({ query, limit, accessToken, userId }).catch(() => {
-        throw enhanceMercadoLivreSearchError(error, { userId });
+      return getMercadoLivreSellerProducts({ query, limit, accessToken, userId, searchError: error }).catch((sellerError) => {
+        throw resolveMercadoLivreFallbackError({ sellerError, searchError: error, userId });
       });
     }
 
@@ -352,8 +352,13 @@ async function getMercadoLivreProducts({ query, limit }, options = {}) {
         limit,
         accessToken: refreshedToken.accessToken,
         userId: refreshedToken.auth.userId || userId,
-      }).catch(() => {
-        throw enhanceMercadoLivreSearchError(retryError, { userId: refreshedToken.auth.userId || userId });
+        searchError: retryError,
+      }).catch((sellerError) => {
+        throw resolveMercadoLivreFallbackError({
+          sellerError,
+          searchError: retryError,
+          userId: refreshedToken.auth.userId || userId,
+        });
       });
     }
   }
@@ -370,7 +375,7 @@ async function getMercadoLivreSearchProducts({ query, limit, authHeaders }) {
   return firstArray(payload, "mercadolivre").map((record) => normalizeMercadoLivre(record, query));
 }
 
-async function getMercadoLivreSellerProducts({ query, limit, accessToken, userId }) {
+async function getMercadoLivreSellerProducts({ query, limit, accessToken, userId, searchError }) {
   if (!userId) {
     throw new Error("usuario Mercado Livre nao identificado");
   }
@@ -379,12 +384,13 @@ async function getMercadoLivreSellerProducts({ query, limit, accessToken, userId
     Authorization: `Bearer ${accessToken}`,
     Accept: "application/json",
   };
-  const url = new URL(`https://api.mercadolibre.com/users/${userId}/items/search`);
-  url.searchParams.set("status", "active");
-  url.searchParams.set("limit", String(limit));
-
-  const payload = await fetchJson(url, headers);
-  const ids = Array.isArray(payload?.results) ? payload.results.slice(0, limit).map(String).filter(Boolean) : [];
+  const ids = await getMercadoLivreSellerItemIds({ userId, limit, headers });
+  if (!ids.length && searchError) {
+    const error = new Error("conta conectada sem itens publicados retornados pela API");
+    error.status = Number(searchError.status) || 404;
+    error.code = "ML_EMPTY_SELLER_ITEMS";
+    throw error;
+  }
   if (!ids.length) return [];
 
   const products = [];
@@ -403,8 +409,41 @@ async function getMercadoLivreSellerProducts({ query, limit, accessToken, userId
     .map((record) => normalizeMercadoLivre(record, query));
 }
 
+async function getMercadoLivreSellerItemIds({ userId, limit, headers }) {
+  const attempts = [
+    { status: "active", orders: "start_time_desc" },
+    { orders: "start_time_desc" },
+    { status: "paused", orders: "start_time_desc" },
+    { status: "under_review", orders: "start_time_desc" },
+    { status: "closed", orders: "start_time_desc" },
+  ];
+  const ids = [];
+
+  for (const attempt of attempts) {
+    const url = new URL(`https://api.mercadolibre.com/users/${userId}/items/search`);
+    url.searchParams.set("limit", String(Math.min(Math.max(limit, 1), 100)));
+    Object.entries(attempt).forEach(([key, value]) => {
+      url.searchParams.set(key, value);
+    });
+
+    const payload = await fetchJson(url, headers);
+    const results = Array.isArray(payload?.results) ? payload.results.map(String).filter(Boolean) : [];
+    for (const id of results) {
+      if (!ids.includes(id)) ids.push(id);
+      if (ids.length >= limit) return ids;
+    }
+  }
+
+  return ids;
+}
+
 function getMercadoLivreUserId(options = {}) {
   return String(options.mercadoLivreAuth?.userId || env.MERCADO_LIVRE_USER_ID || "").trim();
+}
+
+function resolveMercadoLivreFallbackError({ sellerError, searchError, userId }) {
+  if (sellerError?.code === "ML_EMPTY_SELLER_ITEMS") return sellerError;
+  return enhanceMercadoLivreSearchError(searchError, { userId });
 }
 
 function enhanceMercadoLivreSearchError(error, options = {}) {
@@ -670,12 +709,26 @@ function normalizeMercadoLivre(record, query) {
     url: record.permalink || "",
     image: record.secure_thumbnail || record.thumbnail || record.pictures?.[0]?.url || "",
     seller: record.seller?.nickname || String(record.seller?.id || ""),
-    availability: String(record.available_quantity || record.status || ""),
+    availability: formatMercadoLivreAvailability(record),
+    rawStatus: record.status || "",
     source: "Mercado Livre",
     sourceKind: "mercadolivre",
     query,
     fetchedAt: new Date().toISOString(),
   };
+}
+
+function formatMercadoLivreAvailability(record) {
+  const statusLabels = {
+    active: "Ativo",
+    paused: "Pausado",
+    under_review: "Em revisao",
+    closed: "Finalizado",
+    inactive: "Inativo",
+  };
+  const status = statusLabels[record.status] || record.status;
+  const quantity = record.available_quantity ? `${record.available_quantity} disponivel` : "";
+  return [status, quantity].filter(Boolean).join(" - ");
 }
 
 function normalizeAmazon(record, query) {
