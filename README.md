@@ -9,9 +9,11 @@ Este repositorio contem o kit inicial para montar o projeto no n8n:
 - `workflows/monitorhub-feed-n8n-mercado-livre.json`: workflow que envia os produtos coletados pelo n8n diretamente para o dashboard.
 - `workflows/monitorhub-promocoes-mercado-livre.json`: workflow que envia somente itens com promocao ativa do Mercado Livre.
 - `workflows/monitorhub-ofertas-mercado-livre.json`: workflow que coleta a pagina publica de ofertas do Mercado Livre.
+- `workflows/monitorhub-ofertas-amazon.json`: workflow que coleta a pagina publica de Ofertas do Dia da Amazon.
 - `site/index.html`, `site/styles.css`, `site/app.js`: painel local para acompanhar produtos em tempo real.
 - `server/server.js`: backend local que consulta Mercado Livre e Amazon sem expor credenciais no navegador.
 - `api/config.js`, `api/products.js` e `api/n8n/products.js`: funcoes serverless preparadas para Vercel.
+- `api/mercadolivre/offers.js` e `api/amazon/deals.js`: endpoints serverless para coletar ofertas publicas.
 - `templates/google-sheets-historico.csv`: cabecalho da aba `historico` no Google Sheets.
 - `docs/plano-n8n.md`: arquitetura, configuracao e roteiro de implementacao.
 - `docs/plano-plataforma.md`: etapas da plataforma publica para Amazon, Mercado Livre e Vercel.
@@ -83,6 +85,14 @@ Para coletar a pagina `https://www.mercadolivre.com.br/ofertas`, importe `workfl
 O endpoint usado pelo workflow e `https://monitorhub-radar.vercel.app/api/mercadolivre/offers?pages=20&limit=500`.
 Ele pagina a listagem publica de ofertas, extrai os cards com preco atual, preco anterior, desconto e link, e envia para o dashboard.
 Com o workflow ativo no n8n local, dispare uma coleta imediata em `http://127.0.0.1:5678/webhook/monitorhub-ofertas`.
+
+### Ofertas do Dia da Amazon
+
+Para coletar `https://www.amazon.com.br/deals`, importe `workflows/monitorhub-ofertas-amazon.json`.
+
+O endpoint usado pelo workflow e `https://monitorhub-radar.vercel.app/api/amazon/deals?pages=20&limit=500`.
+Ele abre a pagina publica de Ofertas do Dia, extrai o lote inicial renderizado no HTML e usa a mesma API interna da vitrine para paginar mais ofertas reais. Os itens sao normalizados com ASIN, titulo, preco, preco anterior, desconto, imagem e link da Amazon.
+Com o workflow ativo no n8n local, dispare uma coleta imediata em `http://127.0.0.1:5678/webhook/monitorhub-amazon-ofertas`.
 
 ## Painel local
 

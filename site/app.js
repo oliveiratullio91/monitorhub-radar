@@ -126,7 +126,7 @@ function getConfig() {
     amazonEnabled: elements.amazonEnabled.checked,
     amazonQuery: elements.amazonQuery.value.trim() || "fone bluetooth",
     refreshInterval: Number(elements.refreshInterval.value),
-    itemLimit: Math.max(1, Math.min(Number(elements.itemLimit.value || 100), 500)),
+    itemLimit: Math.max(1, Math.min(Number(elements.itemLimit.value || 200), 1000)),
   };
 }
 
@@ -138,7 +138,7 @@ function applyConfig(config) {
   elements.amazonEnabled.checked = config.amazonEnabled !== false;
   elements.amazonQuery.value = config.amazonQuery || "fone bluetooth";
   elements.refreshInterval.value = String(config.refreshInterval || 30000);
-    elements.itemLimit.value = String(config.itemLimit || 100);
+  elements.itemLimit.value = String(config.itemLimit || 200);
 }
 
 function saveConfig() {

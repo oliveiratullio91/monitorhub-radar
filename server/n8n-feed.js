@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 
-const MAX_PRODUCTS = 500;
+const MAX_PRODUCTS = 1000;
 const feedDir = process.env.VERCEL
   ? path.join(os.tmpdir(), "monitorhub-radar")
   : path.resolve(process.cwd(), ".site-local");

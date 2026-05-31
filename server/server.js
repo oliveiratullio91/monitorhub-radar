@@ -12,6 +12,7 @@ import {
 } from "./marketplaces.js";
 import { getN8nProducts, ingestN8nProducts } from "./n8n-feed.js";
 import { getMercadoLivreOffers } from "./mercadolivre-offers-page.js";
+import { getAmazonDeals } from "./amazon-deals-page.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -43,6 +44,10 @@ const server = createServer(async (request, response) => {
 
     if (url.pathname === "/api/mercadolivre/offers") {
       return sendJson(response, await getMercadoLivreOffers(url.searchParams));
+    }
+
+    if (url.pathname === "/api/amazon/deals") {
+      return sendJson(response, await getAmazonDeals(url.searchParams));
     }
 
     if (url.pathname === "/api/n8n/products") {

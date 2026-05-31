@@ -1,10 +1,10 @@
 {
-  "id": "monitorhub-ofertas-mercado-livre",
-  "name": "MonitorHub - Ofertas Mercado Livre",
+  "id": "monitorhub-ofertas-amazon",
+  "name": "MonitorHub - Ofertas Amazon",
   "nodes": [
     {
       "parameters": {},
-      "id": "d0321f21-fb4b-43de-bcf2-bf1839c30101",
+      "id": "aa5818ab-4f30-4a2b-9d50-3b9017150101",
       "name": "Executar manualmente",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -24,7 +24,7 @@
           ]
         }
       },
-      "id": "1fe60da5-49c6-48d1-b259-8d4374910102",
+      "id": "aa5818ab-4f30-4a2b-9d50-3b9017150102",
       "name": "Agendamento - a cada 30 minutos",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -35,11 +35,11 @@
     },
     {
       "parameters": {
-        "path": "monitorhub-ofertas",
+        "path": "monitorhub-amazon-ofertas",
         "responseMode": "onReceived",
         "options": {}
       },
-      "id": "83a64757-5645-49b5-9376-ea42ef510103",
+      "id": "aa5818ab-4f30-4a2b-9d50-3b9017150103",
       "name": "Webhook - executar agora",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
@@ -47,16 +47,16 @@
         -840,
         480
       ],
-      "webhookId": "monitorhub-ofertas"
+      "webhookId": "monitorhub-amazon-ofertas"
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "offers-source-url",
-              "name": "offersSourceUrl",
-              "value": "https://monitorhub-radar.vercel.app/api/mercadolivre/offers?pages=20&limit=500",
+              "id": "amazon-source-url",
+              "name": "amazonDealsSourceUrl",
+              "value": "https://monitorhub-radar.vercel.app/api/amazon/deals?pages=20&limit=500",
               "type": "string"
             },
             {
@@ -81,8 +81,8 @@
         },
         "options": {}
       },
-      "id": "ac5d0a70-df94-499a-9548-826b2bd10104",
-      "name": "Configuracao Ofertas",
+      "id": "aa5818ab-4f30-4a2b-9d50-3b9017150104",
+      "name": "Configuracao Amazon",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
@@ -92,7 +92,7 @@
     },
     {
       "parameters": {
-        "url": "={{ $json.offersSourceUrl }}",
+        "url": "={{ $json.amazonDealsSourceUrl }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -106,8 +106,8 @@
           "timeout": 120000
         }
       },
-      "id": "d373d75a-0cd9-4bd4-bcec-785802b10105",
-      "name": "Buscar pagina de ofertas",
+      "id": "aa5818ab-4f30-4a2b-9d50-3b9017150105",
+      "name": "Buscar ofertas da Amazon",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -118,9 +118,9 @@
     },
     {
       "parameters": {
-        "jsCode": "const cfg = $('Configuracao Ofertas').first().json;\nconst payload = $input.first()?.json || {};\nconst errors = [];\nif (payload?.error) errors.push(`n8n: falha ao consultar pagina de ofertas (${payload.error.message || payload.error}).`);\nif (payload?.message && Number(payload?.statusCode) >= 400) errors.push(`n8n: endpoint de ofertas retornou ${payload.statusCode}: ${payload.message}`);\nif (Array.isArray(payload?.errors)) errors.push(...payload.errors.map((message) => `n8n: ${message}`));\nconst products = Array.isArray(payload?.products) ? payload.products : [];\nreturn [{\n  json: {\n    runId: $execution?.id || `ofertas-${Date.now()}`,\n    source: 'n8n',\n    sourceName: 'Mercado Livre Ofertas',\n    query: 'Pagina publica de ofertas Mercado Livre',\n    currency: 'BRL',\n    products,\n    errors,\n    append: Boolean(cfg.appendFeed),\n    fetchedAt: payload.fetchedAt || new Date().toISOString(),\n    monitorHubEndpoint: cfg.monitorHubEndpoint,\n    monitorHubIngestToken: cfg.monitorHubIngestToken\n  }\n}];"
+        "jsCode": "const cfg = $('Configuracao Amazon').first().json;\nconst payload = $input.first()?.json || {};\nconst errors = [];\nif (payload?.error) errors.push(`n8n: falha ao consultar ofertas da Amazon (${payload.error.message || payload.error}).`);\nif (payload?.message && Number(payload?.statusCode) >= 400) errors.push(`n8n: endpoint da Amazon retornou ${payload.statusCode}: ${payload.message}`);\nif (Array.isArray(payload?.errors)) errors.push(...payload.errors.map((message) => `n8n: ${message}`));\nconst products = Array.isArray(payload?.products) ? payload.products : [];\nreturn [{\n  json: {\n    runId: $execution?.id || `amazon-ofertas-${Date.now()}`,\n    source: 'n8n',\n    sourceName: 'Amazon Ofertas do Dia',\n    query: 'Pagina publica de Ofertas do Dia Amazon',\n    currency: 'BRL',\n    products,\n    errors,\n    append: Boolean(cfg.appendFeed),\n    fetchedAt: payload.fetchedAt || new Date().toISOString(),\n    monitorHubEndpoint: cfg.monitorHubEndpoint,\n    monitorHubIngestToken: cfg.monitorHubIngestToken\n  }\n}];"
       },
-      "id": "013e2b77-e5ad-44a6-bc1f-8a1c64210106",
+      "id": "aa5818ab-4f30-4a2b-9d50-3b9017150106",
       "name": "Preparar feed MonitorHub",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -153,7 +153,7 @@
           "timeout": 30000
         }
       },
-      "id": "bcb38fd4-7b7c-4fd0-a60d-ed0a66d10107",
+      "id": "aa5818ab-4f30-4a2b-9d50-3b9017150107",
       "name": "Enviar ofertas ao MonitorHub",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -164,18 +164,18 @@
     },
     {
       "parameters": {
-        "content": "Este workflow coleta a pagina publica de Ofertas do Mercado Livre.\n\nA API do MonitorHub busca https://www.mercadolivre.com.br/ofertas, pagina por ?page=2, ?page=3 etc., extrai os cards e envia ao dashboard.\n\nAjuste pages/limit em offersSourceUrl para ampliar ou reduzir a coleta.",
-        "height": 240,
-        "width": 380,
-        "color": 4
+        "content": "Este workflow coleta a pagina publica de Ofertas do Dia da Amazon.\n\nA API do MonitorHub abre https://www.amazon.com.br/deals, extrai o JSON inicial da pagina, pagina a API interna usada pela propria vitrine e envia os produtos reais ao dashboard.\n\nAjuste pages/limit em amazonDealsSourceUrl para ampliar ou reduzir a coleta.",
+        "height": 260,
+        "width": 420,
+        "color": 5
       },
-      "id": "af704f94-d8e4-4c37-a356-8b4a51910108",
+      "id": "aa5818ab-4f30-4a2b-9d50-3b9017150108",
       "name": "Como funciona",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
         -560,
-        -40
+        -60
       ]
     }
   ],
@@ -184,7 +184,7 @@
       "main": [
         [
           {
-            "node": "Configuracao Ofertas",
+            "node": "Configuracao Amazon",
             "type": "main",
             "index": 0
           }
@@ -195,7 +195,7 @@
       "main": [
         [
           {
-            "node": "Configuracao Ofertas",
+            "node": "Configuracao Amazon",
             "type": "main",
             "index": 0
           }
@@ -206,25 +206,25 @@
       "main": [
         [
           {
-            "node": "Configuracao Ofertas",
+            "node": "Configuracao Amazon",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Configuracao Ofertas": {
+    "Configuracao Amazon": {
       "main": [
         [
           {
-            "node": "Buscar pagina de ofertas",
+            "node": "Buscar ofertas da Amazon",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Buscar pagina de ofertas": {
+    "Buscar ofertas da Amazon": {
       "main": [
         [
           {
@@ -255,5 +255,5 @@
   "tags": [],
   "triggerCount": 0,
   "updatedAt": "2026-05-31T00:00:00.000Z",
-  "versionId": "monitorhub-ofertas-v1"
+  "versionId": "monitorhub-ofertas-amazon-v1"
 }
