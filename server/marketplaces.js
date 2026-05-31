@@ -109,24 +109,25 @@ const DEMO_CATALOG = [
   },
 ];
 
-export function publicConfig() {
+export function publicConfig(options = {}) {
   const mercadoLivreConfigured = isMercadoLivreConfigured();
   const amazonConfigured = isAmazonConfigured();
+  const mercadoLivreSessionConfigured = Boolean(options.mercadoLivreAuth?.accessToken || options.mercadoLivreAuth?.refreshToken);
 
   return {
     demoAvailable: false,
     mercadoLivreEnabled: toBool(env.MERCADO_LIVRE_ENABLED, true),
-    mercadoLivreConfigured,
+    mercadoLivreConfigured: mercadoLivreConfigured || mercadoLivreSessionConfigured,
     mercadoLivreSiteId: env.MERCADO_LIVRE_SITE_ID || "MLB",
     mercadoLivreOAuthReady: Boolean(env.MERCADO_LIVRE_CLIENT_ID && env.MERCADO_LIVRE_CLIENT_SECRET),
-    mercadoLivreMode: mercadoLivreConfigured ? "token" : "missing-token",
+    mercadoLivreMode: mercadoLivreSessionConfigured ? "session" : mercadoLivreConfigured ? "token" : "missing-token",
     mercadoLivreRedirectUri: env.MERCADO_LIVRE_REDIRECT_URI || "",
     amazonEnabled: toBool(env.AMAZON_ENABLED, true),
     amazonConfigured,
     amazonProvider: env.AMAZON_ENDPOINT_URL ? "endpoint" : "creators",
-    realSourcesReady: mercadoLivreConfigured || amazonConfigured,
+    realSourcesReady: mercadoLivreConfigured || mercadoLivreSessionConfigured || amazonConfigured,
     requiredEnv: {
-      mercadoLivre: mercadoLivreConfigured ? [] : ["MERCADO_LIVRE_ACCESS_TOKEN"],
+      mercadoLivre: mercadoLivreConfigured || mercadoLivreSessionConfigured ? [] : ["MERCADO_LIVRE_ACCESS_TOKEN"],
       amazon: amazonConfigured ? [] : missingAmazonKeys(),
     },
   };
@@ -180,7 +181,7 @@ export async function authorizeMercadoLivreFromCode({ code, redirectUri, codeVer
   };
 }
 
-export async function getProducts(searchParams) {
+export async function getProducts(searchParams, options = {}) {
   const limit = clamp(Number(searchParams.get("limit") || 12), 1, 50);
   const sources = parseSources(searchParams.get("sources") || "mercadolivre,amazon");
   const fallbackMode = String(searchParams.get("fallback") || "none").toLowerCase();
@@ -202,7 +203,7 @@ export async function getProducts(searchParams) {
 
   if (sources.has("mercadolivre") && toBool(env.MERCADO_LIVRE_ENABLED, true)) {
     productGroups.push(
-      getMercadoLivreProducts({ query: mercadoLivreQuery, limit }).catch((error) => {
+      getMercadoLivreProducts({ query: mercadoLivreQuery, limit }, options).catch((error) => {
         errors.push(formatSourceError("Mercado Livre", error));
         return [];
       }),
@@ -235,7 +236,7 @@ export async function getProducts(searchParams) {
     errors,
     fallback,
     fetchedAt: new Date().toISOString(),
-    config: publicConfig(),
+    config: publicConfig(options),
   };
 }
 
@@ -308,8 +309,8 @@ async function getDemoProducts({ limit }) {
   }));
 }
 
-async function getMercadoLivreProducts({ query, limit }) {
-  const accessToken = await ensureMercadoLivreAccessToken();
+async function getMercadoLivreProducts({ query, limit }, options = {}) {
+  const accessToken = await ensureMercadoLivreAccessToken(options);
   if (!accessToken) {
     throw new Error("conecte o Mercado Livre ou preencha MERCADO_LIVRE_ACCESS_TOKEN no .env");
   }
@@ -327,13 +328,16 @@ async function getMercadoLivreProducts({ query, limit }) {
       Accept: "application/json",
     });
   } catch (error) {
-    if (![401, 403].includes(Number(error.status)) || !canRefreshMercadoLivreToken()) {
+    if (![401, 403].includes(Number(error.status)) || !canRefreshMercadoLivreToken(options)) {
       throw error;
     }
 
-    const refreshedToken = await refreshMercadoLivreToken();
+    const refreshedToken = await refreshMercadoLivreToken(options.mercadoLivreAuth?.refreshToken, !options.mercadoLivreAuth);
+    if (options.mercadoLivreAuth && options.onMercadoLivreAuthUpdate) {
+      options.onMercadoLivreAuthUpdate(refreshedToken.auth);
+    }
     payload = await fetchJson(url, {
-      Authorization: `Bearer ${refreshedToken}`,
+      Authorization: `Bearer ${refreshedToken.accessToken}`,
       Accept: "application/json",
     });
   }
@@ -393,38 +397,55 @@ async function getAmazonFromCreatorsApi({ query, limit }) {
   return firstArray(payload, "amazon").map((record) => normalizeAmazon(record, query));
 }
 
-async function ensureMercadoLivreAccessToken() {
+async function ensureMercadoLivreAccessToken(options = {}) {
+  const sessionAuth = options.mercadoLivreAuth;
+  if (sessionAuth?.accessToken && !isMercadoLivreTokenExpiring(sessionAuth.expiresAt)) {
+    return sessionAuth.accessToken;
+  }
+
+  if (sessionAuth?.refreshToken && canRefreshMercadoLivreToken(options)) {
+    const refreshed = await refreshMercadoLivreToken(sessionAuth.refreshToken, false);
+    if (options.onMercadoLivreAuthUpdate) {
+      options.onMercadoLivreAuthUpdate(refreshed.auth);
+    }
+    return refreshed.accessToken;
+  }
+
   if (env.MERCADO_LIVRE_ACCESS_TOKEN && !isMercadoLivreTokenExpiring()) {
     return env.MERCADO_LIVRE_ACCESS_TOKEN;
   }
 
-  if (canRefreshMercadoLivreToken()) {
-    return refreshMercadoLivreToken();
+  if (canRefreshMercadoLivreToken(options)) {
+    const refreshed = await refreshMercadoLivreToken();
+    return refreshed.accessToken;
   }
 
   return env.MERCADO_LIVRE_ACCESS_TOKEN || "";
 }
 
-function isMercadoLivreTokenExpiring() {
-  if (!env.MERCADO_LIVRE_TOKEN_EXPIRES_AT) return false;
-  const expiresAt = new Date(env.MERCADO_LIVRE_TOKEN_EXPIRES_AT).getTime();
+function isMercadoLivreTokenExpiring(expiresAtValue = env.MERCADO_LIVRE_TOKEN_EXPIRES_AT) {
+  if (!expiresAtValue) return false;
+  const expiresAt = new Date(expiresAtValue).getTime();
   if (!Number.isFinite(expiresAt)) return false;
   return expiresAt - Date.now() < 5 * 60 * 1000;
 }
 
-function canRefreshMercadoLivreToken() {
-  return Boolean(env.MERCADO_LIVRE_CLIENT_ID && env.MERCADO_LIVRE_CLIENT_SECRET && env.MERCADO_LIVRE_REFRESH_TOKEN);
+function canRefreshMercadoLivreToken(options = {}) {
+  return Boolean(env.MERCADO_LIVRE_CLIENT_ID && env.MERCADO_LIVRE_CLIENT_SECRET && (options.mercadoLivreAuth?.refreshToken || env.MERCADO_LIVRE_REFRESH_TOKEN));
 }
 
-async function refreshMercadoLivreToken() {
+async function refreshMercadoLivreToken(refreshToken = env.MERCADO_LIVRE_REFRESH_TOKEN, persist = true) {
   const payload = await requestMercadoLivreToken({
     grant_type: "refresh_token",
     client_id: env.MERCADO_LIVRE_CLIENT_ID,
     client_secret: env.MERCADO_LIVRE_CLIENT_SECRET,
-    refresh_token: env.MERCADO_LIVRE_REFRESH_TOKEN,
+    refresh_token: refreshToken,
   });
-  persistMercadoLivreTokenPayload(payload);
-  return env.MERCADO_LIVRE_ACCESS_TOKEN;
+  const auth = normalizeMercadoLivreTokenPayload(payload);
+  if (persist) {
+    persistMercadoLivreAuth(auth);
+  }
+  return { accessToken: auth.accessToken, auth };
 }
 
 async function requestMercadoLivreToken(values) {
@@ -437,6 +458,10 @@ async function requestMercadoLivreToken(values) {
 }
 
 function persistMercadoLivreTokenPayload(payload) {
+  persistMercadoLivreAuth(normalizeMercadoLivreTokenPayload(payload));
+}
+
+function normalizeMercadoLivreTokenPayload(payload) {
   if (!payload?.access_token) {
     throw new Error("Mercado Livre nao retornou access_token");
   }
@@ -445,11 +470,20 @@ function persistMercadoLivreTokenPayload(payload) {
     ? new Date(Date.now() + Number(payload.expires_in) * 1000).toISOString()
     : "";
 
+  return {
+    accessToken: payload.access_token,
+    refreshToken: payload.refresh_token || env.MERCADO_LIVRE_REFRESH_TOKEN || "",
+    expiresAt,
+    userId: payload.user_id || env.MERCADO_LIVRE_USER_ID || "",
+  };
+}
+
+function persistMercadoLivreAuth(auth) {
   updateRuntimeEnv({
-    MERCADO_LIVRE_ACCESS_TOKEN: payload.access_token,
-    MERCADO_LIVRE_REFRESH_TOKEN: payload.refresh_token || env.MERCADO_LIVRE_REFRESH_TOKEN || "",
-    MERCADO_LIVRE_TOKEN_EXPIRES_AT: expiresAt,
-    MERCADO_LIVRE_USER_ID: payload.user_id || env.MERCADO_LIVRE_USER_ID || "",
+    MERCADO_LIVRE_ACCESS_TOKEN: auth.accessToken,
+    MERCADO_LIVRE_REFRESH_TOKEN: auth.refreshToken,
+    MERCADO_LIVRE_TOKEN_EXPIRES_AT: auth.expiresAt,
+    MERCADO_LIVRE_USER_ID: auth.userId,
   }, { persist: true });
 }
 

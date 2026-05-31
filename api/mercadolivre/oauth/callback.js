@@ -3,6 +3,7 @@ import {
   decodeCookiePayload,
   exchangeMercadoLivreCode,
   getCookie,
+  mercadoLivreTokenCookie,
   oauthHtml,
 } from "../../_mercadolivre-oauth.js";
 
@@ -39,6 +40,12 @@ export default async function handler(request, response) {
     const expiresAt = payload.expires_in
       ? new Date(Date.now() + Number(payload.expires_in) * 1000).toISOString()
       : "";
+    const sessionPayload = {
+      accessToken: payload.access_token || "",
+      refreshToken: payload.refresh_token || "",
+      expiresAt,
+      userId: payload.user_id || "",
+    };
     const env = [
       `MERCADO_LIVRE_ACCESS_TOKEN=${payload.access_token || ""}`,
       `MERCADO_LIVRE_REFRESH_TOKEN=${payload.refresh_token || ""}`,
@@ -46,10 +53,13 @@ export default async function handler(request, response) {
       `MERCADO_LIVRE_USER_ID=${payload.user_id || ""}`,
     ].join("\n");
 
-    response.setHeader("Set-Cookie", clearOauthCookie());
+    response.setHeader("Set-Cookie", [
+      clearOauthCookie(),
+      mercadoLivreTokenCookie(sessionPayload),
+    ]);
     return response.status(200).send(oauthHtml(
       "Mercado Livre autorizado",
-      "Copie as variaveis abaixo para as Environment Variables da Vercel e faca um novo deploy para ativar a coleta real.",
+      "Sessao conectada ao Mercado Livre. O dashboard ja pode buscar anuncios reais neste navegador. As variaveis abaixo continuam disponiveis caso voce queira persistir a integracao na Vercel.",
       { success: true, env },
     ));
   } catch (exchangeError) {

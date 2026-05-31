@@ -86,6 +86,18 @@ export function clearOauthCookie() {
   return "ml_oauth=; Path=/api/mercadolivre/oauth; HttpOnly; Secure; SameSite=Lax; Max-Age=0";
 }
 
+export function mercadoLivreTokenCookie(payload) {
+  return `ml_session=${encodeCookiePayload(payload)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`;
+}
+
+export function clearMercadoLivreTokenCookie() {
+  return "ml_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0";
+}
+
+export function decodeMercadoLivreTokenCookie(request) {
+  return decodeCookiePayload(getCookie(request, "ml_session"));
+}
+
 export function oauthHtml(title, message, options = {}) {
   const safeTitle = escapeHtml(title);
   const safeMessage = escapeHtml(message);
