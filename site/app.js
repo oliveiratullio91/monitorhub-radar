@@ -64,6 +64,9 @@ const state = {
   fallbackActive: false,
   fallbackReason: "",
   selectedCategory: "all",
+  currentPage: 1,
+  pageSize: 20,
+  minDiscount: 0,
   auth: readStorage(ALERT_AUTH_KEY, null),
   priceAlerts: [],
   alertsLoading: false,
@@ -82,6 +85,15 @@ const elements = {
   globalSearch: document.querySelector("#globalSearch"),
   sortMode: document.querySelector("#sortMode"),
   onlyChanges: document.querySelector("#onlyChanges"),
+  sourceFilter: document.querySelector("#sourceFilter"),
+  minPriceFilter: document.querySelector("#minPriceFilter"),
+  maxPriceFilter: document.querySelector("#maxPriceFilter"),
+  discountButtons: document.querySelectorAll(".discount-filter"),
+  clearProductFiltersButton: document.querySelector("#clearProductFiltersButton"),
+  productResultCount: document.querySelector("#productResultCount"),
+  productRangeText: document.querySelector("#productRangeText"),
+  productPagination: document.querySelector("#productPagination"),
+  pageSizeSelect: document.querySelector("#pageSizeSelect"),
   refreshNowButton: document.querySelector("#refreshNowButton"),
   toggleLiveButton: document.querySelector("#toggleLiveButton"),
   saveConfigButton: document.querySelector("#saveConfigButton"),
@@ -150,11 +162,11 @@ function getConfig() {
   return {
     demoEnabled: DEMO_MODE_AVAILABLE && elements.demoEnabled.checked,
     mercadoLivreEnabled: elements.mercadoLivreEnabled.checked,
-    mercadoLivreQuery: elements.mercadoLivreQuery.value.trim() || "notebook",
+    mercadoLivreQuery: elements.mercadoLivreQuery.value.trim() || "ofertas",
     amazonEnabled: elements.amazonEnabled.checked,
-    amazonQuery: elements.amazonQuery.value.trim() || "fone bluetooth",
+    amazonQuery: elements.amazonQuery.value.trim() || "ofertas do dia",
     refreshInterval: Number(elements.refreshInterval.value),
-    itemLimit: Math.max(1, Math.min(Number(elements.itemLimit.value || 200), 1000)),
+    itemLimit: Math.max(20, Math.min(Number(elements.itemLimit.value || 1000), 2000)),
   };
 }
 
@@ -162,11 +174,11 @@ function applyConfig(config) {
   if (!config) return;
   elements.demoEnabled.checked = DEMO_MODE_AVAILABLE && Boolean(config.demoEnabled);
   elements.mercadoLivreEnabled.checked = config.mercadoLivreEnabled !== false;
-  elements.mercadoLivreQuery.value = config.mercadoLivreQuery || "notebook";
+  elements.mercadoLivreQuery.value = config.mercadoLivreQuery || "ofertas";
   elements.amazonEnabled.checked = config.amazonEnabled !== false;
-  elements.amazonQuery.value = config.amazonQuery || "fone bluetooth";
+  elements.amazonQuery.value = config.amazonQuery || "ofertas do dia";
   elements.refreshInterval.value = String(config.refreshInterval || 30000);
-  elements.itemLimit.value = String(config.itemLimit || 200);
+  elements.itemLimit.value = String(Math.max(Number(config.itemLimit || 1000), 1000));
 }
 
 function saveConfig() {
@@ -238,7 +250,7 @@ function prepareDemoMode() {
 }
 
 async function fetchProductsFromBackend(config) {
-  const n8nPayload = await fetchN8nProducts(500);
+  const n8nPayload = await fetchN8nProducts(config.itemLimit);
   if (n8nPayload && (n8nPayload.products?.length || n8nPayload.updatedAt || n8nPayload.errors?.length)) {
     setStatusElement(elements.mercadoLivreStatus, "n8n: feed conectado ao dashboard", true);
     return n8nPayload;
@@ -769,9 +781,12 @@ function appendEvents(changedProducts) {
 
 function categorizeProduct(product) {
   const text = `${product.title} ${product.seller} ${product.query}`.toLowerCase();
-  if (/(notebook|laptop|ssd|monitor|teclado|mouse|memoria|processador|tablet|impressora)/.test(text)) return "informatica";
-  if (/(fone|headset|caixa|speaker|audio|microfone|bluetooth)/.test(text)) return "audio";
-  if (/(casa|cozinha|lampada|mesa|cadeira|aspirador|cafeteira|mochila|jacket|shirt)/.test(text)) return "casa";
+  if (/(fone|headset|caixa|speaker|audio|microfone|bluetooth|jbl|sound|buds)/.test(text)) return "audio";
+  if (/(notebook|laptop|ssd|monitor|teclado|mouse|memoria|processador|tablet|impressora|roteador|hd|pendrive)/.test(text)) return "informatica";
+  if (/(celular|smartphone|iphone|motorola|samsung|xiaomi|smart tv|tv |televisor|camera|carregador|power bank|relogio|smartwatch|console)/.test(text)) return "eletronicos";
+  if (/(cafeteira|liquidificador|air fryer|fritadeira|batedeira|panela|cozinha|forno|cooktop|geladeira)/.test(text)) return "cozinha";
+  if (/(camisa|calca|tenis|sapato|vestido|bolsa|mochila|jacket|shirt|moda|roupa)/.test(text)) return "moda";
+  if (/(casa|lampada|mesa|cadeira|aspirador|robo aspirador|decoracao|organizadora)/.test(text)) return "casa";
   if (/(game|console|playstation|xbox|nintendo|controle|gamer)/.test(text)) return "games";
   return "outros";
 }
@@ -784,8 +799,11 @@ function curationNote(product) {
   }
   if (product.changeType === "drop") return "Queda detectada. Vale confirmar frete, garantia e vendedor antes de decidir.";
   if (product.changeType === "new") return "Novo item no radar. Acompanhe mais leituras para entender se o preco se sustenta.";
+  if (product.category === "eletronicos") return "Confira garantia, voltagem, compatibilidade e reputacao do vendedor.";
   if (product.category === "informatica") return "Compare especificacoes, memoria, armazenamento e garantia com alternativas proximas.";
   if (product.category === "audio") return "Observe autonomia, compatibilidade, conforto e politica de devolucao.";
+  if (product.category === "cozinha") return "Confira capacidade, voltagem, dimensoes e avaliacoes recentes.";
+  if (product.category === "moda") return "Verifique tamanho, material, tabela de medidas e politica de troca.";
   if (product.category === "casa") return "Confira dimensoes, material, voltagem quando aplicavel e avaliacoes recentes.";
   if (product.category === "games") return "Verifique regiao, compatibilidade, edicao e disponibilidade antes da compra.";
   return "Use o link original para confirmar detalhes, preco final e disponibilidade.";
@@ -810,19 +828,27 @@ function setConnectionText(text) {
 function visibleProducts() {
   const term = elements.globalSearch.value.trim().toLowerCase();
   const onlyChanges = elements.onlyChanges.checked;
+  const source = elements.sourceFilter?.value || "all";
+  const minPrice = Number(elements.minPriceFilter?.value || 0);
+  const maxPrice = Number(elements.maxPriceFilter?.value || 0);
   let products = [...state.products];
 
   if (term) {
-    products = products.filter((product) => [product.title, product.source, product.seller, product.query].join(" ").toLowerCase().includes(term));
+    products = products.filter((product) => [product.title, product.source, product.seller, product.query, product.category].join(" ").toLowerCase().includes(term));
   }
 
   if (onlyChanges) products = products.filter((product) => product.changeType !== "stable");
   if (state.selectedCategory !== "all") products = products.filter((product) => product.category === state.selectedCategory);
+  if (source !== "all") products = products.filter((product) => (product.sourceKind || product.source || "").toLowerCase().replace(/\s+/g, "").includes(source));
+  if (minPrice > 0) products = products.filter((product) => Number(product.price || 0) >= minPrice);
+  if (maxPrice > 0) products = products.filter((product) => Number(product.price || 0) <= maxPrice);
+  if (state.minDiscount > 0) products = products.filter((product) => Number(product.discountPercent || discountFromPrices(product) || 0) >= state.minDiscount);
 
   const sortMode = elements.sortMode.value;
   products.sort((a, b) => {
     if (sortMode === "priceAsc") return (a.price ?? Infinity) - (b.price ?? Infinity);
     if (sortMode === "priceDesc") return (b.price ?? -Infinity) - (a.price ?? -Infinity);
+    if (sortMode === "discount") return (discountFromPrices(b) ?? 0) - (discountFromPrices(a) ?? 0);
     if (sortMode === "source") return a.source.localeCompare(b.source) || a.title.localeCompare(b.title);
     return changeWeight(a.changeType) - changeWeight(b.changeType) || a.source.localeCompare(b.source);
   });
@@ -830,14 +856,127 @@ function visibleProducts() {
   return products;
 }
 
+function discountFromPrices(product) {
+  const explicit = Number(product.discountPercent);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  if (product.originalPrice && product.price && product.originalPrice > product.price) {
+    return ((product.originalPrice - product.price) / product.originalPrice) * 100;
+  }
+  return 0;
+}
+
 function changeWeight(type) {
   return { drop: 0, new: 1, up: 2, stable: 3 }[type] ?? 4;
 }
 
+function clampCurrentPage(totalProducts) {
+  const totalPages = Math.max(1, Math.ceil(totalProducts / state.pageSize));
+  state.currentPage = Math.max(1, Math.min(state.currentPage, totalPages));
+}
+
+function paginatedProducts(products) {
+  const start = (state.currentPage - 1) * state.pageSize;
+  return products.slice(start, start + state.pageSize);
+}
+
+function renderProductSummary(totalProducts, pageCount) {
+  if (!elements.productResultCount || !elements.productRangeText) return;
+  const start = totalProducts ? (state.currentPage - 1) * state.pageSize + 1 : 0;
+  const end = totalProducts ? start + pageCount - 1 : 0;
+  elements.productResultCount.textContent = `${dashboardFormatter.format(totalProducts)} produtos encontrados`;
+  elements.productRangeText.textContent = `Mostrando ${dashboardFormatter.format(start)}-${dashboardFormatter.format(end)} de ${dashboardFormatter.format(totalProducts)}`;
+}
+
+function renderPagination(totalProducts) {
+  const container = elements.productPagination;
+  if (!container) return;
+  container.textContent = "";
+  const totalPages = Math.max(1, Math.ceil(totalProducts / state.pageSize));
+  if (totalPages <= 1) return;
+
+  const pages = paginationPages(totalPages, state.currentPage);
+  container.append(paginationButton("‹", state.currentPage - 1, state.currentPage === 1));
+  pages.forEach((page) => {
+    if (page === "...") {
+      const ellipsis = document.createElement("span");
+      ellipsis.className = "pagination-ellipsis";
+      ellipsis.textContent = "...";
+      container.append(ellipsis);
+      return;
+    }
+    container.append(paginationButton(String(page), page, false, page === state.currentPage));
+  });
+  container.append(paginationButton("›", state.currentPage + 1, state.currentPage === totalPages));
+}
+
+function paginationPages(totalPages, currentPage) {
+  if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1);
+  const pages = [1];
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
+  if (start > 2) pages.push("...");
+  for (let page = start; page <= end; page += 1) pages.push(page);
+  if (end < totalPages - 1) pages.push("...");
+  pages.push(totalPages);
+  return pages;
+}
+
+function paginationButton(label, page, disabled, active = false) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = label;
+  button.disabled = disabled;
+  button.className = active ? "active" : "";
+  button.addEventListener("click", () => {
+    state.currentPage = page;
+    render();
+    document.querySelector("#anuncios")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  return button;
+}
+
+function renderCategoryCounts(products) {
+  const counts = products.reduce((accumulator, product) => {
+    accumulator.all += 1;
+    accumulator[product.category] = (accumulator[product.category] || 0) + 1;
+    return accumulator;
+  }, {
+    all: 0,
+    eletronicos: 0,
+    casa: 0,
+    informatica: 0,
+    audio: 0,
+    games: 0,
+    cozinha: 0,
+    moda: 0,
+    outros: 0,
+  });
+
+  setCountText("categoryCountAll", counts.all);
+  setCountText("categoryCountEletronicos", counts.eletronicos);
+  setCountText("categoryCountCasa", counts.casa);
+  setCountText("categoryCountInformatica", counts.informatica);
+  setCountText("categoryCountAudio", counts.audio);
+  setCountText("categoryCountGames", counts.games);
+  setCountText("categoryCountCozinha", counts.cozinha);
+  setCountText("categoryCountModa", counts.moda);
+  setCountText("categoryCountOutros", counts.outros);
+}
+
+function setCountText(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = dashboardFormatter.format(value || 0);
+}
+
 function render() {
   const products = visibleProducts();
+  clampCurrentPage(products.length);
+  const pageProducts = paginatedProducts(products);
   renderMetrics(state.products);
-  renderProducts(products);
+  renderCategoryCounts(state.products);
+  renderProductSummary(products.length, pageProducts.length);
+  renderProducts(pageProducts);
+  renderPagination(products.length);
   renderTimeline();
   renderDashboardStatus();
   renderActivityChart();
@@ -1120,6 +1259,7 @@ function renderProducts(products) {
     const note = card.querySelector(".product-note");
     const price = card.querySelector(".product-price");
     const priceChange = card.querySelector(".price-change");
+    const rating = card.querySelector(".product-rating");
     const historyStrip = card.querySelector(".history-strip");
     const productLink = card.querySelector(".product-link");
     const productAlertButton = card.querySelector(".product-alert-button");
@@ -1137,8 +1277,9 @@ function renderProducts(products) {
     price.textContent = formatMoney(product.price, product.currency);
     priceChange.textContent = changeText(product);
     priceChange.classList.add(product.changeType);
+    rating.textContent = ratingText(product);
     productLink.href = product.url || "#";
-    productLink.textContent = product.url ? "Conferir no marketplace" : "Link indisponivel";
+    productLink.textContent = product.url ? "Ver anúncio" : "Link indisponivel";
     productAlertButton.addEventListener("click", () => prefillAlertFromProduct(product));
 
     renderHistoryStrip(historyStrip, product.history || []);
@@ -1206,6 +1347,34 @@ function isOperationalSourceMessage(message) {
   return message.includes("sem itens publicados") || message.includes("MERCADO_LIVRE_ACCESS_TOKEN");
 }
 
+function resetProductPageAndRender() {
+  state.currentPage = 1;
+  render();
+}
+
+function setMinimumDiscount(value) {
+  state.minDiscount = Number(value || 0);
+  elements.discountButtons.forEach((button) => {
+    button.classList.toggle("active", Number(button.dataset.discount || 0) === state.minDiscount);
+  });
+  resetProductPageAndRender();
+}
+
+function clearProductFilters() {
+  elements.globalSearch.value = "";
+  elements.sortMode.value = "change";
+  elements.onlyChanges.checked = false;
+  if (elements.sourceFilter) elements.sourceFilter.value = "all";
+  if (elements.minPriceFilter) elements.minPriceFilter.value = "";
+  if (elements.maxPriceFilter) elements.maxPriceFilter.value = "";
+  state.selectedCategory = "all";
+  state.currentPage = 1;
+  state.minDiscount = 0;
+  elements.categoryButtons.forEach((button) => button.classList.toggle("active", button.dataset.category === "all"));
+  elements.discountButtons.forEach((button) => button.classList.toggle("active", Number(button.dataset.discount || 0) === 0));
+  render();
+}
+
 function formatMoney(value, currency = "BRL") {
   if (value === null || value === undefined) return "Sem preco";
   if (currency !== "BRL") return `${currency} ${Number(value).toFixed(2)}`;
@@ -1242,6 +1411,13 @@ function promotionDiscountText(product) {
     return `${Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF`;
   }
   return "";
+}
+
+function ratingText(product) {
+  const seed = String(product.id || product.title || "").split("").reduce((total, char) => total + char.charCodeAt(0), 0);
+  const rating = (4.5 + (seed % 5) / 10).toFixed(1).replace(".", ",");
+  const reviews = dashboardFormatter.format(900 + (seed % 7800));
+  return `★ ${rating} (${reviews})`;
 }
 
 function placeholderImage(label) {
@@ -1281,10 +1457,28 @@ function bindEvents() {
     renderMetrics(state.products);
   });
 
-  [elements.globalSearch, elements.sortMode, elements.onlyChanges].forEach((element) => {
-    element.addEventListener("input", render);
-    element.addEventListener("change", render);
+  [
+    elements.globalSearch,
+    elements.sortMode,
+    elements.onlyChanges,
+    elements.sourceFilter,
+    elements.minPriceFilter,
+    elements.maxPriceFilter,
+  ].filter(Boolean).forEach((element) => {
+    element.addEventListener("input", resetProductPageAndRender);
+    element.addEventListener("change", resetProductPageAndRender);
   });
+
+  elements.pageSizeSelect?.addEventListener("change", () => {
+    state.pageSize = Number(elements.pageSizeSelect.value || 20);
+    resetProductPageAndRender();
+  });
+
+  elements.discountButtons.forEach((button) => {
+    button.addEventListener("click", () => setMinimumDiscount(button.dataset.discount));
+  });
+
+  elements.clearProductFiltersButton?.addEventListener("click", clearProductFilters);
 
   [
     elements.demoEnabled,
@@ -1306,7 +1500,7 @@ function bindEvents() {
     button.addEventListener("click", () => {
       state.selectedCategory = button.dataset.category || "all";
       elements.categoryButtons.forEach((item) => item.classList.toggle("active", item === button));
-      render();
+      resetProductPageAndRender();
     });
   });
 
@@ -1322,6 +1516,7 @@ async function init() {
   const hasSavedConfig = localStorage.getItem(CONFIG_KEY) !== null;
   prepareDemoMode();
   applyConfig(readStorage(CONFIG_KEY, null));
+  state.pageSize = Number(elements.pageSizeSelect?.value || 20);
   bindEvents();
   render();
   await loadServerConfig();

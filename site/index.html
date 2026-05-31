@@ -25,8 +25,8 @@
         </a>
 
         <nav class="top-nav" aria-label="Navegação principal">
-          <a class="active" href="#dashboard">Início</a>
-          <a href="#anuncios">Produtos</a>
+          <a href="#dashboard">Início</a>
+          <a class="active" href="#anuncios">Produtos</a>
           <a href="#como-funciona">Como funciona</a>
           <a href="#meus-alertas">Radar</a>
           <a href="#alertas">Alertas</a>
@@ -447,10 +447,85 @@
 
         <section class="monitor-console" id="configuracoes">
           <aside class="panel-card filter-panel" aria-label="Filtros de produtos">
-            <div class="panel-heading">
-              <h2>Fontes e buscas</h2>
-              <button class="secondary-button compact" id="saveConfigButton" type="button" title="Salvar configuração">Salvar</button>
+            <div class="filter-heading">
+              <h2>Filtros</h2>
+              <button class="text-button" id="clearProductFiltersButton" type="button">Limpar tudo</button>
             </div>
+
+            <section class="filter-section">
+              <button class="filter-section-title" type="button">
+                <span>Categoria</span>
+                <span aria-hidden="true">⌃</span>
+              </button>
+              <div class="category-tabs vertical" aria-label="Categorias">
+                <button class="category-button active" type="button" data-category="all">Todos <span id="categoryCountAll">0</span></button>
+                <button class="category-button" type="button" data-category="eletronicos">Eletrônicos <span id="categoryCountEletronicos">0</span></button>
+                <button class="category-button" type="button" data-category="casa">Casa <span id="categoryCountCasa">0</span></button>
+                <button class="category-button" type="button" data-category="informatica">Informática <span id="categoryCountInformatica">0</span></button>
+                <button class="category-button" type="button" data-category="audio">Áudio <span id="categoryCountAudio">0</span></button>
+                <button class="category-button" type="button" data-category="games">Games <span id="categoryCountGames">0</span></button>
+                <button class="category-button" type="button" data-category="cozinha">Cozinha <span id="categoryCountCozinha">0</span></button>
+                <button class="category-button" type="button" data-category="moda">Moda <span id="categoryCountModa">0</span></button>
+                <button class="category-button" type="button" data-category="outros">Outros <span id="categoryCountOutros">0</span></button>
+              </div>
+            </section>
+
+            <section class="filter-section">
+              <button class="filter-section-title" type="button">
+                <span>Faixa de preço</span>
+                <span aria-hidden="true">⌃</span>
+              </button>
+              <div class="two-columns">
+                <label class="field-group">
+                  <span>Mínimo</span>
+                  <input id="minPriceFilter" type="number" min="0" step="0.01" placeholder="R$ mínimo" />
+                </label>
+                <label class="field-group">
+                  <span>Máximo</span>
+                  <input id="maxPriceFilter" type="number" min="0" step="0.01" placeholder="R$ máximo" />
+                </label>
+              </div>
+            </section>
+
+            <section class="filter-section">
+              <button class="filter-section-title" type="button">
+                <span>Desconto mínimo</span>
+                <span aria-hidden="true">⌃</span>
+              </button>
+              <div class="discount-filter-group">
+                <button class="discount-filter" type="button" data-discount="10">10%</button>
+                <button class="discount-filter" type="button" data-discount="20">20%</button>
+                <button class="discount-filter" type="button" data-discount="30">30%</button>
+                <button class="discount-filter" type="button" data-discount="40">40%</button>
+                <button class="discount-filter active" type="button" data-discount="0">Todos</button>
+              </div>
+            </section>
+
+            <section class="filter-section">
+              <button class="filter-section-title" type="button">
+                <span>Marketplace</span>
+                <span aria-hidden="true">⌃</span>
+              </button>
+              <label class="field-group">
+                <span>Fonte</span>
+                <select id="sourceFilter">
+                  <option value="all">Todos os marketplaces</option>
+                  <option value="mercadolivre">Mercado Livre</option>
+                  <option value="amazon">Amazon</option>
+                  <option value="shopee">Shopee</option>
+                  <option value="olx">OLX</option>
+                </select>
+              </label>
+              <label class="toggle-row compact-toggle">
+                <input id="onlyChanges" type="checkbox" />
+                <span>Somente mudanças de preço</span>
+              </label>
+            </section>
+
+            <section class="filter-section source-config">
+              <div class="filter-section-title static">
+                <span>Fontes do radar</span>
+              </div>
 
             <label class="toggle-row">
               <input id="demoEnabled" type="checkbox" />
@@ -489,46 +564,77 @@
                 </select>
               </label>
               <label class="field-group">
-                <span>Limite</span>
-                <input id="itemLimit" type="number" min="1" max="1000" value="200" />
+                <span>Produtos</span>
+                <input id="itemLimit" type="number" min="20" max="2000" value="1000" />
               </label>
+            </div>
+              <button class="primary-button filter-apply-button" id="saveConfigButton" type="button">Aplicar filtros</button>
+            </section>
+
+            <div class="filter-trust-card">
+              <span class="status-dot"></span>
+              <div>
+                <strong>Segurança e confiança</strong>
+                <p>Ofertas verificadas a cada coleta do n8n.</p>
+              </div>
             </div>
           </aside>
 
           <section class="panel-card products-area" id="anuncios" aria-label="Lista de produtos">
-            <div class="panel-heading">
+            <div class="products-hero">
               <div>
-                <h2>Anúncios Monitorados</h2>
-                <p class="panel-subtitle">Produtos coletados em tempo real pelas fontes configuradas.</p>
+                <h2>Garimpos</h2>
+                <p class="panel-subtitle">Explore milhares de ofertas monitoradas em um só lugar.</p>
               </div>
+              <img src="./assets/garimpanda-panda.png" alt="" />
             </div>
+
             <div class="toolbar">
               <label class="search-box">
                 <span class="sr-only">Buscar nos produtos</span>
-                <input id="globalSearch" type="search" placeholder="Buscar produto, fonte ou vendedor" />
+                <input id="globalSearch" type="search" placeholder="Busque por produtos, marcas ou categorias..." />
               </label>
+              <div class="products-count">
+                <strong id="productResultCount">0 produtos encontrados</strong>
+                <span id="productRangeText">Mostrando 0 de 0</span>
+              </div>
               <select id="sortMode" aria-label="Ordenar produtos">
-                <option value="change">Mudanças primeiro</option>
+                <option value="change">Mais relevantes</option>
                 <option value="priceAsc">Menor preço</option>
                 <option value="priceDesc">Maior preço</option>
+                <option value="discount">Maior desconto</option>
                 <option value="source">Fonte</option>
               </select>
-              <label class="toggle-row compact-toggle">
-                <input id="onlyChanges" type="checkbox" />
-                <span>Só mudanças</span>
+              <div class="view-toggle" aria-label="Modo de visualização">
+                <button class="active" type="button" aria-label="Visualização em grade">
+                  <span></span><span></span><span></span><span></span>
+                </button>
+                <button type="button" aria-label="Visualização em lista">
+                  <i></i><i></i><i></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="product-info-banner">
+              <span aria-hidden="true">%</span>
+              <div>
+                <strong>O Garimpanda monitora preços e destaca boas ofertas.</strong>
+                <p>Aqui você encontra descontos reais em milhares de produtos dos melhores marketplaces.</p>
+              </div>
+            </div>
+            <div class="product-grid" id="productGrid" aria-live="polite"></div>
+            <div class="pagination-bar">
+              <div class="pagination" id="productPagination" aria-label="Paginação de produtos"></div>
+              <label class="page-size-control">
+                <span class="sr-only">Produtos por página</span>
+                <select id="pageSizeSelect">
+                  <option value="20" selected>20 por página</option>
+                  <option value="40">40 por página</option>
+                  <option value="60">60 por página</option>
+                  <option value="100">100 por página</option>
+                </select>
               </label>
             </div>
-
-            <div class="category-tabs" aria-label="Categorias">
-              <button class="category-button active" type="button" data-category="all">Todos</button>
-              <button class="category-button" type="button" data-category="informatica">Informática</button>
-              <button class="category-button" type="button" data-category="audio">Áudio</button>
-              <button class="category-button" type="button" data-category="casa">Casa</button>
-              <button class="category-button" type="button" data-category="games">Games</button>
-              <button class="category-button" type="button" data-category="outros">Outros</button>
-            </div>
-
-            <div class="product-grid" id="productGrid" aria-live="polite"></div>
           </section>
 
           <aside class="panel-card events-panel" aria-label="Eventos recentes">
@@ -565,6 +671,7 @@
             <strong class="product-price"></strong>
             <span class="price-change"></span>
           </div>
+          <p class="product-rating"></p>
           <div class="history-strip" aria-label="Histórico de preço"></div>
           <div class="product-actions">
             <a class="product-link" target="_blank" rel="noreferrer">Abrir produto</a>
