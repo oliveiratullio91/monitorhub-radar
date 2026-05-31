@@ -653,7 +653,7 @@ function renderProducts(products) {
 
   if (state.sourceErrors.length) {
     const error = document.createElement("div");
-    error.className = products.length ? "warning-state" : "error-state";
+    error.className = products.length || state.sourceErrors.every(isOperationalSourceMessage) ? "warning-state" : "error-state";
     error.textContent = state.sourceErrors.map(formatSourceErrorForDisplay).join(" | ");
     elements.productGrid.append(error);
   }
@@ -748,7 +748,14 @@ function formatSourceErrorForDisplay(message) {
   if (IS_LOCALHOST && message.includes("MERCADO_LIVRE_ACCESS_TOKEN")) {
     return "Mercado Livre: este servidor local esta sem token. Use https://monitorhub-radar.vercel.app ou autorize o Mercado Livre localmente.";
   }
+  if (message.includes("sem itens publicados")) {
+    return "Mercado Livre conectado. A conta autorizada nao retornou anuncios pela API. Autorize uma conta vendedora com anuncios publicados ou publique um item para o painel listar automaticamente.";
+  }
   return message;
+}
+
+function isOperationalSourceMessage(message) {
+  return message.includes("sem itens publicados") || message.includes("MERCADO_LIVRE_ACCESS_TOKEN");
 }
 
 function formatMoney(value, currency = "BRL") {
