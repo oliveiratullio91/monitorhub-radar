@@ -1,9 +1,10 @@
 import { publicConfig } from "../server/marketplaces.js";
+import { publicSupabaseConfig } from "../server/supabase-alerts.js";
 import { decodeMercadoLivreTokenCookie } from "./_mercadolivre-oauth.js";
 
 export default function handler(request, response) {
   const mercadoLivreAuth = decodeMercadoLivreTokenCookie(request);
-  const config = publicConfig();
+  const config = { ...publicConfig(), ...publicSupabaseConfig() };
   if (mercadoLivreAuth?.accessToken || mercadoLivreAuth?.refreshToken) {
     config.mercadoLivreConfigured = true;
     config.mercadoLivreMode = "session";

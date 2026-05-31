@@ -1081,6 +1081,183 @@ select option {
   color: var(--orange);
 }
 
+.price-alerts-panel {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.supabase-warning {
+  border: 1px solid rgba(255, 138, 0, 0.28);
+  border-radius: var(--radius);
+  background: rgba(255, 138, 0, 0.08);
+  color: #ffc983;
+  font-weight: 800;
+  padding: 12px 14px;
+}
+
+.supabase-warning.ready {
+  border-color: rgba(36, 199, 111, 0.3);
+  background: rgba(36, 199, 111, 0.1);
+  color: var(--green);
+}
+
+.supabase-warning.missing {
+  border-color: rgba(255, 91, 91, 0.3);
+  background: rgba(255, 91, 91, 0.08);
+  color: #ff8b8b;
+}
+
+.alert-auth-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  gap: 14px;
+}
+
+.alert-form,
+.session-card,
+.alert-builder,
+.saved-alerts,
+.saved-alert-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(7, 13, 22, 0.36);
+}
+
+.alert-form {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.alert-form h3,
+.saved-alerts h3 {
+  font-size: 1rem;
+}
+
+.price-alerts-workspace {
+  display: grid;
+  gap: 14px;
+}
+
+.session-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+}
+
+.session-card p {
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.alert-builder {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.alert-builder .field-group:first-child,
+.alert-builder .field-group:nth-child(6) {
+  grid-column: span 2;
+}
+
+.alert-builder .primary-button {
+  align-self: end;
+}
+
+.saved-alerts {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.saved-alerts-list {
+  display: grid;
+  gap: 10px;
+}
+
+.saved-alert-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+}
+
+.saved-alert-card:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+
+.saved-alert-card[data-status="paused"] {
+  opacity: 0.68;
+}
+
+.saved-alert-header,
+.saved-alert-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.saved-alert-header p {
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.alert-status {
+  border: 1px solid rgba(36, 199, 111, 0.3);
+  border-radius: 999px;
+  background: rgba(36, 199, 111, 0.12);
+  color: var(--green);
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 3px 9px;
+}
+
+.alert-status.paused {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(148, 163, 184, 0.1);
+  color: var(--muted);
+}
+
+.saved-alert-details {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.alert-metric {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 9px 10px;
+}
+
+.alert-metric strong,
+.alert-metric small {
+  display: block;
+}
+
+.alert-metric strong {
+  color: var(--soft);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.alert-metric small {
+  color: var(--text);
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.text-button.danger {
+  color: var(--danger);
+}
+
 .setup-inline-link {
   color: var(--green);
   font-size: 0.84rem;
@@ -1287,6 +1464,28 @@ select option {
   text-decoration: none;
 }
 
+.product-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.product-actions .product-link {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-alert-button {
+  flex: 0 0 auto;
+  border: 1px solid rgba(36, 199, 111, 0.24);
+  border-radius: 999px;
+  background: rgba(36, 199, 111, 0.08);
+  padding: 5px 9px;
+}
+
 .timeline {
   display: grid;
   gap: 12px;
@@ -1446,9 +1645,15 @@ select option {
 
   .dashboard-grid,
   .content-grid,
-  .monitor-console {
+  .monitor-console,
+  .alert-builder {
     grid-template-columns: 1fr;
     grid-template-rows: auto;
+  }
+
+  .alert-builder .field-group:first-child,
+  .alert-builder .field-group:nth-child(6) {
+    grid-column: auto;
   }
 
   .chart-panel {
@@ -1552,7 +1757,9 @@ select option {
   }
 
   .kpi-grid,
-  .donut-layout {
+  .donut-layout,
+  .alert-auth-grid,
+  .saved-alert-details {
     grid-template-columns: 1fr;
   }
 

@@ -13,6 +13,18 @@ import {
 import { getN8nProducts, ingestN8nProducts } from "./n8n-feed.js";
 import { getMercadoLivreOffers } from "./mercadolivre-offers-page.js";
 import { getAmazonDeals } from "./amazon-deals-page.js";
+import {
+  canEvaluateAlerts,
+  createPriceAlert,
+  deletePriceAlert,
+  evaluatePriceAlerts,
+  getUserFromAuthorizationHeader,
+  listPriceAlerts,
+  publicSupabaseConfig,
+  signInPriceAlertUser,
+  signUpPriceAlertUser,
+  updatePriceAlert,
+} from "./supabase-alerts.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,7 +48,7 @@ const server = createServer(async (request, response) => {
     const url = new URL(request.url || "/", `http://${request.headers.host || "127.0.0.1"}`);
 
     if (url.pathname === "/api/config") {
-      return sendJson(response, { ...publicConfig(), port });
+      return sendJson(response, { ...publicConfig(), ...publicSupabaseConfig(), port });
     }
 
     if (url.pathname === "/api/products") {
@@ -49,6 +61,51 @@ const server = createServer(async (request, response) => {
 
     if (url.pathname === "/api/amazon/deals") {
       return sendJson(response, await getAmazonDeals(url.searchParams));
+    }
+
+    if (url.pathname === "/api/auth/signup") {
+      if (request.method === "OPTIONS") return sendEmpty(response, 204);
+      if (request.method !== "POST") return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
+      return sendJson(response, await signUpPriceAlertUser(await readJson(request)));
+    }
+
+    if (url.pathname === "/api/auth/login") {
+      if (request.method === "OPTIONS") return sendEmpty(response, 204);
+      if (request.method !== "POST") return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
+      return sendJson(response, await signInPriceAlertUser(await readJson(request)));
+    }
+
+    if (url.pathname === "/api/auth/me") {
+      if (request.method === "OPTIONS") return sendEmpty(response, 204);
+      if (request.method !== "GET") return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
+      return sendJson(response, { ok: true, user: await getUserFromAuthorizationHeader(request.headers.authorization) });
+    }
+
+    if (url.pathname === "/api/alerts") {
+      if (request.method === "OPTIONS") return sendEmpty(response, 204);
+      const user = await getUserFromAuthorizationHeader(request.headers.authorization);
+      if (request.method === "GET") return sendJson(response, { ok: true, alerts: await listPriceAlerts(user) });
+      if (request.method === "POST") return sendJson(response, { ok: true, alert: await createPriceAlert(user, await readJson(request)) });
+      if (request.method === "PATCH") return sendJson(response, { ok: true, alert: await updatePriceAlert(user, await readJson(request)) });
+      if (request.method === "DELETE") {
+        const body = await readJson(request).catch(() => ({}));
+        return sendJson(response, await deletePriceAlert(user, url.searchParams.get("id") || body.id));
+      }
+      return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
+    }
+
+    if (url.pathname === "/api/alerts/evaluate") {
+      if (request.method === "OPTIONS") return sendEmpty(response, 204);
+      if (!["GET", "POST"].includes(request.method)) return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
+      if (!canEvaluateAlerts(request)) return sendJson(response, { ok: false, error: "Token do n8n invalido" }, 401);
+      const body = request.method === "POST" ? await readJson(request).catch(() => ({})) : {};
+      const products = Array.isArray(body.products)
+        ? body.products
+        : (await getN8nProducts(new URLSearchParams({ limit: String(body.limit || url.searchParams.get("limit") || 1000) }))).products;
+      return sendJson(response, await evaluatePriceAlerts(products, {
+        limit: body.limit || url.searchParams.get("limit") || 1000,
+        markNotified: Boolean(body.markNotified),
+      }));
     }
 
     if (url.pathname === "/api/n8n/products") {

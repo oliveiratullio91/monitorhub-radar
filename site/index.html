@@ -8,7 +8,7 @@
       content="MonitorHub automatiza o monitoramento de anúncios, preços e oportunidades com n8n, APIs, histórico e alertas."
     />
     <title>MonitorHub - Dashboard</title>
-    <link rel="stylesheet" href="./styles.css?v=dashboard3" />
+    <link rel="stylesheet" href="./styles.css?v=supabase1" />
   </head>
   <body>
     <div class="dashboard-shell">
@@ -85,6 +85,12 @@
               <svg viewBox="0 0 24 24"><path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z" /><path d="M9.5 20a2.8 2.8 0 0 0 5 0" /></svg>
             </span>
             Alertas
+          </a>
+          <a href="#meus-alertas">
+            <span class="nav-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M6 3h12l2 4-8 14L4 7l2-4Z" /><path d="M8 7h8" /></svg>
+            </span>
+            Meus Alertas
           </a>
           <a href="#oportunidades">
             <span class="nav-icon" aria-hidden="true">
@@ -302,6 +308,113 @@
           </aside>
         </section>
 
+        <section class="panel-card price-alerts-panel" id="meus-alertas">
+          <div class="panel-heading">
+            <div>
+              <h2>Meus Alertas de Preço</h2>
+              <p class="panel-subtitle">Cadastre um alvo e receba aviso quando uma oferta bater o valor desejado.</p>
+            </div>
+            <button class="secondary-button compact is-hidden" id="logoutButton" type="button">Sair</button>
+          </div>
+
+          <div class="supabase-warning" id="supabaseStatus">Supabase aguardando configuração.</div>
+
+          <div class="alert-auth-grid" id="authForms">
+            <form class="alert-form" id="signupForm">
+              <h3>Criar conta</h3>
+              <label class="field-group">
+                <span>Nome</span>
+                <input id="signupName" type="text" autocomplete="name" placeholder="Tullio Oliveira" />
+              </label>
+              <label class="field-group">
+                <span>E-mail</span>
+                <input id="signupEmail" type="email" autocomplete="email" placeholder="voce@email.com" required />
+              </label>
+              <label class="field-group">
+                <span>WhatsApp opcional</span>
+                <input id="signupPhone" type="tel" autocomplete="tel" placeholder="+55 85 99999-9999" />
+              </label>
+              <label class="field-group">
+                <span>Senha</span>
+                <input id="signupPassword" type="password" autocomplete="new-password" minlength="6" required />
+              </label>
+              <button class="primary-button" type="submit">Cadastrar</button>
+            </form>
+
+            <form class="alert-form" id="loginForm">
+              <h3>Entrar</h3>
+              <label class="field-group">
+                <span>E-mail</span>
+                <input id="loginEmail" type="email" autocomplete="email" required />
+              </label>
+              <label class="field-group">
+                <span>Senha</span>
+                <input id="loginPassword" type="password" autocomplete="current-password" required />
+              </label>
+              <button class="secondary-button" type="submit">Entrar</button>
+              <p class="panel-subtitle">Depois do login, seus alertas ficam vinculados ao seu usuário no Supabase.</p>
+            </form>
+          </div>
+
+          <div class="price-alerts-workspace is-hidden" id="alertsWorkspace">
+            <div class="session-card">
+              <span class="status-dot"></span>
+              <div>
+                <strong id="sessionUserName">Usuário conectado</strong>
+                <p id="sessionUserEmail">Sincronizado com Supabase</p>
+              </div>
+            </div>
+
+            <form class="alert-builder" id="priceAlertForm">
+              <label class="field-group">
+                <span>Produto desejado</span>
+                <input id="alertProductQuery" type="text" placeholder="TV 75 Samsung" required />
+              </label>
+              <label class="field-group">
+                <span>Marca opcional</span>
+                <input id="alertBrand" type="text" placeholder="Samsung, LG, TCL..." />
+              </label>
+              <label class="field-group">
+                <span>Preço máximo</span>
+                <input id="alertTargetPrice" type="number" min="1" step="0.01" placeholder="3500" required />
+              </label>
+              <label class="field-group">
+                <span>Fonte</span>
+                <select id="alertSource">
+                  <option value="all">Todas</option>
+                  <option value="amazon">Amazon</option>
+                  <option value="mercadolivre">Mercado Livre</option>
+                </select>
+              </label>
+              <label class="field-group">
+                <span>Canal</span>
+                <select id="alertChannel">
+                  <option value="email">E-mail</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="both">E-mail e WhatsApp</option>
+                </select>
+              </label>
+              <label class="field-group">
+                <span>E-mail de aviso</span>
+                <input id="alertNotificationEmail" type="email" placeholder="voce@email.com" />
+              </label>
+              <label class="field-group">
+                <span>WhatsApp</span>
+                <input id="alertWhatsappPhone" type="tel" placeholder="+55 85 99999-9999" />
+              </label>
+              <button class="primary-button" type="submit">Criar alerta</button>
+            </form>
+
+            <div class="saved-alerts">
+              <div class="panel-heading">
+                <h3>Alertas salvos</h3>
+                <button class="text-button" id="reloadAlertsButton" type="button">Recarregar</button>
+              </div>
+              <div class="saved-alerts-list" id="priceAlertsList"></div>
+            </div>
+          </div>
+        </section>
+
         <section class="monitor-console" id="configuracoes">
           <aside class="panel-card filter-panel" aria-label="Filtros de produtos">
             <div class="panel-heading">
@@ -423,7 +536,10 @@
             <span class="price-change"></span>
           </div>
           <div class="history-strip" aria-label="Histórico de preço"></div>
-          <a class="product-link" target="_blank" rel="noreferrer">Abrir produto</a>
+          <div class="product-actions">
+            <a class="product-link" target="_blank" rel="noreferrer">Abrir produto</a>
+            <button class="text-button product-alert-button" type="button">Criar alerta</button>
+          </div>
         </div>
       </article>
     </template>
@@ -439,6 +555,6 @@
       </article>
     </template>
 
-    <script src="./app.js" defer></script>
+    <script src="./app.js?v=supabase1" defer></script>
   </body>
 </html>

@@ -14,11 +14,13 @@ Este repositorio contem o kit inicial para montar o projeto no n8n:
 - `server/server.js`: backend local que consulta Mercado Livre e Amazon sem expor credenciais no navegador.
 - `api/config.js`, `api/products.js` e `api/n8n/products.js`: funcoes serverless preparadas para Vercel.
 - `api/mercadolivre/offers.js` e `api/amazon/deals.js`: endpoints serverless para coletar ofertas publicas.
+- `api/auth/*`, `api/alerts.js` e `api/alerts/evaluate.js`: cadastro, login e alertas personalizados com Supabase.
 - `templates/google-sheets-historico.csv`: cabecalho da aba `historico` no Google Sheets.
 - `docs/plano-n8n.md`: arquitetura, configuracao e roteiro de implementacao.
 - `docs/plano-plataforma.md`: etapas da plataforma publica para Amazon, Mercado Livre e Vercel.
 - `docs/fontes-amazon-mercado-livre.md`: observacoes especificas sobre Amazon e Mercado Livre.
 - `docs/credenciais-marketplaces.md`: como preencher as credenciais reais.
+- `docs/supabase-alertas.sql`: tabelas e politicas RLS para usuarios e alertas de preco.
 
 ## Como usar
 
@@ -66,6 +68,35 @@ O painel agora prioriza produtos enviados pelo n8n em `POST /api/n8n/products`.
 Se quiser proteger a escrita do feed, defina `N8N_INGEST_TOKEN` na Vercel/local e coloque o mesmo valor em `monitorHubIngestToken` no workflow.
 
 Os workflows de coleta recorrente usam cron fixo `0 0,30 * * * *`, ou seja, executam sempre nos minutos `00` e `30` de cada hora.
+
+## Alertas personalizados com Supabase
+
+O dashboard possui a area `Meus Alertas`, onde o usuario cria conta, entra e salva um produto desejado com preco maximo. O backend compara esses alertas contra o feed real do n8n e gera notificacoes pendentes no Supabase.
+
+1. No Supabase, crie ou abra um projeto.
+2. Va em `SQL Editor` e rode `docs/supabase-alertas.sql`.
+3. Em `Project Settings > API`, copie:
+   - `Project URL` para `SUPABASE_URL`.
+   - `anon public` para `SUPABASE_ANON_KEY`.
+   - `service_role secret` para `SUPABASE_SERVICE_ROLE_KEY`.
+4. Coloque essas variaveis no `.env` local e tambem nas Environment Variables da Vercel.
+5. Reinicie o servidor local ou faca redeploy na Vercel.
+6. No n8n, depois que os produtos forem enviados para `/api/n8n/products`, chame:
+
+```text
+GET https://monitorhub-radar.vercel.app/api/alerts/evaluate?limit=1000
+```
+
+Para registrar cada match como notificacao pendente, use `POST /api/alerts/evaluate` com:
+
+```json
+{
+  "limit": 1000,
+  "markNotified": true
+}
+```
+
+Se `N8N_INGEST_TOKEN` estiver configurado, envie o mesmo valor no header `X-N8N-Token`.
 
 ### Somente promocoes do Mercado Livre
 

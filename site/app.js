@@ -2,6 +2,7 @@ const CONFIG_KEY = "radar-produtos-config-v4";
 const SNAPSHOT_KEY = "radar-produtos-snapshot-v4";
 const EVENTS_KEY = "radar-produtos-events-v4";
 const HISTORY_KEY = "radar-produtos-history-v4";
+const ALERT_AUTH_KEY = "monitorhub-alert-auth-v1";
 const DEMO_MODE_AVAILABLE = false;
 const IS_LOCALHOST = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
 
@@ -63,6 +64,9 @@ const state = {
   fallbackActive: false,
   fallbackReason: "",
   selectedCategory: "all",
+  auth: readStorage(ALERT_AUTH_KEY, null),
+  priceAlerts: [],
+  alertsLoading: false,
 };
 
 const elements = {
@@ -99,6 +103,30 @@ const elements = {
   productTemplate: document.querySelector("#productCardTemplate"),
   timelineTemplate: document.querySelector("#timelineItemTemplate"),
   categoryButtons: document.querySelectorAll(".category-button"),
+  supabaseStatus: document.querySelector("#supabaseStatus"),
+  authForms: document.querySelector("#authForms"),
+  signupForm: document.querySelector("#signupForm"),
+  signupName: document.querySelector("#signupName"),
+  signupEmail: document.querySelector("#signupEmail"),
+  signupPhone: document.querySelector("#signupPhone"),
+  signupPassword: document.querySelector("#signupPassword"),
+  loginForm: document.querySelector("#loginForm"),
+  loginEmail: document.querySelector("#loginEmail"),
+  loginPassword: document.querySelector("#loginPassword"),
+  logoutButton: document.querySelector("#logoutButton"),
+  alertsWorkspace: document.querySelector("#alertsWorkspace"),
+  sessionUserName: document.querySelector("#sessionUserName"),
+  sessionUserEmail: document.querySelector("#sessionUserEmail"),
+  priceAlertForm: document.querySelector("#priceAlertForm"),
+  alertProductQuery: document.querySelector("#alertProductQuery"),
+  alertBrand: document.querySelector("#alertBrand"),
+  alertTargetPrice: document.querySelector("#alertTargetPrice"),
+  alertSource: document.querySelector("#alertSource"),
+  alertChannel: document.querySelector("#alertChannel"),
+  alertNotificationEmail: document.querySelector("#alertNotificationEmail"),
+  alertWhatsappPhone: document.querySelector("#alertWhatsappPhone"),
+  reloadAlertsButton: document.querySelector("#reloadAlertsButton"),
+  priceAlertsList: document.querySelector("#priceAlertsList"),
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -161,6 +189,7 @@ function renderServerStatus() {
   if (!config) {
     setStatusElement(elements.mercadoLivreStatus, "Mercado Livre: servidor indisponivel", false);
     setStatusElement(elements.amazonStatus, "Amazon: servidor indisponivel", false);
+    setSupabaseStatus("Supabase: servidor indisponivel", false);
     return;
   }
 
@@ -178,6 +207,10 @@ function renderServerStatus() {
     config.amazonConfigured ? `Amazon: ${config.amazonProvider} ativo` : "Amazon: faltam credenciais ou endpoint",
     config.amazonConfigured,
   );
+  setSupabaseStatus(
+    config.supabaseConfigured ? "Supabase: cadastro e alertas ativos" : `Supabase: configure ${config.supabaseRequiredEnv?.join(", ") || "variaveis"}`,
+    config.supabaseConfigured,
+  );
 }
 
 function applyAutomaticDemoFallback(hasSavedConfig) {
@@ -189,6 +222,13 @@ function setStatusElement(element, text, ready) {
   element.textContent = text;
   element.classList.toggle("ready", Boolean(ready));
   element.classList.toggle("missing", !ready);
+}
+
+function setSupabaseStatus(text, ready) {
+  if (!elements.supabaseStatus) return;
+  elements.supabaseStatus.textContent = text;
+  elements.supabaseStatus.classList.toggle("ready", Boolean(ready));
+  elements.supabaseStatus.classList.toggle("missing", !ready);
 }
 
 function prepareDemoMode() {
@@ -244,6 +284,357 @@ async function fetchN8nProducts(limit) {
   } catch {
     return null;
   }
+}
+
+async function verifyStoredSession() {
+  if (!state.auth?.session?.accessToken) {
+    renderPriceAlertsArea();
+    return;
+  }
+
+  try {
+    const payload = await apiRequest("/api/auth/me");
+    state.auth.user = payload.user;
+    writeStorage(ALERT_AUTH_KEY, state.auth);
+    await loadPriceAlerts();
+  } catch {
+    clearAuthSession();
+  }
+  renderPriceAlertsArea();
+}
+
+async function submitSignup(event) {
+  event.preventDefault();
+  setAuthLoading(true);
+  try {
+    const payload = await apiRequest("/api/auth/signup", {
+      method: "POST",
+      body: {
+        name: elements.signupName.value,
+        email: elements.signupEmail.value,
+        phone: elements.signupPhone.value,
+        password: elements.signupPassword.value,
+      },
+      skipAuth: true,
+    });
+    handleAuthPayload(payload);
+    if (payload.requiresEmailConfirmation) {
+      setSupabaseStatus("Cadastro criado. Confirme o e-mail no Supabase antes de entrar.", true);
+    } else {
+      setSupabaseStatus("Conta criada e conectada.", true);
+      await loadPriceAlerts();
+    }
+    elements.signupPassword.value = "";
+  } catch (error) {
+    setSupabaseStatus(error.message || "Falha ao cadastrar usuario.", false);
+  } finally {
+    setAuthLoading(false);
+    renderPriceAlertsArea();
+  }
+}
+
+async function submitLogin(event) {
+  event.preventDefault();
+  setAuthLoading(true);
+  try {
+    const payload = await apiRequest("/api/auth/login", {
+      method: "POST",
+      body: {
+        email: elements.loginEmail.value,
+        password: elements.loginPassword.value,
+      },
+      skipAuth: true,
+    });
+    handleAuthPayload(payload);
+    setSupabaseStatus("Usuario conectado ao Supabase.", true);
+    elements.loginPassword.value = "";
+    await loadPriceAlerts();
+  } catch (error) {
+    setSupabaseStatus(error.message || "Falha ao entrar.", false);
+  } finally {
+    setAuthLoading(false);
+    renderPriceAlertsArea();
+  }
+}
+
+function handleAuthPayload(payload) {
+  if (!payload?.session?.accessToken) return;
+  state.auth = {
+    user: payload.user,
+    session: payload.session,
+  };
+  writeStorage(ALERT_AUTH_KEY, state.auth);
+  prefillAlertContacts();
+}
+
+function clearAuthSession() {
+  state.auth = null;
+  state.priceAlerts = [];
+  localStorage.removeItem(ALERT_AUTH_KEY);
+  renderPriceAlertsArea();
+}
+
+async function loadPriceAlerts() {
+  if (!state.auth?.session?.accessToken) return;
+  state.alertsLoading = true;
+  renderPriceAlertsArea();
+  try {
+    const payload = await apiRequest("/api/alerts");
+    state.priceAlerts = Array.isArray(payload.alerts) ? payload.alerts : [];
+  } catch (error) {
+    setSupabaseStatus(error.message || "Falha ao carregar alertas.", false);
+  } finally {
+    state.alertsLoading = false;
+    renderPriceAlertsArea();
+  }
+}
+
+async function submitPriceAlert(event) {
+  event.preventDefault();
+  if (!state.auth?.session?.accessToken) {
+    setSupabaseStatus("Entre na sua conta para criar alertas.", false);
+    return;
+  }
+
+  const productQuery = elements.alertProductQuery.value.trim();
+  const targetPrice = Number(elements.alertTargetPrice.value);
+  if (!productQuery || !targetPrice) {
+    setSupabaseStatus("Informe produto e preco maximo.", false);
+    return;
+  }
+
+  setAlertFormLoading(true);
+  try {
+    const payload = await apiRequest("/api/alerts", {
+      method: "POST",
+      body: {
+        productQuery,
+        brand: elements.alertBrand.value,
+        targetPrice,
+        source: elements.alertSource.value,
+        notificationChannel: elements.alertChannel.value,
+        notificationEmail: elements.alertNotificationEmail.value,
+        whatsappPhone: elements.alertWhatsappPhone.value,
+      },
+    });
+    state.priceAlerts = [payload.alert, ...state.priceAlerts];
+    elements.priceAlertForm.reset();
+    prefillAlertContacts();
+    setSupabaseStatus("Alerta salvo. O n8n vai comparar nas proximas coletas.", true);
+  } catch (error) {
+    setSupabaseStatus(error.message || "Falha ao salvar alerta.", false);
+  } finally {
+    setAlertFormLoading(false);
+    renderPriceAlertsArea();
+  }
+}
+
+async function deleteSavedAlert(id) {
+  try {
+    await apiRequest(`/api/alerts?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    state.priceAlerts = state.priceAlerts.filter((alert) => alert.id !== id);
+    setSupabaseStatus("Alerta removido.", true);
+  } catch (error) {
+    setSupabaseStatus(error.message || "Falha ao remover alerta.", false);
+  } finally {
+    renderPriceAlertsArea();
+  }
+}
+
+async function toggleSavedAlert(alert) {
+  try {
+    const nextStatus = alert.status === "active" ? "paused" : "active";
+    const payload = await apiRequest("/api/alerts", {
+      method: "PATCH",
+      body: { id: alert.id, status: nextStatus },
+    });
+    state.priceAlerts = state.priceAlerts.map((item) => item.id === alert.id ? payload.alert : item);
+    setSupabaseStatus(nextStatus === "active" ? "Alerta reativado." : "Alerta pausado.", true);
+  } catch (error) {
+    setSupabaseStatus(error.message || "Falha ao alterar alerta.", false);
+  } finally {
+    renderPriceAlertsArea();
+  }
+}
+
+async function apiRequest(url, options = {}) {
+  const headers = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+  if (!options.skipAuth && state.auth?.session?.accessToken) {
+    headers.Authorization = `Bearer ${state.auth.session.accessToken}`;
+  }
+
+  const response = await fetch(url, {
+    method: options.method || "GET",
+    cache: "no-store",
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.ok === false) {
+    throw new Error(payload.error || `HTTP ${response.status}`);
+  }
+  return payload;
+}
+
+function setAuthLoading(loading) {
+  [elements.signupForm, elements.loginForm].forEach((form) => {
+    form?.querySelectorAll("button, input").forEach((item) => {
+      item.disabled = loading;
+    });
+  });
+}
+
+function setAlertFormLoading(loading) {
+  elements.priceAlertForm?.querySelectorAll("button, input, select").forEach((item) => {
+    item.disabled = loading;
+  });
+}
+
+function prefillAlertContacts() {
+  const user = state.auth?.user || {};
+  if (elements.alertNotificationEmail && !elements.alertNotificationEmail.value) {
+    elements.alertNotificationEmail.value = user.email || "";
+  }
+  if (elements.alertWhatsappPhone && !elements.alertWhatsappPhone.value) {
+    elements.alertWhatsappPhone.value = user.phone || "";
+  }
+}
+
+function prefillAlertFromProduct(product) {
+  if (!state.auth?.session?.accessToken) {
+    location.hash = "#meus-alertas";
+    setSupabaseStatus("Entre ou cadastre-se para criar alertas personalizados.", false);
+    return;
+  }
+
+  location.hash = "#meus-alertas";
+  elements.alertProductQuery.value = product.title || "";
+  elements.alertBrand.value = product.seller && product.seller.length <= 30 ? product.seller : "";
+  elements.alertTargetPrice.value = product.price ? Number(product.price).toFixed(2) : "";
+  elements.alertSource.value = product.sourceKind === "amazon" ? "amazon" : product.sourceKind === "mercadolivre" ? "mercadolivre" : "all";
+  prefillAlertContacts();
+  setSupabaseStatus("Produto preenchido. Ajuste o preco alvo antes de salvar.", true);
+}
+
+function renderPriceAlertsArea() {
+  const isLoggedIn = Boolean(state.auth?.session?.accessToken);
+  elements.authForms?.classList.toggle("is-hidden", isLoggedIn);
+  elements.alertsWorkspace?.classList.toggle("is-hidden", !isLoggedIn);
+  elements.logoutButton?.classList.toggle("is-hidden", !isLoggedIn);
+
+  const user = state.auth?.user || {};
+  if (elements.sessionUserName) {
+    elements.sessionUserName.textContent = user.name || "Usuario conectado";
+  }
+  if (elements.sessionUserEmail) {
+    elements.sessionUserEmail.textContent = user.email || "Sincronizado com Supabase";
+  }
+
+  prefillAlertContacts();
+  renderSavedPriceAlerts();
+}
+
+function renderSavedPriceAlerts() {
+  const list = elements.priceAlertsList;
+  if (!list) return;
+
+  list.textContent = "";
+  if (!state.auth?.session?.accessToken) return;
+
+  if (state.alertsLoading) {
+    const loading = document.createElement("div");
+    loading.className = "empty-state";
+    loading.textContent = "Carregando alertas salvos...";
+    list.append(loading);
+    return;
+  }
+
+  if (!state.priceAlerts.length) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "Nenhum alerta salvo ainda. Escolha um produto e defina um preco maximo.";
+    list.append(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  state.priceAlerts.forEach((alert) => {
+    const card = document.createElement("article");
+    card.className = "saved-alert-card";
+    card.dataset.status = alert.status;
+
+    const header = document.createElement("div");
+    header.className = "saved-alert-header";
+    const titleWrap = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = alert.productQuery;
+    const meta = document.createElement("p");
+    meta.textContent = [
+      sourceLabel(alert.source),
+      alert.brand ? `Marca: ${alert.brand}` : "",
+      channelLabel(alert.notificationChannel),
+    ].filter(Boolean).join(" | ");
+    titleWrap.append(title, meta);
+
+    const status = document.createElement("span");
+    status.className = `alert-status ${alert.status === "paused" ? "paused" : "active"}`;
+    status.textContent = alert.status === "paused" ? "Pausado" : "Ativo";
+    header.append(titleWrap, status);
+
+    const details = document.createElement("div");
+    details.className = "saved-alert-details";
+    details.append(
+      alertMetric("Preco alvo", formatMoney(alert.targetPrice)),
+      alertMetric("Ultimo aviso", alert.lastNotifiedAt ? new Date(alert.lastNotifiedAt).toLocaleString("pt-BR") : "Ainda nao enviado"),
+      alertMetric("Contato", alert.notificationChannel === "whatsapp" ? alert.whatsappPhone : alert.userEmail),
+    );
+
+    const actions = document.createElement("div");
+    actions.className = "saved-alert-actions";
+    const toggleButton = document.createElement("button");
+    toggleButton.className = "secondary-button compact";
+    toggleButton.type = "button";
+    toggleButton.textContent = alert.status === "paused" ? "Reativar" : "Pausar";
+    toggleButton.addEventListener("click", () => toggleSavedAlert(alert));
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "text-button danger";
+    deleteButton.type = "button";
+    deleteButton.textContent = "Excluir";
+    deleteButton.addEventListener("click", () => deleteSavedAlert(alert.id));
+    actions.append(toggleButton, deleteButton);
+
+    card.append(header, details, actions);
+    fragment.append(card);
+  });
+
+  list.append(fragment);
+}
+
+function alertMetric(label, value) {
+  const item = document.createElement("span");
+  item.className = "alert-metric";
+  const strong = document.createElement("strong");
+  strong.textContent = label;
+  const small = document.createElement("small");
+  small.textContent = value || "-";
+  item.append(strong, small);
+  return item;
+}
+
+function sourceLabel(source) {
+  if (source === "amazon") return "Amazon";
+  if (source === "mercadolivre") return "Mercado Livre";
+  return "Todas as fontes";
+}
+
+function channelLabel(channel) {
+  if (channel === "whatsapp") return "WhatsApp";
+  if (channel === "both") return "E-mail e WhatsApp";
+  return "E-mail";
 }
 
 async function refreshProducts() {
@@ -451,6 +842,7 @@ function render() {
   renderDashboardStatus();
   renderActivityChart();
   renderRecentAlertsTable();
+  renderPriceAlertsArea();
   updateRunningState();
   elements.lastUpdatedText.textContent = state.lastUpdated
     ? `${state.lastUpdated.toLocaleDateString("pt-BR")} ${state.lastUpdated.toLocaleTimeString("pt-BR")}`
@@ -730,6 +1122,7 @@ function renderProducts(products) {
     const priceChange = card.querySelector(".price-change");
     const historyStrip = card.querySelector(".history-strip");
     const productLink = card.querySelector(".product-link");
+    const productAlertButton = card.querySelector(".product-alert-button");
 
     image.src = product.image || placeholderImage(product.source);
     image.alt = product.title;
@@ -746,6 +1139,7 @@ function renderProducts(products) {
     priceChange.classList.add(product.changeType);
     productLink.href = product.url || "#";
     productLink.textContent = product.url ? "Conferir no marketplace" : "Link indisponivel";
+    productAlertButton.addEventListener("click", () => prefillAlertFromProduct(product));
 
     renderHistoryStrip(historyStrip, product.history || []);
     fragment.append(card);
@@ -915,6 +1309,12 @@ function bindEvents() {
       render();
     });
   });
+
+  elements.signupForm?.addEventListener("submit", submitSignup);
+  elements.loginForm?.addEventListener("submit", submitLogin);
+  elements.logoutButton?.addEventListener("click", clearAuthSession);
+  elements.priceAlertForm?.addEventListener("submit", submitPriceAlert);
+  elements.reloadAlertsButton?.addEventListener("click", loadPriceAlerts);
 }
 
 async function init() {
@@ -925,6 +1325,7 @@ async function init() {
   bindEvents();
   render();
   await loadServerConfig();
+  await verifyStoredSession();
   applyAutomaticDemoFallback(hasSavedConfig);
   refreshProducts();
 }
