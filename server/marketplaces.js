@@ -8,7 +8,8 @@ import {
 } from "amazon-creators-api";
 
 const envPath = path.resolve(process.cwd(), ".env");
-const env = loadEnv(envPath);
+const localEnvPath = path.resolve(process.cwd(), ".env.local");
+const env = loadEnvFiles([envPath, localEnvPath]);
 
 const DEMO_CATALOG = [
   {
@@ -240,9 +241,19 @@ export async function getProducts(searchParams, options = {}) {
   };
 }
 
-function loadEnv(filePath) {
+function loadEnvFiles(filePaths) {
   const values = {};
-  if (!existsSync(filePath)) return { ...process.env };
+  for (const filePath of filePaths) {
+    for (const [key, value] of Object.entries(loadEnvFile(filePath))) {
+      if (value !== "") values[key] = value;
+    }
+  }
+  return { ...values, ...process.env };
+}
+
+function loadEnvFile(filePath) {
+  const values = {};
+  if (!existsSync(filePath)) return values;
 
   const content = readFileSync(filePath, "utf8");
   for (const rawLine of content.split(/\r?\n/)) {
@@ -258,7 +269,7 @@ function loadEnv(filePath) {
     }
     values[key] = value;
   }
-  return { ...values, ...process.env };
+  return values;
 }
 
 function writeEnvValues(filePath, values) {

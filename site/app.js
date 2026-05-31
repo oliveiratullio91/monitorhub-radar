@@ -3,6 +3,7 @@ const SNAPSHOT_KEY = "radar-produtos-snapshot-v4";
 const EVENTS_KEY = "radar-produtos-events-v4";
 const HISTORY_KEY = "radar-produtos-history-v4";
 const DEMO_MODE_AVAILABLE = false;
+const IS_LOCALHOST = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
 
 const dashboardFormatter = new Intl.NumberFormat("pt-BR");
 
@@ -163,7 +164,11 @@ function renderServerStatus() {
 
   setStatusElement(
     elements.mercadoLivreStatus,
-    config.mercadoLivreConfigured ? "Mercado Livre: token ativo" : "Mercado Livre: falta MERCADO_LIVRE_ACCESS_TOKEN",
+    config.mercadoLivreConfigured
+      ? "Mercado Livre: token ativo"
+      : IS_LOCALHOST
+        ? "Mercado Livre: local sem token"
+        : "Mercado Livre: falta MERCADO_LIVRE_ACCESS_TOKEN",
     config.mercadoLivreConfigured,
   );
   setStatusElement(
@@ -649,7 +654,7 @@ function renderProducts(products) {
   if (state.sourceErrors.length) {
     const error = document.createElement("div");
     error.className = products.length ? "warning-state" : "error-state";
-    error.textContent = state.sourceErrors.join(" | ");
+    error.textContent = state.sourceErrors.map(formatSourceErrorForDisplay).join(" | ");
     elements.productGrid.append(error);
   }
 
@@ -737,6 +742,13 @@ function renderTimeline() {
     fragment.append(item);
   }
   elements.timeline.append(fragment);
+}
+
+function formatSourceErrorForDisplay(message) {
+  if (IS_LOCALHOST && message.includes("MERCADO_LIVRE_ACCESS_TOKEN")) {
+    return "Mercado Livre: este servidor local esta sem token. Use https://monitorhub-radar.vercel.app ou autorize o Mercado Livre localmente.";
+  }
+  return message;
 }
 
 function formatMoney(value, currency = "BRL") {
