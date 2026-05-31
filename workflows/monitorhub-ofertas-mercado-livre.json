@@ -1,0 +1,253 @@
+{
+  "id": "monitorhub-ofertas-mercado-livre",
+  "name": "MonitorHub - Ofertas Mercado Livre",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "d0321f21-fb4b-43de-bcf2-bf1839c30101",
+      "name": "Executar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -840,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "1fe60da5-49c6-48d1-b259-8d4374910102",
+      "name": "Agendamento - a cada 30 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -840,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "path": "monitorhub-ofertas",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "83a64757-5645-49b5-9376-ea42ef510103",
+      "name": "Webhook - executar agora",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -840,
+        480
+      ],
+      "webhookId": "monitorhub-ofertas"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "offers-source-url",
+              "name": "offersSourceUrl",
+              "value": "https://monitorhub-radar.vercel.app/api/mercadolivre/offers?pages=20&limit=500",
+              "type": "string"
+            },
+            {
+              "id": "monitorhub-endpoint",
+              "name": "monitorHubEndpoint",
+              "value": "https://monitorhub-radar.vercel.app/api/n8n/products",
+              "type": "string"
+            },
+            {
+              "id": "monitorhub-token",
+              "name": "monitorHubIngestToken",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ac5d0a70-df94-499a-9548-826b2bd10104",
+      "name": "Configuracao Ofertas",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.offersSourceUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "d373d75a-0cd9-4bd4-bcec-785802b10105",
+      "name": "Buscar pagina de ofertas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -260,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Configuracao Ofertas').first().json;\nconst payload = $input.first()?.json || {};\nconst errors = [];\nif (payload?.error) errors.push(`n8n: falha ao consultar pagina de ofertas (${payload.error.message || payload.error}).`);\nif (payload?.message && Number(payload?.statusCode) >= 400) errors.push(`n8n: endpoint de ofertas retornou ${payload.statusCode}: ${payload.message}`);\nif (Array.isArray(payload?.errors)) errors.push(...payload.errors.map((message) => `n8n: ${message}`));\nconst products = Array.isArray(payload?.products) ? payload.products : [];\nreturn [{\n  json: {\n    runId: $execution?.id || `ofertas-${Date.now()}`,\n    source: 'n8n',\n    sourceName: 'Mercado Livre Ofertas',\n    query: 'Pagina publica de ofertas Mercado Livre',\n    currency: 'BRL',\n    products,\n    errors,\n    fetchedAt: payload.fetchedAt || new Date().toISOString(),\n    monitorHubEndpoint: cfg.monitorHubEndpoint,\n    monitorHubIngestToken: cfg.monitorHubIngestToken\n  }\n}];"
+      },
+      "id": "013e2b77-e5ad-44a6-bc1f-8a1c64210106",
+      "name": "Preparar feed MonitorHub",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        40,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.monitorHubEndpoint }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $json.monitorHubIngestToken ? 'Bearer ' + $json.monitorHubIngestToken : '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { runId: $json.runId, source: $json.source, sourceName: $json.sourceName, query: $json.query, currency: $json.currency, products: $json.products, errors: $json.errors, fetchedAt: $json.fetchedAt } }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "bcb38fd4-7b7c-4fd0-a60d-ed0a66d10107",
+      "name": "Enviar ofertas ao MonitorHub",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Este workflow coleta a pagina publica de Ofertas do Mercado Livre.\n\nA API do MonitorHub busca https://www.mercadolivre.com.br/ofertas, pagina por ?page=2, ?page=3 etc., extrai os cards e envia ao dashboard.\n\nAjuste pages/limit em offersSourceUrl para ampliar ou reduzir a coleta.",
+        "height": 240,
+        "width": 380,
+        "color": 4
+      },
+      "id": "af704f94-d8e4-4c37-a356-8b4a51910108",
+      "name": "Como funciona",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -40
+      ]
+    }
+  ],
+  "connections": {
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Configuracao Ofertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agendamento - a cada 30 minutos": {
+      "main": [
+        [
+          {
+            "node": "Configuracao Ofertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - executar agora": {
+      "main": [
+        [
+          {
+            "node": "Configuracao Ofertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuracao Ofertas": {
+      "main": [
+        [
+          {
+            "node": "Buscar pagina de ofertas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar pagina de ofertas": {
+      "main": [
+        [
+          {
+            "node": "Preparar feed MonitorHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar feed MonitorHub": {
+      "main": [
+        [
+          {
+            "node": "Enviar ofertas ao MonitorHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-05-31T00:00:00.000Z",
+  "versionId": "monitorhub-ofertas-v1"
+}

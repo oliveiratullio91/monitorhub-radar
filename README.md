@@ -8,6 +8,7 @@ Este repositorio contem o kit inicial para montar o projeto no n8n:
 - `workflows/monitoramento-marketplaces-amazon-mercado-livre.json`: workflow preparado para Mercado Livre e Amazon via API autorizada.
 - `workflows/monitorhub-feed-n8n-mercado-livre.json`: workflow que envia os produtos coletados pelo n8n diretamente para o dashboard.
 - `workflows/monitorhub-promocoes-mercado-livre.json`: workflow que envia somente itens com promocao ativa do Mercado Livre.
+- `workflows/monitorhub-ofertas-mercado-livre.json`: workflow que coleta a pagina publica de ofertas do Mercado Livre.
 - `site/index.html`, `site/styles.css`, `site/app.js`: painel local para acompanhar produtos em tempo real.
 - `server/server.js`: backend local que consulta Mercado Livre e Amazon sem expor credenciais no navegador.
 - `api/config.js`, `api/products.js` e `api/n8n/products.js`: funcoes serverless preparadas para Vercel.
@@ -74,6 +75,14 @@ No node `Configuracao Promocoes`, preencha:
 
 O filtro exige `status=started`, `original_price` maior que `price` e preco promocional maior que zero.
 Com o workflow ativo no n8n local, voce tambem pode disparar uma coleta imediata em `http://127.0.0.1:5678/webhook/monitorhub-promocoes`.
+
+### Pagina publica de ofertas
+
+Para coletar a pagina `https://www.mercadolivre.com.br/ofertas`, importe `workflows/monitorhub-ofertas-mercado-livre.json`.
+
+O endpoint usado pelo workflow e `https://monitorhub-radar.vercel.app/api/mercadolivre/offers?pages=20&limit=500`.
+Ele pagina a listagem publica de ofertas, extrai os cards com preco atual, preco anterior, desconto e link, e envia para o dashboard.
+Com o workflow ativo no n8n local, dispare uma coleta imediata em `http://127.0.0.1:5678/webhook/monitorhub-ofertas`.
 
 ## Painel local
 

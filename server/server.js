@@ -11,6 +11,7 @@ import {
   updateRuntimeEnv,
 } from "./marketplaces.js";
 import { getN8nProducts, ingestN8nProducts } from "./n8n-feed.js";
+import { getMercadoLivreOffers } from "./mercadolivre-offers-page.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,6 +39,10 @@ const server = createServer(async (request, response) => {
 
     if (url.pathname === "/api/products") {
       return sendJson(response, await getProducts(url.searchParams));
+    }
+
+    if (url.pathname === "/api/mercadolivre/offers") {
+      return sendJson(response, await getMercadoLivreOffers(url.searchParams));
     }
 
     if (url.pathname === "/api/n8n/products") {
