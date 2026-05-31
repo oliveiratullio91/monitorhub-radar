@@ -65,6 +65,8 @@ O painel agora prioriza produtos enviados pelo n8n em `POST /api/n8n/products`.
 
 Se quiser proteger a escrita do feed, defina `N8N_INGEST_TOKEN` na Vercel/local e coloque o mesmo valor em `monitorHubIngestToken` no workflow.
 
+Os workflows de coleta recorrente usam cron fixo `0 0,30 * * * *`, ou seja, executam sempre nos minutos `00` e `30` de cada hora.
+
 ### Somente promocoes do Mercado Livre
 
 Para listar apenas produtos que estao em promocao, importe `workflows/monitorhub-promocoes-mercado-livre.json`.

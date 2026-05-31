@@ -18,14 +18,14 @@
         "rule": {
           "interval": [
             {
-              "field": "minutes",
-              "minutesInterval": 30
+              "field": "cronExpression",
+              "expression": "0 0,30 * * * *"
             }
           ]
         }
       },
       "id": "402a4afa-d1d1-4a39-8cfb-680eb1b10102",
-      "name": "Agendamento - a cada 30 minutos",
+      "name": "Agendamento - minutos 00 e 30",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
@@ -207,17 +207,6 @@
         ]
       ]
     },
-    "Agendamento - a cada 30 minutos": {
-      "main": [
-        [
-          {
-            "node": "Configuracao MonitorHub",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Configuracao MonitorHub": {
       "main": [
         [
@@ -245,6 +234,17 @@
         [
           {
             "node": "Enviar feed ao MonitorHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agendamento - minutos 00 e 30": {
+      "main": [
+        [
+          {
+            "node": "Configuracao MonitorHub",
             "type": "main",
             "index": 0
           }

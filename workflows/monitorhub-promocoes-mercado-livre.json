@@ -18,14 +18,14 @@
         "rule": {
           "interval": [
             {
-              "field": "minutes",
-              "minutesInterval": 30
+              "field": "cronExpression",
+              "expression": "0 0,30 * * * *"
             }
           ]
         }
       },
       "id": "3d7939e7-6690-42bc-a1f8-2e74a9720102",
-      "name": "Agendamento - a cada 30 minutos",
+      "name": "Agendamento - minutos 00 e 30",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
@@ -221,17 +221,6 @@
         ]
       ]
     },
-    "Agendamento - a cada 30 minutos": {
-      "main": [
-        [
-          {
-            "node": "Configuracao Promocoes",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Webhook - executar agora": {
       "main": [
         [
@@ -270,6 +259,17 @@
         [
           {
             "node": "Enviar promocoes ao MonitorHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agendamento - minutos 00 e 30": {
+      "main": [
+        [
+          {
+            "node": "Configuracao Promocoes",
             "type": "main",
             "index": 0
           }
