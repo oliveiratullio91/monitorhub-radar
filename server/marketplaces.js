@@ -141,7 +141,7 @@ export function updateRuntimeEnv(values, options = {}) {
   );
 
   Object.assign(env, cleanValues);
-  if (options.persist) {
+  if (options.persist && canWriteEnvFile()) {
     writeEnvValues(envPath, cleanValues);
   }
 }
@@ -283,6 +283,10 @@ function writeEnvValues(filePath, values) {
   }
 
   writeFileSync(filePath, `${updated.join("\n").replace(/\n+$/, "")}\n`, "utf8");
+}
+
+function canWriteEnvFile() {
+  return !process.env.VERCEL;
 }
 
 function formatEnvValue(value) {
