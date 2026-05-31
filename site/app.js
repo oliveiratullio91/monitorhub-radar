@@ -58,6 +58,8 @@ const state = {
   loading: false,
   lastUpdated: null,
   serverConfig: null,
+  n8nFeedActive: false,
+  n8nUpdatedAt: "",
   fallbackActive: false,
   fallbackReason: "",
   selectedCategory: "all",
@@ -196,6 +198,12 @@ function prepareDemoMode() {
 }
 
 async function fetchProductsFromBackend(config) {
+  const n8nPayload = await fetchN8nProducts(config.itemLimit);
+  if (n8nPayload && (n8nPayload.products?.length || n8nPayload.updatedAt || n8nPayload.errors?.length)) {
+    setStatusElement(elements.mercadoLivreStatus, "n8n: feed conectado ao dashboard", true);
+    return n8nPayload;
+  }
+
   const selectedSources = [];
   if (config.demoEnabled) selectedSources.push("demo");
   if (config.mercadoLivreEnabled) selectedSources.push("mercadolivre");
@@ -218,6 +226,26 @@ async function fetchProductsFromBackend(config) {
   return payload;
 }
 
+async function fetchN8nProducts(limit) {
+  try {
+    const params = new URLSearchParams({ limit: String(limit) });
+    const response = await fetch(`/api/n8n/products?${params.toString()}`, { cache: "no-store" });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+
+    return {
+      ...payload,
+      source: "n8n",
+      products: Array.isArray(payload.products) ? payload.products : [],
+      errors: Array.isArray(payload.errors) ? payload.errors : [],
+      fallback: payload.fallback || { active: false },
+      fetchedAt: payload.updatedAt || payload.fetchedAt || new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function refreshProducts() {
   if (state.loading) return;
 
@@ -230,6 +258,8 @@ async function refreshProducts() {
 
   if (!config.demoEnabled && !config.mercadoLivreEnabled && !config.amazonEnabled) {
     state.products = [];
+    state.n8nFeedActive = false;
+    state.n8nUpdatedAt = "";
     state.loading = false;
     setConnectionText("Nenhuma fonte ativa");
     render();
@@ -238,12 +268,18 @@ async function refreshProducts() {
 
   try {
     const payload = await fetchProductsFromBackend(config);
+    state.n8nFeedActive = payload.source === "n8n";
+    state.n8nUpdatedAt = payload.updatedAt || "";
     state.sourceErrors = payload.errors || [];
     state.fallbackActive = Boolean(payload.fallback?.active);
     state.fallbackReason = payload.fallback?.reason || "";
     state.products = withChanges((payload.products || []).filter((product) => product.id && product.title));
     state.lastUpdated = payload.fetchedAt ? new Date(payload.fetchedAt) : new Date();
-    if (state.fallbackActive || (config.demoEnabled && !state.serverConfig?.realSourcesReady && !config.mercadoLivreEnabled && !config.amazonEnabled)) {
+    if (state.n8nFeedActive && state.products.length) {
+      setConnectionText("Feed n8n atualizado");
+    } else if (state.n8nFeedActive) {
+      setConnectionText("Aguardando produtos do n8n");
+    } else if (state.fallbackActive || (config.demoEnabled && !state.serverConfig?.realSourcesReady && !config.mercadoLivreEnabled && !config.amazonEnabled)) {
       setConnectionText("Demo local ativo");
     } else if (state.sourceErrors.some((message) => message.includes("sem itens publicados"))) {
       setConnectionText("Sem anuncios na conta");
@@ -254,6 +290,8 @@ async function refreshProducts() {
     }
   } catch (error) {
     state.products = [];
+    state.n8nFeedActive = false;
+    state.n8nUpdatedAt = "";
     state.sourceErrors = [error.message || "Falha ao atualizar produtos"];
     state.fallbackActive = false;
     state.fallbackReason = "";
@@ -644,6 +682,13 @@ function sourceInitial(source) {
 function renderProducts(products) {
   elements.productGrid.textContent = "";
 
+  if (!state.n8nFeedActive && !state.sourceErrors.length && !products.length) {
+    const warning = document.createElement("div");
+    warning.className = "warning-state";
+    warning.textContent = "Aguardando o n8n enviar produtos para /api/n8n/products.";
+    elements.productGrid.append(warning);
+  }
+
   if (state.fallbackActive) {
     const warning = document.createElement("div");
     warning.className = "warning-state";
@@ -745,6 +790,9 @@ function renderTimeline() {
 }
 
 function formatSourceErrorForDisplay(message) {
+  if (message.toLowerCase().startsWith("n8n:")) {
+    return message;
+  }
   if (IS_LOCALHOST && message.includes("MERCADO_LIVRE_ACCESS_TOKEN")) {
     return "Mercado Livre: este servidor local esta sem token. Use https://monitorhub-radar.vercel.app ou autorize o Mercado Livre localmente.";
   }

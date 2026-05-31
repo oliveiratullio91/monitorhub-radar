@@ -1,0 +1,264 @@
+{
+  "id": "monitorhub-feed-n8n-mercado-livre",
+  "name": "MonitorHub - Feed Mercado Livre para Dashboard",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "9d1c8a67-b835-4d3c-8c23-349865c10101",
+      "name": "Executar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "402a4afa-d1d1-4a39-8cfb-680eb1b10102",
+      "name": "Agendamento - a cada 30 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -900,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "monitorhub-endpoint",
+              "name": "monitorHubEndpoint",
+              "value": "https://monitorhub-radar.vercel.app/api/n8n/products",
+              "type": "string"
+            },
+            {
+              "id": "monitorhub-token",
+              "name": "monitorHubIngestToken",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "ml-query",
+              "name": "query",
+              "value": "notebook gamer",
+              "type": "string"
+            },
+            {
+              "id": "ml-limit",
+              "name": "limit",
+              "value": 12,
+              "type": "number"
+            },
+            {
+              "id": "ml-access-token",
+              "name": "mercadoLivreAccessToken",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "ml-search-url",
+              "name": "mercadoLivreSearchUrl",
+              "value": "https://api.mercadolibre.com/sites/MLB/search?q={{query}}&limit={{limit}}&sort=price_asc",
+              "type": "string"
+            },
+            {
+              "id": "currency",
+              "name": "currency",
+              "value": "BRL",
+              "type": "string"
+            },
+            {
+              "id": "min-score",
+              "name": "minOpportunityScore",
+              "value": 0,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7ae58147-d327-4a91-a2fb-746869f10103",
+      "name": "Configuracao MonitorHub",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -620,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.mercadoLivreSearchUrl.replaceAll('{{query}}', encodeURIComponent($json.query)).replaceAll('{{limit}}', String($json.limit)) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "n8n-monitorhub-radar/1.0"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $json.mercadoLivreAccessToken ? 'Bearer ' + $json.mercadoLivreAccessToken : '' }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "29d0bb1f-3c73-4b35-bca0-05ed5ca10104",
+      "name": "Buscar Mercado Livre",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -320,
+        280
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Configuracao MonitorHub').first().json;\nconst payload = $input.first()?.json || {};\nconst now = new Date().toISOString();\nconst records = Array.isArray(payload?.results)\n  ? payload.results\n  : Array.isArray(payload?.items)\n    ? payload.items\n    : Array.isArray(payload?.data?.results)\n      ? payload.data.results\n      : [];\n\nfunction toNumber(value) {\n  if (value === null || value === undefined || value === '') return null;\n  if (typeof value === 'number') return Number.isFinite(value) ? value : null;\n  const raw = String(value).replace(/\\s/g, '').replace(/R\\$/gi, '').replace(/[^0-9,.-]/g, '');\n  if (!raw) return null;\n  const hasComma = raw.includes(',');\n  const hasDot = raw.includes('.');\n  let normalized = raw;\n  if (hasComma && hasDot) normalized = raw.lastIndexOf(',') > raw.lastIndexOf('.') ? raw.replace(/\\./g, '').replace(',', '.') : raw.replace(/,/g, '');\n  else if (hasComma) normalized = raw.replace(',', '.');\n  const number = Number(normalized);\n  return Number.isFinite(number) ? number : null;\n}\n\nfunction percentile(sorted, ratio) {\n  if (!sorted.length) return null;\n  const index = Math.min(sorted.length - 1, Math.max(0, Math.round((sorted.length - 1) * ratio)));\n  return sorted[index];\n}\n\nconst prices = records\n  .map((item) => toNumber(item.price))\n  .filter((price) => price !== null && price > 0)\n  .sort((a, b) => a - b);\nconst p25 = percentile(prices, 0.25);\nconst median = percentile(prices, 0.5);\n\nconst products = records.map((item) => {\n  const price = toNumber(item.price);\n  let opportunityScore = 50;\n  if (price !== null && median) {\n    const discountVsMedian = ((median - price) / median) * 100;\n    opportunityScore = Math.max(1, Math.min(100, Math.round(55 + discountVsMedian * 1.2)));\n  }\n  if (price !== null && p25 && price <= p25) opportunityScore = Math.max(opportunityScore, 82);\n\n  return {\n    id: item.id,\n    title: item.title,\n    price,\n    currency: item.currency_id || cfg.currency || 'BRL',\n    url: item.permalink,\n    image: item.secure_thumbnail || item.thumbnail || item.pictures?.[0]?.url || '',\n    seller: item.seller?.nickname || String(item.seller?.id || ''),\n    availability: item.available_quantity ? `${item.available_quantity} disponivel` : String(item.condition || ''),\n    source: 'Mercado Livre',\n    sourceKind: 'mercadolivre',\n    query: cfg.query,\n    fetchedAt: now,\n    opportunityScore,\n    notes: opportunityScore >= 82 ? 'Preco abaixo do primeiro quartil da busca.' : 'Item coletado pelo n8n para acompanhamento.'\n  };\n}).filter((item) => item.id && item.title && item.opportunityScore >= Number(cfg.minOpportunityScore || 0));\n\nproducts.sort((a, b) => (b.opportunityScore || 0) - (a.opportunityScore || 0));\n\nconst errors = [];\nif (!records.length) {\n  const detail = payload?.message || payload?.error || payload?.statusMessage || 'sem itens retornados';\n  errors.push(`n8n: Mercado Livre nao retornou produtos para \"${cfg.query}\" (${detail}).`);\n}\n\nreturn [{\n  json: {\n    runId: $execution?.id || `manual-${Date.now()}`,\n    source: 'n8n',\n    sourceName: 'Mercado Livre',\n    query: cfg.query,\n    currency: cfg.currency || 'BRL',\n    products,\n    errors,\n    fetchedAt: now,\n    monitorHubEndpoint: cfg.monitorHubEndpoint,\n    monitorHubIngestToken: cfg.monitorHubIngestToken\n  }\n}];"
+      },
+      "id": "efc33a3d-55d7-4da8-ac84-8ac9d9310105",
+      "name": "Normalizar e ranquear oportunidades",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.monitorHubEndpoint }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $json.monitorHubIngestToken ? 'Bearer ' + $json.monitorHubIngestToken : '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { runId: $json.runId, source: $json.source, sourceName: $json.sourceName, query: $json.query, currency: $json.currency, products: $json.products, errors: $json.errors, fetchedAt: $json.fetchedAt } }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "15877c60-3ce3-4a78-80e4-084113810106",
+      "name": "Enviar feed ao MonitorHub",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Este fluxo faz o n8n alimentar o dashboard.\n\n1. Ajuste a busca em Configuracao MonitorHub.\n2. Execute manualmente para testar.\n3. Se a API do Mercado Livre retornar 403, use uma fonte autorizada no n8n ou um token com acesso liberado.\n4. O painel le /api/n8n/products e exibe os produtos recebidos.",
+        "height": 240,
+        "width": 340,
+        "color": 4
+      },
+      "id": "e2bb0595-01d3-4cbb-b764-1a6744a10107",
+      "name": "Como usar",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        -40
+      ]
+    }
+  ],
+  "connections": {
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Configuracao MonitorHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agendamento - a cada 30 minutos": {
+      "main": [
+        [
+          {
+            "node": "Configuracao MonitorHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuracao MonitorHub": {
+      "main": [
+        [
+          {
+            "node": "Buscar Mercado Livre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Mercado Livre": {
+      "main": [
+        [
+          {
+            "node": "Normalizar e ranquear oportunidades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar e ranquear oportunidades": {
+      "main": [
+        [
+          {
+            "node": "Enviar feed ao MonitorHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-05-31T00:00:00.000Z",
+  "versionId": "monitorhub-feed-v1"
+}

@@ -6,9 +6,10 @@ Este repositorio contem o kit inicial para montar o projeto no n8n:
 
 - `workflows/monitoramento-anuncios-precos-oportunidades.json`: workflow base para importar no n8n.
 - `workflows/monitoramento-marketplaces-amazon-mercado-livre.json`: workflow preparado para Mercado Livre e Amazon via API autorizada.
+- `workflows/monitorhub-feed-n8n-mercado-livre.json`: workflow que envia os produtos coletados pelo n8n diretamente para o dashboard.
 - `site/index.html`, `site/styles.css`, `site/app.js`: painel local para acompanhar produtos em tempo real.
 - `server/server.js`: backend local que consulta Mercado Livre e Amazon sem expor credenciais no navegador.
-- `api/config.js` e `api/products.js`: funcoes serverless preparadas para Vercel.
+- `api/config.js`, `api/products.js` e `api/n8n/products.js`: funcoes serverless preparadas para Vercel.
 - `templates/google-sheets-historico.csv`: cabecalho da aba `historico` no Google Sheets.
 - `docs/plano-n8n.md`: arquitetura, configuracao e roteiro de implementacao.
 - `docs/plano-plataforma.md`: etapas da plataforma publica para Amazon, Mercado Livre e Vercel.
@@ -43,6 +44,22 @@ Esta primeira versao ja cobre o fluxo principal do PDF:
 - envio de alerta por Telegram e Gmail.
 
 Para Amazon e Mercado Livre, use o workflow `monitoramento-marketplaces-amazon-mercado-livre.json`. Fontes com CAPTCHA, login ou bloqueio anti-bot exigem API autorizada ou outra estrategia.
+
+## Feed do n8n para o dashboard
+
+O painel agora prioriza produtos enviados pelo n8n em `POST /api/n8n/products`.
+
+1. Importe `workflows/monitorhub-feed-n8n-mercado-livre.json` no n8n.
+2. No node `Configuracao MonitorHub`, confira:
+   - `monitorHubEndpoint`: `https://monitorhub-radar.vercel.app/api/n8n/products` ou `http://127.0.0.1:8080/api/n8n/products`.
+   - `query`: termo buscado no Mercado Livre.
+   - `limit`: quantidade de produtos.
+   - `mercadoLivreAccessToken`: token do app, se a fonte exigir.
+   - `mercadoLivreSearchUrl`: endpoint usado pelo n8n para buscar itens, com `{{query}}` e `{{limit}}`.
+3. Execute manualmente. O workflow coleta, normaliza, calcula score de oportunidade e envia para o MonitorHub.
+4. Abra o dashboard e clique em `Atualizar`.
+
+Se quiser proteger a escrita do feed, defina `N8N_INGEST_TOKEN` na Vercel/local e coloque o mesmo valor em `monitorHubIngestToken` no workflow.
 
 ## Painel local
 

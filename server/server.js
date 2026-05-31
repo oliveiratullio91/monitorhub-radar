@@ -10,6 +10,7 @@ import {
   publicConfig,
   updateRuntimeEnv,
 } from "./marketplaces.js";
+import { getN8nProducts, ingestN8nProducts } from "./n8n-feed.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,6 +38,18 @@ const server = createServer(async (request, response) => {
 
     if (url.pathname === "/api/products") {
       return sendJson(response, await getProducts(url.searchParams));
+    }
+
+    if (url.pathname === "/api/n8n/products") {
+      if (request.method === "OPTIONS") return sendEmpty(response, 204);
+      if (request.method === "GET") return sendJson(response, await getN8nProducts(url.searchParams));
+      if (request.method === "POST") {
+        if (!canWriteN8nFeed(request)) {
+          return sendJson(response, { ok: false, error: "Token do n8n invalido" }, 401);
+        }
+        return sendJson(response, await ingestN8nProducts(await readJson(request)));
+      }
+      return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
     }
 
     if (url.pathname === "/api/mercadolivre/oauth/start" && request.method === "POST") {
@@ -141,12 +154,21 @@ async function readJson(request) {
   let size = 0;
   for await (const chunk of request) {
     size += chunk.length;
-    if (size > 100_000) throw new Error("Payload muito grande");
+    if (size > 1_000_000) throw new Error("Payload muito grande");
     chunks.push(chunk);
   }
 
   const raw = Buffer.concat(chunks).toString("utf8");
   return raw ? JSON.parse(raw) : {};
+}
+
+function canWriteN8nFeed(request) {
+  const token = process.env.N8N_INGEST_TOKEN;
+  if (!token) return true;
+
+  const authHeader = String(request.headers.authorization || "");
+  const n8nHeader = String(request.headers["x-n8n-token"] || "");
+  return authHeader === `Bearer ${token}` || n8nHeader === token;
 }
 
 function randomBase64Url(bytes) {
@@ -217,6 +239,19 @@ function sendJson(response, payload, status = 200) {
   response.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-N8N-Token",
   });
   response.end(JSON.stringify(payload, null, 2));
+}
+
+function sendEmpty(response, status = 204) {
+  response.writeHead(status, {
+    "Cache-Control": "no-store",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-N8N-Token",
+  });
+  response.end();
 }
