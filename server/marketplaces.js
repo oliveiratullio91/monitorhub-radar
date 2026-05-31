@@ -319,47 +319,103 @@ async function getMercadoLivreProducts({ query, limit }, options = {}) {
     throw new Error("conecte o Mercado Livre ou preencha MERCADO_LIVRE_ACCESS_TOKEN no .env");
   }
 
-  const siteId = env.MERCADO_LIVRE_SITE_ID || "MLB";
-  const url = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
-  url.searchParams.set("q", query);
-  url.searchParams.set("limit", String(limit));
-  url.searchParams.set("sort", "price_asc");
+  const authHeaders = {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: "application/json",
+  };
+  const userId = getMercadoLivreUserId(options);
 
-  let payload;
   try {
-    payload = await fetchJson(url, {
-      Authorization: `Bearer ${accessToken}`,
-      Accept: "application/json",
-    });
+    return await getMercadoLivreSearchProducts({ query, limit, authHeaders });
   } catch (error) {
     if (![401, 403].includes(Number(error.status)) || !canRefreshMercadoLivreToken(options)) {
-      throw enhanceMercadoLivreSearchError(error);
+      return getMercadoLivreSellerProducts({ query, limit, accessToken, userId }).catch(() => {
+        throw enhanceMercadoLivreSearchError(error, { userId });
+      });
     }
 
     const refreshedToken = await refreshMercadoLivreToken(options.mercadoLivreAuth?.refreshToken, !options.mercadoLivreAuth);
     if (options.mercadoLivreAuth && options.onMercadoLivreAuthUpdate) {
       options.onMercadoLivreAuthUpdate(refreshedToken.auth);
     }
+
+    const refreshedHeaders = {
+      Authorization: `Bearer ${refreshedToken.accessToken}`,
+      Accept: "application/json",
+    };
+
     try {
-      payload = await fetchJson(url, {
-        Authorization: `Bearer ${refreshedToken.accessToken}`,
-        Accept: "application/json",
-      });
+      return await getMercadoLivreSearchProducts({ query, limit, authHeaders: refreshedHeaders });
     } catch (retryError) {
-      throw enhanceMercadoLivreSearchError(retryError);
+      return getMercadoLivreSellerProducts({
+        query,
+        limit,
+        accessToken: refreshedToken.accessToken,
+        userId: refreshedToken.auth.userId || userId,
+      }).catch(() => {
+        throw enhanceMercadoLivreSearchError(retryError, { userId: refreshedToken.auth.userId || userId });
+      });
     }
   }
+}
 
+async function getMercadoLivreSearchProducts({ query, limit, authHeaders }) {
+  const siteId = env.MERCADO_LIVRE_SITE_ID || "MLB";
+  const url = new URL(`https://api.mercadolibre.com/sites/${siteId}/search`);
+  url.searchParams.set("q", query);
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("sort", "price_asc");
+
+  const payload = await fetchJson(url, authHeaders);
   return firstArray(payload, "mercadolivre").map((record) => normalizeMercadoLivre(record, query));
 }
 
-function enhanceMercadoLivreSearchError(error) {
+async function getMercadoLivreSellerProducts({ query, limit, accessToken, userId }) {
+  if (!userId) {
+    throw new Error("usuario Mercado Livre nao identificado");
+  }
+
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: "application/json",
+  };
+  const url = new URL(`https://api.mercadolibre.com/users/${userId}/items/search`);
+  url.searchParams.set("status", "active");
+  url.searchParams.set("limit", String(limit));
+
+  const payload = await fetchJson(url, headers);
+  const ids = Array.isArray(payload?.results) ? payload.results.slice(0, limit).map(String).filter(Boolean) : [];
+  if (!ids.length) return [];
+
+  const products = [];
+  for (const idGroup of chunk(ids, 20)) {
+    const detailUrl = new URL("https://api.mercadolibre.com/items");
+    detailUrl.searchParams.set("ids", idGroup.join(","));
+    const details = await fetchJson(detailUrl, headers);
+    for (const item of Array.isArray(details) ? details : []) {
+      const record = item?.body || item;
+      if (record?.id) products.push(record);
+    }
+  }
+
+  const normalizedQuery = query.trim().toLowerCase();
+  return products
+    .filter((product) => !normalizedQuery || String(product.title || "").toLowerCase().includes(normalizedQuery))
+    .slice(0, limit)
+    .map((record) => normalizeMercadoLivre(record, query));
+}
+
+function getMercadoLivreUserId(options = {}) {
+  return String(options.mercadoLivreAuth?.userId || env.MERCADO_LIVRE_USER_ID || "").trim();
+}
+
+function enhanceMercadoLivreSearchError(error, options = {}) {
   const status = Number(error.status);
   if (![401, 403].includes(status)) return error;
 
   const enhanced = new Error(
     status === 403
-      ? "HTTP 403: o Mercado Livre negou a busca de anuncios. Ative no app as permissoes funcionais de Items/Publicacao e sincronizacao em leitura e autorize novamente."
+      ? `HTTP 403: o Mercado Livre negou a busca publica de anuncios.${options.userId ? " Tambem tentei buscar anuncios ativos da conta conectada." : ""} Ative Publicacao e sincronizacao em leitura e escrita, autorize novamente e confirme se a conta possui anuncios ativos.`
       : "HTTP 401: token do Mercado Livre invalido ou expirado. Autorize o app novamente.",
   );
   enhanced.status = status;
@@ -776,4 +832,12 @@ function toBool(value, fallback = false) {
 function clamp(value, min, max) {
   if (!Number.isFinite(value)) return min;
   return Math.max(min, Math.min(max, value));
+}
+
+function chunk(items, size) {
+  const groups = [];
+  for (let index = 0; index < items.length; index += size) {
+    groups.push(items.slice(index, index + size));
+  }
+  return groups;
 }
