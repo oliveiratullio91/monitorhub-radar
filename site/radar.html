@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Radar de precos Garimpanda com alertas personalizados." />
+    <title>Garimpanda - Radar</title>
+    <link rel="stylesheet" href="./styles.css?v=pages1" />
+  </head>
+  <body class="page-body radar-page">
+    <div class="dashboard-shell">
+      <header class="topbar">
+        <a class="topbar-brand" href="./index.html" aria-label="Garimpanda">
+          <span class="brand-mark" aria-hidden="true">
+            <img src="./assets/garimpanda-panda.png" alt="" />
+          </span>
+          <span>
+            <strong>Garim<span>panda</span></strong>
+            <small>Configure alertas e receba aviso quando o preco ideal aparecer.</small>
+            <small class="sr-only" id="connectionText">Aguardando atualizacao</small>
+          </span>
+        </a>
+
+        <nav class="top-nav" aria-label="Navegacao principal">
+          <a href="./index.html">Inicio</a>
+          <a href="./produtos.html">Produtos</a>
+          <a href="./como-funciona.html">Como funciona</a>
+          <a class="active" href="./radar.html">Radar</a>
+          <a href="./alertas.html">Alertas</a>
+        </nav>
+
+        <div class="topbar-actions">
+          <a class="date-pill" href="./produtos.html">Ver produtos</a>
+          <div class="user-chip">
+            <span class="avatar" aria-hidden="true">TO</span>
+            <span>
+              <strong>Ola, Tullio</strong>
+              <small>Alertas ativos</small>
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <main class="dashboard-main page-main">
+        <section class="page-intro split-intro">
+          <div>
+            <span class="hero-kicker">Radar de precos</span>
+            <h1>Crie alertas para comprar no valor certo</h1>
+            <p>Cadastre produto, preco maximo e canal de aviso. O n8n cruza seus alertas com o feed em cada coleta.</p>
+          </div>
+          <img src="./assets/garimpanda-panda.png" alt="" />
+        </section>
+
+        <section class="panel-card price-alerts-panel" id="meus-alertas">
+          <div class="panel-heading">
+            <div>
+              <h2>Meus Alertas de Preco</h2>
+              <p class="panel-subtitle">Cadastre um alvo e receba aviso quando uma oferta bater o valor desejado.</p>
+            </div>
+            <button class="secondary-button compact is-hidden" id="logoutButton" type="button">Sair</button>
+          </div>
+
+          <div class="supabase-warning" id="supabaseStatus">Supabase aguardando configuracao.</div>
+
+          <div class="radar-guide">
+            <article>
+              <span aria-hidden="true">1</span>
+              <strong>Escolha um produto</strong>
+              <p>Use nome especifico, marca e o preco maximo que cabe no seu bolso.</p>
+            </article>
+            <article>
+              <span aria-hidden="true">2</span>
+              <strong>O n8n compara ofertas</strong>
+              <p>A cada coleta, o radar cruza seus alertas com produtos reais do feed.</p>
+            </article>
+            <article>
+              <span aria-hidden="true">3</span>
+              <strong>Voce recebe o aviso</strong>
+              <p>Quando bater o valor, o match fica pronto para envio por e-mail ou WhatsApp.</p>
+            </article>
+          </div>
+
+          <div class="alert-auth-grid" id="authForms">
+            <form class="alert-form" id="signupForm">
+              <h3>Criar conta</h3>
+              <label class="field-group">
+                <span>Nome</span>
+                <input id="signupName" type="text" autocomplete="name" placeholder="Tullio Oliveira" />
+              </label>
+              <label class="field-group">
+                <span>E-mail</span>
+                <input id="signupEmail" type="email" autocomplete="email" placeholder="voce@email.com" required />
+              </label>
+              <label class="field-group">
+                <span>WhatsApp opcional</span>
+                <input id="signupPhone" type="tel" autocomplete="tel" placeholder="+55 85 99999-9999" />
+              </label>
+              <label class="field-group">
+                <span>Senha</span>
+                <input id="signupPassword" type="password" autocomplete="new-password" minlength="6" required />
+              </label>
+              <button class="primary-button" type="submit">Cadastrar</button>
+            </form>
+
+            <form class="alert-form" id="loginForm">
+              <h3>Entrar</h3>
+              <label class="field-group">
+                <span>E-mail</span>
+                <input id="loginEmail" type="email" autocomplete="email" required />
+              </label>
+              <label class="field-group">
+                <span>Senha</span>
+                <input id="loginPassword" type="password" autocomplete="current-password" required />
+              </label>
+              <button class="secondary-button" type="submit">Entrar</button>
+              <p class="panel-subtitle">Depois do login, seus alertas ficam vinculados ao usuario no Supabase.</p>
+            </form>
+          </div>
+
+          <div class="price-alerts-workspace is-hidden" id="alertsWorkspace">
+            <div class="session-card">
+              <span class="status-dot"></span>
+              <div>
+                <strong id="sessionUserName">Usuario conectado</strong>
+                <p id="sessionUserEmail">Sincronizado com Supabase</p>
+              </div>
+            </div>
+
+            <form class="alert-builder" id="priceAlertForm">
+              <label class="field-group">
+                <span>Produto desejado</span>
+                <input id="alertProductQuery" type="text" placeholder="TV 75 Samsung" required />
+              </label>
+              <label class="field-group">
+                <span>Marca opcional</span>
+                <input id="alertBrand" type="text" placeholder="Samsung, LG, TCL..." />
+              </label>
+              <label class="field-group">
+                <span>Preco maximo</span>
+                <input id="alertTargetPrice" type="number" min="1" step="0.01" placeholder="3500" required />
+              </label>
+              <label class="field-group">
+                <span>Fonte</span>
+                <select id="alertSource">
+                  <option value="all">Todas</option>
+                  <option value="amazon">Amazon</option>
+                  <option value="mercadolivre">Mercado Livre</option>
+                </select>
+              </label>
+              <label class="field-group">
+                <span>Canal</span>
+                <select id="alertChannel">
+                  <option value="email">E-mail</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="both">E-mail e WhatsApp</option>
+                </select>
+              </label>
+              <label class="field-group">
+                <span>E-mail de aviso</span>
+                <input id="alertNotificationEmail" type="email" placeholder="voce@email.com" />
+              </label>
+              <label class="field-group">
+                <span>WhatsApp</span>
+                <input id="alertWhatsappPhone" type="tel" placeholder="+55 85 99999-9999" />
+              </label>
+              <button class="primary-button" type="submit">Criar alerta</button>
+            </form>
+
+            <div class="saved-alerts">
+              <div class="panel-heading">
+                <h3>Alertas salvos</h3>
+                <button class="text-button" id="reloadAlertsButton" type="button">Recarregar</button>
+              </div>
+              <div class="saved-alerts-list" id="priceAlertsList"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js?v=pages1" defer></script>
+  </body>
+</html>

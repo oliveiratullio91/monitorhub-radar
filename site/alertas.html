@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Dashboard Garimpanda de alertas, execucoes n8n e indicadores de monitoramento." />
+    <title>Garimpanda - Alertas</title>
+    <link rel="stylesheet" href="./styles.css?v=pages1" />
+  </head>
+  <body class="page-body alerts-page">
+    <div class="dashboard-shell">
+      <header class="topbar">
+        <a class="topbar-brand" href="./index.html" aria-label="Garimpanda">
+          <span class="brand-mark" aria-hidden="true">
+            <img src="./assets/garimpanda-panda.png" alt="" />
+          </span>
+          <span>
+            <strong>Garim<span>panda</span></strong>
+            <small>Monitoramento automatico de anuncios, precos e oportunidades.</small>
+            <small class="sr-only" id="connectionText">Aguardando atualizacao</small>
+          </span>
+        </a>
+
+        <nav class="top-nav" aria-label="Navegacao principal">
+          <a href="./index.html">Inicio</a>
+          <a href="./produtos.html">Produtos</a>
+          <a href="./como-funciona.html">Como funciona</a>
+          <a href="./radar.html">Radar</a>
+          <a class="active" href="./alertas.html">Alertas</a>
+        </nav>
+
+        <div class="topbar-actions">
+          <button class="icon-action" type="button" aria-label="Notificacoes">
+            <span class="notification-dot" aria-hidden="true"></span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z" /><path d="M9.5 20a2.8 2.8 0 0 0 5 0" /></svg>
+          </button>
+          <button class="primary-button nav-button" id="refreshNowButton" type="button">Atualizar</button>
+          <button class="secondary-button nav-button" id="toggleLiveButton" type="button">Pausar</button>
+          <div class="user-chip">
+            <span class="avatar" aria-hidden="true">TO</span>
+            <span>
+              <strong>Ola, Tullio</strong>
+              <small>Product Owner</small>
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <main class="dashboard-main page-main">
+        <section class="page-intro compact-intro">
+          <div>
+            <span class="hero-kicker">Painel operacional</span>
+            <h1>Alertas e execucoes</h1>
+            <p>Acompanhe o que o n8n coletou, quais produtos mudaram e quais oportunidades foram geradas.</p>
+          </div>
+          <dl class="intro-status">
+            <div>
+              <dt>Ultima atualizacao</dt>
+              <dd id="lastUpdatedText">Nenhuma coleta realizada</dd>
+            </div>
+            <div>
+              <dt>Proxima execucao</dt>
+              <dd id="automationNextRun">Calculando</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section class="kpi-grid" aria-label="Indicadores principais">
+          <article class="kpi-card blue">
+            <span class="kpi-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M4 5h16v12H4z" /><path d="M8 21h8M12 17v4" /></svg>
+            </span>
+            <div>
+              <h2>Anuncios Monitorados</h2>
+              <strong id="totalProducts">0</strong>
+              <p><span>+12%</span> em relacao a ontem</p>
+            </div>
+          </article>
+          <article class="kpi-card green">
+            <span class="kpi-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M20 12 12 20 4 12l8-8 8 8Z" /><path d="M8.5 8.5h.01" /></svg>
+            </span>
+            <div>
+              <h2>Mudancas de Preco</h2>
+              <strong id="dropProducts">0</strong>
+              <p><span>+8%</span> em relacao a ontem</p>
+            </div>
+          </article>
+          <article class="kpi-card purple">
+            <span class="kpi-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+            </span>
+            <div>
+              <h2>Novos Anuncios</h2>
+              <strong id="newProducts">0</strong>
+              <p><span>+21%</span> em relacao a ontem</p>
+            </div>
+          </article>
+          <article class="kpi-card orange">
+            <span class="kpi-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z" /><path d="M9.5 20a2.8 2.8 0 0 0 5 0" /></svg>
+            </span>
+            <div>
+              <h2>Alertas Enviados</h2>
+              <strong id="alertsSent">0</strong>
+              <p><span>+15%</span> em relacao a ontem</p>
+            </div>
+          </article>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="panel-card chart-panel">
+            <div class="panel-heading">
+              <h2>Atividade dos Ultimos 7 Dias</h2>
+              <div class="chart-legend">
+                <span><i class="legend-dot green"></i>Novos Anuncios</span>
+                <span><i class="legend-dot blue"></i>Mudancas de Preco</span>
+                <span><i class="legend-dot orange"></i>Alertas Enviados</span>
+              </div>
+            </div>
+            <svg class="activity-chart" id="activityChart" viewBox="0 0 760 300" role="img" aria-label="Grafico de atividade dos ultimos sete dias"></svg>
+          </article>
+
+          <aside class="panel-card sources-panel">
+            <h2>Fontes Monitoradas</h2>
+            <div class="donut-layout">
+              <div class="donut-chart" aria-hidden="true">
+                <span id="activeSources">0</span>
+              </div>
+              <ul class="source-list">
+                <li><span class="source-dot green"></span><strong>Mercado Livre</strong><em>45%</em></li>
+                <li><span class="source-dot blue"></span><strong>Amazon</strong><em>30%</em></li>
+                <li><span class="source-dot orange"></span><strong>Shopee</strong><em>10%</em></li>
+                <li><span class="source-dot purple"></span><strong>OLX</strong><em>10%</em></li>
+                <li><span class="source-dot gray"></span><strong>Outros</strong><em>5%</em></li>
+              </ul>
+            </div>
+          </aside>
+
+          <aside class="panel-card flow-card">
+            <h2>Execucoes do Fluxo (n8n)</h2>
+            <div class="flow-success">
+              <span class="flow-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
+              </span>
+              <div>
+                <p>Ultima execucao bem-sucedida</p>
+                <strong id="automationLastRun">Aguardando coleta</strong>
+              </div>
+              <dl>
+                <dt>Execucoes hoje</dt>
+                <dd><span id="automationToday">0</span> de 48</dd>
+              </dl>
+            </div>
+          </aside>
+        </section>
+
+        <section class="content-grid">
+          <article class="panel-card alerts-card">
+            <div class="table-heading">
+              <h2>Alertas Recentes</h2>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Titulo</th>
+                    <th>Fonte</th>
+                    <th>Mudanca</th>
+                    <th>Data/Hora</th>
+                    <th>Acao</th>
+                  </tr>
+                </thead>
+                <tbody id="recentAlertsBody"></tbody>
+              </table>
+            </div>
+            <a class="panel-link" href="./produtos.html">Ver todos os produtos <span>-></span></a>
+          </article>
+
+          <aside class="panel-card upcoming-card">
+            <h2>Proximas Execucoes</h2>
+            <div class="upcoming-list">
+              <article>
+                <span class="clock-icon" aria-hidden="true"></span>
+                <strong>Coleta - Mercado Livre</strong>
+                <time>00 e 30 min</time>
+              </article>
+              <article>
+                <span class="clock-icon" aria-hidden="true"></span>
+                <strong>Coleta - Amazon</strong>
+                <time>00 e 30 min</time>
+              </article>
+              <article>
+                <span class="clock-icon" aria-hidden="true"></span>
+                <strong>Avaliacao de alertas</strong>
+                <time>Apos cada coleta</time>
+              </article>
+              <article>
+                <span class="clock-icon" aria-hidden="true"></span>
+                <strong>Persistencia do feed</strong>
+                <time>Continuo</time>
+              </article>
+            </div>
+            <a class="panel-link" href="./como-funciona.html">Ver fluxo completo <span>-></span></a>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js?v=pages1" defer></script>
+  </body>
+</html>

@@ -260,7 +260,7 @@ function oauthHtml(title, message, success) {
         <span class="setup-kicker">${success ? "Conexao concluida" : "Conexao interrompida"}</span>
         <h1>${safeTitle}</h1>
         <p>${safeMessage}</p>
-        <a class="primary-button" href="/">Voltar ao dashboard</a>
+        <a class="primary-button" href="/produtos.html">Voltar aos produtos</a>
       </section>
     </main>
   </body>

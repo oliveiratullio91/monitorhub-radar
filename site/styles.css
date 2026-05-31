@@ -1867,15 +1867,13 @@ select {
   height: 52px;
   overflow: hidden;
   border-radius: 18px;
-  background: #e5f6ee;
+  background:
+    #e5f6ee url("./assets/garimpanda-panda.png") 64% 86% / 170px auto no-repeat;
   box-shadow: inset 0 0 0 1px rgba(15, 163, 115, 0.16);
 }
 
 .brand-mark img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: 66% 84%;
+  display: none;
 }
 
 .topbar-brand strong {
@@ -3030,5 +3028,375 @@ table td {
 
   .page-size-control {
     flex-basis: auto;
+  }
+}
+
+/* Multi-page structure */
+.entry-body {
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(246, 251, 248, 0.94), rgba(232, 247, 239, 0.96)),
+    url("./assets/garimpanda-background.png") top center / cover no-repeat,
+    #f6fbf8;
+}
+
+.entry-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 430px);
+  gap: 26px;
+  width: min(1180px, calc(100% - 36px));
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 34px 0;
+  align-items: center;
+}
+
+.entry-hero,
+.entry-card,
+.page-intro,
+.feature-card,
+.flow-explain {
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow);
+}
+
+.entry-hero {
+  position: relative;
+  display: grid;
+  gap: 34px;
+  overflow: hidden;
+  min-height: 640px;
+  padding: 34px;
+}
+
+.entry-hero::after {
+  position: absolute;
+  right: -42px;
+  bottom: -88px;
+  width: 360px;
+  height: 360px;
+  background: url("./assets/garimpanda-panda.png") center / cover no-repeat;
+  content: "";
+}
+
+.entry-brand,
+.entry-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.entry-brand {
+  position: relative;
+  z-index: 1;
+  width: fit-content;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.entry-brand strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.entry-brand strong span,
+.entry-copy h1 span {
+  color: var(--green);
+}
+
+.entry-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 16px;
+  max-width: 650px;
+}
+
+.entry-copy h1,
+.page-intro h1 {
+  color: var(--text);
+  font-size: clamp(2.5rem, 5vw, 5.4rem);
+  line-height: 0.98;
+}
+
+.entry-copy p,
+.page-intro p,
+.feature-card p,
+.flow-steps span,
+.form-status {
+  color: var(--muted);
+}
+
+.entry-copy p {
+  max-width: 560px;
+  font-size: 1.08rem;
+}
+
+.entry-benefits {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-self: end;
+  max-width: 760px;
+}
+
+.entry-benefits article {
+  min-height: 154px;
+  border: 1px solid rgba(24, 57, 46, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 16px;
+}
+
+.entry-benefits span,
+.feature-card span {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: #dff4e9;
+  color: var(--green);
+  font-weight: 900;
+}
+
+.entry-benefits strong,
+.entry-benefits p {
+  display: block;
+  margin-top: 10px;
+}
+
+.entry-card {
+  display: grid;
+  gap: 18px;
+  padding: 28px;
+}
+
+.entry-card-header img {
+  width: 68px;
+  height: 68px;
+  border-radius: 20px;
+  object-fit: cover;
+  object-position: 66% 84%;
+}
+
+.entry-card h2 {
+  font-size: 1.8rem;
+}
+
+.entry-card p {
+  color: var(--muted);
+}
+
+.entry-form {
+  display: grid;
+  gap: 14px;
+}
+
+.full-button {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  text-decoration: none;
+}
+
+.entry-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.entry-divider::before,
+.entry-divider::after {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+  content: "";
+}
+
+.entry-link {
+  justify-self: center;
+}
+
+.form-status {
+  min-height: 21px;
+  font-weight: 800;
+}
+
+.form-status.ready {
+  color: var(--green);
+}
+
+.page-main {
+  padding-top: 24px;
+}
+
+.page-intro {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  overflow: hidden;
+  min-height: 230px;
+  padding: 34px;
+}
+
+.page-intro img {
+  width: min(260px, 30vw);
+  margin-bottom: -58px;
+  object-fit: cover;
+  object-position: 66% 84%;
+}
+
+.compact-intro {
+  min-height: 180px;
+}
+
+.split-intro {
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.96), rgba(234, 248, 240, 0.86)),
+    url("./assets/garimpanda-background.png") right bottom / cover no-repeat;
+}
+
+.nav-button {
+  min-height: 42px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.products-page .monitor-console {
+  order: initial;
+}
+
+.products-page .products-area {
+  padding-top: 4px;
+}
+
+.intro-status {
+  display: grid;
+  gap: 10px;
+  min-width: min(100%, 320px);
+}
+
+.intro-status div {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #f8fbf9;
+  padding: 14px;
+}
+
+.intro-status dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.intro-status dd {
+  margin-top: 3px;
+  font-weight: 900;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.feature-card {
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+}
+
+.feature-card h2 {
+  font-size: 1.15rem;
+}
+
+.flow-explain {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.flow-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.flow-steps article {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #f8fbf9;
+  padding: 16px;
+}
+
+.flow-steps strong,
+.flow-steps span {
+  display: block;
+}
+
+.flow-steps span {
+  margin-top: 6px;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 1180px) {
+  .entry-shell,
+  .feature-grid,
+  .flow-steps {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .entry-hero {
+    min-height: 520px;
+  }
+}
+
+@media (max-width: 780px) {
+  .entry-shell,
+  .entry-benefits,
+  .feature-grid,
+  .flow-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .entry-hero {
+    min-height: 0;
+  }
+
+  .entry-hero::after {
+    position: static;
+    width: min(100%, 260px);
+    height: 260px;
+    justify-self: center;
+  }
+
+  .entry-copy h1,
+  .page-intro h1 {
+    font-size: 2.45rem;
+  }
+
+  .page-intro,
+  .compact-intro {
+    align-items: flex-start;
+    flex-direction: column;
+    min-height: 0;
+    padding: 24px;
+  }
+
+  .page-intro img {
+    width: min(100%, 220px);
+    margin: 0 auto -40px;
   }
 }

@@ -3,6 +3,7 @@ const SNAPSHOT_KEY = "radar-produtos-snapshot-v4";
 const EVENTS_KEY = "radar-produtos-events-v4";
 const HISTORY_KEY = "radar-produtos-history-v4";
 const ALERT_AUTH_KEY = "monitorhub-alert-auth-v1";
+const ALERT_DRAFT_KEY = "garimpanda-alert-draft-v1";
 const DEMO_MODE_AVAILABLE = false;
 const IS_LOCALHOST = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
 
@@ -160,25 +161,25 @@ function writeStorage(key, value) {
 
 function getConfig() {
   return {
-    demoEnabled: DEMO_MODE_AVAILABLE && elements.demoEnabled.checked,
-    mercadoLivreEnabled: elements.mercadoLivreEnabled.checked,
-    mercadoLivreQuery: elements.mercadoLivreQuery.value.trim() || "ofertas",
-    amazonEnabled: elements.amazonEnabled.checked,
-    amazonQuery: elements.amazonQuery.value.trim() || "ofertas do dia",
-    refreshInterval: Number(elements.refreshInterval.value),
-    itemLimit: Math.max(20, Math.min(Number(elements.itemLimit.value || 1000), 2000)),
+    demoEnabled: DEMO_MODE_AVAILABLE && Boolean(elements.demoEnabled?.checked),
+    mercadoLivreEnabled: elements.mercadoLivreEnabled?.checked !== false,
+    mercadoLivreQuery: elements.mercadoLivreQuery?.value.trim() || "ofertas",
+    amazonEnabled: elements.amazonEnabled?.checked !== false,
+    amazonQuery: elements.amazonQuery?.value.trim() || "ofertas do dia",
+    refreshInterval: Number(elements.refreshInterval?.value || 30000),
+    itemLimit: Math.max(20, Math.min(Number(elements.itemLimit?.value || 1000), 2000)),
   };
 }
 
 function applyConfig(config) {
   if (!config) return;
-  elements.demoEnabled.checked = DEMO_MODE_AVAILABLE && Boolean(config.demoEnabled);
-  elements.mercadoLivreEnabled.checked = config.mercadoLivreEnabled !== false;
-  elements.mercadoLivreQuery.value = config.mercadoLivreQuery || "ofertas";
-  elements.amazonEnabled.checked = config.amazonEnabled !== false;
-  elements.amazonQuery.value = config.amazonQuery || "ofertas do dia";
-  elements.refreshInterval.value = String(config.refreshInterval || 30000);
-  elements.itemLimit.value = String(Math.max(Number(config.itemLimit || 1000), 1000));
+  if (elements.demoEnabled) elements.demoEnabled.checked = DEMO_MODE_AVAILABLE && Boolean(config.demoEnabled);
+  if (elements.mercadoLivreEnabled) elements.mercadoLivreEnabled.checked = config.mercadoLivreEnabled !== false;
+  if (elements.mercadoLivreQuery) elements.mercadoLivreQuery.value = config.mercadoLivreQuery || "ofertas";
+  if (elements.amazonEnabled) elements.amazonEnabled.checked = config.amazonEnabled !== false;
+  if (elements.amazonQuery) elements.amazonQuery.value = config.amazonQuery || "ofertas do dia";
+  if (elements.refreshInterval) elements.refreshInterval.value = String(config.refreshInterval || 30000);
+  if (elements.itemLimit) elements.itemLimit.value = String(Math.max(Number(config.itemLimit || 1000), 1000));
 }
 
 function saveConfig() {
@@ -231,6 +232,7 @@ function applyAutomaticDemoFallback(hasSavedConfig) {
 }
 
 function setStatusElement(element, text, ready) {
+  if (!element) return;
   element.textContent = text;
   element.classList.toggle("ready", Boolean(ready));
   element.classList.toggle("missing", !ready);
@@ -244,6 +246,7 @@ function setSupabaseStatus(text, ready) {
 }
 
 function prepareDemoMode() {
+  if (!elements.demoEnabled) return;
   elements.demoEnabled.checked = false;
   elements.demoEnabled.disabled = !DEMO_MODE_AVAILABLE;
   elements.demoEnabled.closest(".toggle-row")?.classList.toggle("is-hidden", !DEMO_MODE_AVAILABLE);
@@ -516,19 +519,49 @@ function prefillAlertContacts() {
 }
 
 function prefillAlertFromProduct(product) {
+  const draft = {
+    productQuery: product.title || "",
+    brand: product.seller && product.seller.length <= 30 ? product.seller : "",
+    targetPrice: product.price ? Number(product.price).toFixed(2) : "",
+    source: product.sourceKind === "amazon" ? "amazon" : product.sourceKind === "mercadolivre" ? "mercadolivre" : "all",
+  };
+  sessionStorage.setItem(ALERT_DRAFT_KEY, JSON.stringify(draft));
+
+  if (!elements.priceAlertForm || !elements.alertProductQuery) {
+    window.location.href = "./radar.html#meus-alertas";
+    return;
+  }
+
   if (!state.auth?.session?.accessToken) {
     location.hash = "#meus-alertas";
     setSupabaseStatus("Entre ou cadastre-se para criar alertas personalizados.", false);
+    applyAlertDraft(draft);
     return;
   }
 
   location.hash = "#meus-alertas";
-  elements.alertProductQuery.value = product.title || "";
-  elements.alertBrand.value = product.seller && product.seller.length <= 30 ? product.seller : "";
-  elements.alertTargetPrice.value = product.price ? Number(product.price).toFixed(2) : "";
-  elements.alertSource.value = product.sourceKind === "amazon" ? "amazon" : product.sourceKind === "mercadolivre" ? "mercadolivre" : "all";
+  applyAlertDraft(draft);
   prefillAlertContacts();
   setSupabaseStatus("Produto preenchido. Ajuste o preco alvo antes de salvar.", true);
+}
+
+function applyStoredAlertDraft() {
+  if (!elements.priceAlertForm || !elements.alertProductQuery) return;
+  try {
+    const draft = JSON.parse(sessionStorage.getItem(ALERT_DRAFT_KEY) || "null");
+    if (!draft) return;
+    applyAlertDraft(draft);
+    sessionStorage.removeItem(ALERT_DRAFT_KEY);
+  } catch {
+    sessionStorage.removeItem(ALERT_DRAFT_KEY);
+  }
+}
+
+function applyAlertDraft(draft) {
+  if (elements.alertProductQuery) elements.alertProductQuery.value = draft.productQuery || "";
+  if (elements.alertBrand) elements.alertBrand.value = draft.brand || "";
+  if (elements.alertTargetPrice) elements.alertTargetPrice.value = draft.targetPrice || "";
+  if (elements.alertSource) elements.alertSource.value = draft.source || "all";
 }
 
 function renderPriceAlertsArea() {
@@ -816,18 +849,22 @@ function scheduleNextRefresh() {
 }
 
 function updateRunningState() {
-  elements.refreshNowButton.disabled = state.loading;
-  elements.refreshNowButton.textContent = state.loading ? "Atualizando" : "Atualizar";
-  elements.toggleLiveButton.textContent = state.live ? "Pausar" : "Retomar";
+  if (elements.refreshNowButton) {
+    elements.refreshNowButton.disabled = state.loading;
+    elements.refreshNowButton.textContent = state.loading ? "Atualizando" : "Atualizar";
+  }
+  if (elements.toggleLiveButton) {
+    elements.toggleLiveButton.textContent = state.live ? "Pausar" : "Retomar";
+  }
 }
 
 function setConnectionText(text) {
-  elements.connectionText.textContent = text;
+  if (elements.connectionText) elements.connectionText.textContent = text;
 }
 
 function visibleProducts() {
-  const term = elements.globalSearch.value.trim().toLowerCase();
-  const onlyChanges = elements.onlyChanges.checked;
+  const term = elements.globalSearch?.value.trim().toLowerCase() || "";
+  const onlyChanges = Boolean(elements.onlyChanges?.checked);
   const source = elements.sourceFilter?.value || "all";
   const minPrice = Number(elements.minPriceFilter?.value || 0);
   const maxPrice = Number(elements.maxPriceFilter?.value || 0);
@@ -844,7 +881,7 @@ function visibleProducts() {
   if (maxPrice > 0) products = products.filter((product) => Number(product.price || 0) <= maxPrice);
   if (state.minDiscount > 0) products = products.filter((product) => Number(product.discountPercent || discountFromPrices(product) || 0) >= state.minDiscount);
 
-  const sortMode = elements.sortMode.value;
+  const sortMode = elements.sortMode?.value || "change";
   products.sort((a, b) => {
     if (sortMode === "priceAsc") return (a.price ?? Infinity) - (b.price ?? Infinity);
     if (sortMode === "priceDesc") return (b.price ?? -Infinity) - (a.price ?? -Infinity);
@@ -983,34 +1020,38 @@ function render() {
   renderRecentAlertsTable();
   renderPriceAlertsArea();
   updateRunningState();
-  elements.lastUpdatedText.textContent = state.lastUpdated
-    ? `${state.lastUpdated.toLocaleDateString("pt-BR")} ${state.lastUpdated.toLocaleTimeString("pt-BR")}`
-    : "Nenhuma coleta realizada";
+  if (elements.lastUpdatedText) {
+    elements.lastUpdatedText.textContent = state.lastUpdated
+      ? `${state.lastUpdated.toLocaleDateString("pt-BR")} ${state.lastUpdated.toLocaleTimeString("pt-BR")}`
+      : "Nenhuma coleta realizada";
+  }
 }
 
 function renderMetrics(products) {
+  if (!elements.totalProducts && !elements.newProducts && !elements.dropProducts && !elements.activeSources && !elements.alertsSent) return;
   const events = readStorage(EVENTS_KEY, []);
   const priceChanges = products.filter((product) => ["drop", "up"].includes(product.changeType)).length;
   const newProducts = products.filter((product) => product.changeType === "new").length;
   const activeSources = new Set(products.map((product) => product.source)).size;
 
-  elements.totalProducts.textContent = dashboardFormatter.format(products.length);
-  elements.newProducts.textContent = dashboardFormatter.format(newProducts);
-  elements.dropProducts.textContent = dashboardFormatter.format(priceChanges);
-  elements.activeSources.textContent = String(activeSources);
-  elements.alertsSent.textContent = dashboardFormatter.format(events.length);
+  if (elements.totalProducts) elements.totalProducts.textContent = dashboardFormatter.format(products.length);
+  if (elements.newProducts) elements.newProducts.textContent = dashboardFormatter.format(newProducts);
+  if (elements.dropProducts) elements.dropProducts.textContent = dashboardFormatter.format(priceChanges);
+  if (elements.activeSources) elements.activeSources.textContent = String(activeSources);
+  if (elements.alertsSent) elements.alertsSent.textContent = dashboardFormatter.format(events.length);
 }
 
 function renderDashboardStatus() {
+  if (!elements.automationLastRun && !elements.automationNextRun && !elements.automationToday) return;
   const lastRun = state.lastUpdated || new Date();
   const nextRun = new Date(lastRun.getTime() + getConfig().refreshInterval);
-  elements.automationLastRun.textContent = state.lastUpdated
+  if (elements.automationLastRun) elements.automationLastRun.textContent = state.lastUpdated
     ? `${state.lastUpdated.toLocaleDateString("pt-BR")} ${state.lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
     : "Aguardando coleta";
-  elements.automationNextRun.textContent = state.live
+  if (elements.automationNextRun) elements.automationNextRun.textContent = state.live
     ? `${nextRun.toLocaleDateString("pt-BR")} ${nextRun.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
     : "Atualização pausada";
-  elements.automationToday.textContent = String(Math.max(8, Math.min(24, readStorage(EVENTS_KEY, []).length || 8)));
+  if (elements.automationToday) elements.automationToday.textContent = String(Math.max(8, Math.min(24, readStorage(EVENTS_KEY, []).length || 8)));
 }
 
 function renderActivityChart() {
@@ -1182,7 +1223,7 @@ function actionCell() {
   const cell = document.createElement("td");
   const link = document.createElement("a");
   link.className = "details-button";
-  link.href = "#anuncios";
+  link.href = "./produtos.html";
   link.textContent = "Ver Detalhes";
   cell.append(link);
   return cell;
@@ -1216,6 +1257,7 @@ function sourceInitial(source) {
 }
 
 function renderProducts(products) {
+  if (!elements.productGrid || !elements.productTemplate) return;
   elements.productGrid.textContent = "";
 
   if (!state.n8nFeedActive && !state.sourceErrors.length && !products.length) {
@@ -1306,6 +1348,7 @@ function renderHistoryStrip(container, points) {
 }
 
 function renderTimeline() {
+  if (!elements.timeline || !elements.timelineTemplate) return;
   elements.timeline.textContent = "";
   state.events = readStorage(EVENTS_KEY, []);
 
@@ -1361,9 +1404,9 @@ function setMinimumDiscount(value) {
 }
 
 function clearProductFilters() {
-  elements.globalSearch.value = "";
-  elements.sortMode.value = "change";
-  elements.onlyChanges.checked = false;
+  if (elements.globalSearch) elements.globalSearch.value = "";
+  if (elements.sortMode) elements.sortMode.value = "change";
+  if (elements.onlyChanges) elements.onlyChanges.checked = false;
   if (elements.sourceFilter) elements.sourceFilter.value = "all";
   if (elements.minPriceFilter) elements.minPriceFilter.value = "";
   if (elements.maxPriceFilter) elements.maxPriceFilter.value = "";
@@ -1426,12 +1469,12 @@ function placeholderImage(label) {
 }
 
 function bindEvents() {
-  elements.refreshNowButton.addEventListener("click", () => {
+  elements.refreshNowButton?.addEventListener("click", () => {
     clearTimeout(state.timer);
     refreshProducts();
   });
 
-  elements.toggleLiveButton.addEventListener("click", () => {
+  elements.toggleLiveButton?.addEventListener("click", () => {
     state.live = !state.live;
     if (state.live) refreshProducts();
     else {
@@ -1441,13 +1484,13 @@ function bindEvents() {
     }
   });
 
-  elements.saveConfigButton.addEventListener("click", () => {
+  elements.saveConfigButton?.addEventListener("click", () => {
     saveConfig();
     clearTimeout(state.timer);
     refreshProducts();
   });
 
-  elements.clearHistoryButton.addEventListener("click", () => {
+  elements.clearHistoryButton?.addEventListener("click", () => {
     state.events = [];
     writeStorage(EVENTS_KEY, []);
     writeStorage(SNAPSHOT_KEY, {});
@@ -1488,7 +1531,7 @@ function bindEvents() {
     elements.amazonQuery,
     elements.refreshInterval,
     elements.itemLimit,
-  ].forEach((element) => {
+  ].filter(Boolean).forEach((element) => {
     element.addEventListener("change", () => {
       saveConfig();
       clearTimeout(state.timer);
@@ -1514,6 +1557,7 @@ function bindEvents() {
 async function init() {
   state.events = readStorage(EVENTS_KEY, []);
   const hasSavedConfig = localStorage.getItem(CONFIG_KEY) !== null;
+  const shouldLoadProducts = Boolean(elements.productGrid || elements.totalProducts || elements.recentAlertsBody || elements.activityChart);
   prepareDemoMode();
   applyConfig(readStorage(CONFIG_KEY, null));
   state.pageSize = Number(elements.pageSizeSelect?.value || 20);
@@ -1521,8 +1565,9 @@ async function init() {
   render();
   await loadServerConfig();
   await verifyStoredSession();
+  applyStoredAlertDraft();
   applyAutomaticDemoFallback(hasSavedConfig);
-  refreshProducts();
+  if (shouldLoadProducts) refreshProducts();
 }
 
 init();

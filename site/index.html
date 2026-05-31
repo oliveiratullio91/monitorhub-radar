@@ -3,695 +3,77 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta
-      name="description"
-      content="Garimpanda monitora ofertas, compara preços e envia alertas quando o valor ideal aparece."
-    />
-    <title>Garimpanda - Radar de Ofertas</title>
-    <link rel="stylesheet" href="./styles.css?v=garimpanda1" />
+    <meta name="description" content="Garimpanda monitora ofertas, compara precos e envia alertas quando o valor ideal aparece." />
+    <title>Garimpanda - Entrar</title>
+    <link rel="stylesheet" href="./styles.css?v=pages1" />
   </head>
-  <body>
-    <div class="dashboard-shell">
-      <header class="topbar">
-        <a class="topbar-brand" href="#dashboard" aria-label="Garimpanda">
+  <body class="entry-body">
+    <main class="entry-shell">
+      <section class="entry-hero" aria-label="Boas-vindas">
+        <a class="entry-brand" href="./index.html" aria-label="Garimpanda">
           <span class="brand-mark" aria-hidden="true">
             <img src="./assets/garimpanda-panda.png" alt="" />
           </span>
-          <span>
-            <strong>Garim<span>panda</span></strong>
-            <small>Encontre os melhores preços no Mercado Livre e economize mais.</small>
-            <small class="sr-only" id="connectionText">Aguardando atualização</small>
-          </span>
+          <strong>Garim<span>panda</span></strong>
         </a>
 
-        <nav class="top-nav" aria-label="Navegação principal">
-          <a href="#dashboard">Início</a>
-          <a class="active" href="#anuncios">Produtos</a>
-          <a href="#como-funciona">Como funciona</a>
-          <a href="#meus-alertas">Radar</a>
-          <a href="#alertas">Alertas</a>
-        </nav>
+        <div class="entry-copy">
+          <span class="hero-kicker">Radar de ofertas com n8n</span>
+          <h1>Encontre bons garimpos antes que o preco suba.</h1>
+          <p>
+            Monitore ofertas do Mercado Livre e Amazon, filtre os melhores produtos e crie alertas de preco
+            com uma plataforma pronta para evoluir.
+          </p>
+        </div>
 
-        <div class="topbar-actions">
-          <button class="icon-action" type="button" aria-label="Notificações">
-            <span class="notification-dot" aria-hidden="true"></span>
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z" />
-              <path d="M9.5 20a2.8 2.8 0 0 0 5 0" />
-            </svg>
-          </button>
-          <button class="icon-action" type="button" aria-label="Configurações visuais">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" />
-              <circle cx="12" cy="12" r="4" />
-            </svg>
-          </button>
-          <a class="date-pill" href="#configuracoes">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" />
-              <path d="m4 12-1.3-2.2 2-3.4h2.6L9 5h6l1.7 1.4h2.6l2 3.4L20 12l1.3 2.2-2 3.4h-2.6L15 19H9l-1.7-1.4H4.7l-2-3.4L4 12Z" />
-            </svg>
-            <span>Configurar fontes</span>
-          </a>
-          <div class="user-chip">
-            <span class="avatar" aria-hidden="true">TO</span>
-            <span>
-              <strong>Olá, Tullio</strong>
-              <small>Radar ativo</small>
-            </span>
+        <div class="entry-benefits" aria-label="Recursos principais">
+          <article>
+            <span>01</span>
+            <strong>Produtos reais</strong>
+            <p>Feed alimentado pelo n8n com ofertas coletadas em intervalos fixos.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <strong>Radar de preco</strong>
+            <p>Defina um valor alvo e deixe o sistema comparar em cada nova coleta.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <strong>Sem travar no login</strong>
+            <p>Entre como visitante para navegar e use cadastro apenas para salvar alertas.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="entry-card" aria-label="Acesso ao Garimpanda">
+        <div class="entry-card-header">
+          <img src="./assets/garimpanda-panda.png" alt="" />
+          <div>
+            <h2>Entre no Garimpanda</h2>
+            <p>Use sua conta para salvar alertas ou continue como visitante.</p>
           </div>
         </div>
-      </header>
 
-      <aside class="sidebar" aria-label="Navegação principal">
-        <nav class="sidebar-nav">
-          <a class="active" href="#dashboard">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-8Z" /></svg>
-            </span>
-            Dashboard
-          </a>
-          <a href="#anuncios">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M4 5h16v12H4z" /><path d="M8 21h8M12 17v4" /></svg>
-            </span>
-            Anúncios Monitorados
-          </a>
-          <a href="#historico">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M12 8v5l3 2" /><path d="M4 12a8 8 0 1 0 2.3-5.6L4 8.8" /></svg>
-            </span>
-            Histórico
-          </a>
-          <a href="#alertas">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z" /><path d="M9.5 20a2.8 2.8 0 0 0 5 0" /></svg>
-            </span>
-            Alertas
-          </a>
-          <a href="#meus-alertas">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M6 3h12l2 4-8 14L4 7l2-4Z" /><path d="M8 7h8" /></svg>
-            </span>
-            Meus Alertas
-          </a>
-          <a href="#oportunidades">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="m12 3 2.4 5 5.6.8-4 3.9.9 5.5L12 15.6 7.1 18.2l.9-5.5-4-3.9 5.6-.8L12 3Z" /></svg>
-            </span>
-            Oportunidades
-          </a>
-          <a href="#fontes">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16" /><path d="M7 5v14M17 5v14" /></svg>
-            </span>
-            Fontes
-          </a>
-          <a href="#relatorios">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M5 20V4h14v16H5Z" /><path d="M9 16v-4M12 16V8M15 16v-6" /></svg>
-            </span>
-            Relatórios
-          </a>
-          <a href="#configuracoes">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" /><path d="m4 12-1.3-2.2 2-3.4h2.6L9 5h6l1.7 1.4h2.6l2 3.4L20 12l1.3 2.2-2 3.4h-2.6L15 19H9l-1.7-1.4H4.7l-2-3.4L4 12Z" /></svg>
-            </span>
-            Configurações
-          </a>
-          <a href="#integracoes">
-            <span class="nav-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M8 7h8M8 17h8" /><circle cx="5" cy="7" r="2" /><circle cx="19" cy="7" r="2" /><circle cx="5" cy="17" r="2" /><circle cx="19" cy="17" r="2" /></svg>
-            </span>
-            Integrações
-          </a>
-        </nav>
+        <form class="entry-form" id="entryLoginForm">
+          <label class="field-group">
+            <span>E-mail</span>
+            <input id="entryLoginEmail" type="email" autocomplete="email" placeholder="seu@email.com" required />
+          </label>
+          <label class="field-group">
+            <span>Senha</span>
+            <input id="entryLoginPassword" type="password" autocomplete="current-password" placeholder="********" required />
+          </label>
+          <button class="primary-button full-button" type="submit">Entrar</button>
+          <p class="form-status" id="entryLoginStatus" role="status"></p>
+        </form>
 
-        <section class="automation-status-card" aria-label="Status da automação">
-          <h2>Status da Automação</h2>
-          <div class="status-row">
-            <span class="status-dot"></span>
-            <strong>Ativo</strong>
-          </div>
-          <dl>
-            <div>
-              <dt>Última execução</dt>
-              <dd id="automationLastRun">Aguardando coleta</dd>
-            </div>
-            <div>
-              <dt>Próxima execução</dt>
-              <dd id="automationNextRun">Calculando</dd>
-            </div>
-            <div>
-              <dt>Execuções hoje</dt>
-              <dd><span id="automationToday">8</span> de 24</dd>
-            </div>
-          </dl>
-        </section>
+        <div class="entry-divider"><span>ou</span></div>
 
-        <footer class="sidebar-footer">
-          <span>Desenvolvido com</span>
-          <strong>n8n</strong>
-        </footer>
-      </aside>
+        <a class="secondary-button full-button" href="./produtos.html">Entrar sem login</a>
+        <a class="text-button entry-link" href="./radar.html#meus-alertas">Criar conta para alertas</a>
+      </section>
+    </main>
 
-      <main class="dashboard-main" id="dashboard">
-        <section class="welcome-row hero-panel">
-          <div class="hero-copy">
-            <span class="hero-kicker">Monitore • Compare • Economize</span>
-            <h1>O Garimpanda encontra os <span>melhores preços</span> para você</h1>
-            <p>Comparamos ofertas reais, monitoramos produtos e avisamos quando o preço ideal aparece.</p>
-            <div class="hero-benefits" id="como-funciona">
-              <span><i aria-hidden="true">M</i> Monitore preços</span>
-              <span><i aria-hidden="true">A</i> Receba alertas</span>
-              <span><i aria-hidden="true">E</i> Economize tempo</span>
-            </div>
-          </div>
-          <div class="hero-visual" aria-hidden="true">
-            <img src="./assets/garimpanda-panda.png" alt="" />
-          </div>
-          <div class="monitor-actions">
-            <button class="primary-button" id="refreshNowButton" type="button">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6" /><path d="M20 4v6h-6" /></svg>
-              Atualizar
-            </button>
-            <button class="secondary-button" id="toggleLiveButton" type="button">Pausar radar</button>
-          </div>
-        </section>
-
-        <section class="kpi-grid" aria-label="Indicadores principais">
-          <article class="kpi-card blue">
-            <span class="kpi-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M4 5h16v12H4z" /><path d="M8 21h8M12 17v4" /></svg>
-            </span>
-            <div>
-              <h2>Anúncios Monitorados</h2>
-              <strong id="totalProducts">0</strong>
-              <p><span>↑ 12%</span> em relação a ontem</p>
-            </div>
-          </article>
-          <article class="kpi-card green">
-            <span class="kpi-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M20 12 12 20 4 12l8-8 8 8Z" /><path d="M8.5 8.5h.01" /></svg>
-            </span>
-            <div>
-              <h2>Mudanças de Preço</h2>
-              <strong id="dropProducts">0</strong>
-              <p><span>↑ 8%</span> em relação a ontem</p>
-            </div>
-          </article>
-          <article class="kpi-card purple">
-            <span class="kpi-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
-            </span>
-            <div>
-              <h2>Novos Anúncios</h2>
-              <strong id="newProducts">0</strong>
-              <p><span>↑ 21%</span> em relação a ontem</p>
-            </div>
-          </article>
-          <article class="kpi-card orange">
-            <span class="kpi-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24"><path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z" /><path d="M9.5 20a2.8 2.8 0 0 0 5 0" /></svg>
-            </span>
-            <div>
-              <h2>Alertas Enviados</h2>
-              <strong id="alertsSent">57</strong>
-              <p><span>↑ 15%</span> em relação a ontem</p>
-            </div>
-          </article>
-        </section>
-
-        <section class="dashboard-grid">
-          <article class="panel-card chart-panel" id="relatorios">
-            <div class="panel-heading">
-              <h2>Atividade dos Últimos 7 Dias</h2>
-              <div class="chart-legend">
-                <span><i class="legend-dot green"></i>Novos Anúncios</span>
-                <span><i class="legend-dot blue"></i>Mudanças de Preço</span>
-                <span><i class="legend-dot orange"></i>Alertas Enviados</span>
-              </div>
-            </div>
-            <svg class="activity-chart" id="activityChart" viewBox="0 0 760 300" role="img" aria-label="Gráfico de atividade dos últimos sete dias"></svg>
-          </article>
-
-          <aside class="panel-card sources-panel" id="fontes">
-            <h2>Fontes Monitoradas</h2>
-            <div class="donut-layout">
-              <div class="donut-chart" aria-hidden="true">
-                <span id="activeSources">0</span>
-              </div>
-              <ul class="source-list">
-                <li><span class="source-dot green"></span><strong>Mercado Livre</strong><em>45%</em></li>
-                <li><span class="source-dot blue"></span><strong>OLX</strong><em>25%</em></li>
-                <li><span class="source-dot orange"></span><strong>Amazon</strong><em>15%</em></li>
-                <li><span class="source-dot purple"></span><strong>Shopee</strong><em>10%</em></li>
-                <li><span class="source-dot gray"></span><strong>Outros</strong><em>5%</em></li>
-              </ul>
-            </div>
-          </aside>
-
-          <aside class="panel-card flow-card" id="historico">
-            <h2>Execuções do Fluxo (n8n)</h2>
-            <div class="flow-success">
-              <span class="flow-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
-              </span>
-              <div>
-                <p>Última execução bem-sucedida</p>
-                <strong id="lastUpdatedText">Nenhuma coleta realizada</strong>
-              </div>
-              <dl>
-                <dt>Duração</dt>
-                <dd>00:01:24</dd>
-              </dl>
-            </div>
-          </aside>
-        </section>
-
-        <section class="content-grid" id="oportunidades">
-          <article class="panel-card alerts-card" id="alertas">
-            <div class="table-heading">
-              <h2>Alertas Recentes</h2>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Tipo</th>
-                    <th>Título</th>
-                    <th>Fonte</th>
-                    <th>Mudança</th>
-                    <th>Data/Hora</th>
-                    <th>Ação</th>
-                  </tr>
-                </thead>
-                <tbody id="recentAlertsBody"></tbody>
-              </table>
-            </div>
-            <a class="panel-link" href="#historico">Ver todos os alertas <span>→</span></a>
-          </article>
-
-          <aside class="panel-card upcoming-card">
-            <h2>Próximas Execuções</h2>
-            <div class="upcoming-list">
-              <article>
-                <span class="clock-icon" aria-hidden="true"></span>
-                <strong>Coleta - Mercado Livre</strong>
-                <time>Hoje 11:15</time>
-              </article>
-              <article>
-                <span class="clock-icon" aria-hidden="true"></span>
-                <strong>Coleta - OLX</strong>
-                <time>Hoje 11:15</time>
-              </article>
-              <article>
-                <span class="clock-icon" aria-hidden="true"></span>
-                <strong>Coleta - Amazon</strong>
-                <time>Hoje 11:30</time>
-              </article>
-              <article>
-                <span class="clock-icon" aria-hidden="true"></span>
-                <strong>Coleta - Shopee</strong>
-                <time>Hoje 11:30</time>
-              </article>
-            </div>
-            <a class="panel-link" href="#configuracoes">Ver agenda completa <span>→</span></a>
-          </aside>
-        </section>
-
-        <section class="panel-card price-alerts-panel" id="meus-alertas">
-          <div class="panel-heading">
-            <div>
-              <h2>Meus Alertas de Preço</h2>
-              <p class="panel-subtitle">Cadastre um alvo e receba aviso quando uma oferta bater o valor desejado.</p>
-            </div>
-            <button class="secondary-button compact is-hidden" id="logoutButton" type="button">Sair</button>
-          </div>
-
-          <div class="supabase-warning" id="supabaseStatus">Supabase aguardando configuração.</div>
-
-          <div class="radar-guide">
-            <article>
-              <span aria-hidden="true">1</span>
-              <strong>Escolha um produto</strong>
-              <p>Use um nome específico, marca e o preço máximo que cabe no seu bolso.</p>
-            </article>
-            <article>
-              <span aria-hidden="true">2</span>
-              <strong>O n8n compara ofertas</strong>
-              <p>A cada coleta, o radar cruza seus alertas com produtos reais do feed.</p>
-            </article>
-            <article>
-              <span aria-hidden="true">3</span>
-              <strong>Você recebe o aviso</strong>
-              <p>Quando bater o valor, o match fica pronto para disparo por e-mail ou WhatsApp.</p>
-            </article>
-          </div>
-
-          <div class="alert-auth-grid" id="authForms">
-            <form class="alert-form" id="signupForm">
-              <h3>Criar conta</h3>
-              <label class="field-group">
-                <span>Nome</span>
-                <input id="signupName" type="text" autocomplete="name" placeholder="Tullio Oliveira" />
-              </label>
-              <label class="field-group">
-                <span>E-mail</span>
-                <input id="signupEmail" type="email" autocomplete="email" placeholder="voce@email.com" required />
-              </label>
-              <label class="field-group">
-                <span>WhatsApp opcional</span>
-                <input id="signupPhone" type="tel" autocomplete="tel" placeholder="+55 85 99999-9999" />
-              </label>
-              <label class="field-group">
-                <span>Senha</span>
-                <input id="signupPassword" type="password" autocomplete="new-password" minlength="6" required />
-              </label>
-              <button class="primary-button" type="submit">Cadastrar</button>
-            </form>
-
-            <form class="alert-form" id="loginForm">
-              <h3>Entrar</h3>
-              <label class="field-group">
-                <span>E-mail</span>
-                <input id="loginEmail" type="email" autocomplete="email" required />
-              </label>
-              <label class="field-group">
-                <span>Senha</span>
-                <input id="loginPassword" type="password" autocomplete="current-password" required />
-              </label>
-              <button class="secondary-button" type="submit">Entrar</button>
-              <p class="panel-subtitle">Depois do login, seus alertas ficam vinculados ao seu usuário no Supabase.</p>
-            </form>
-          </div>
-
-          <div class="price-alerts-workspace is-hidden" id="alertsWorkspace">
-            <div class="session-card">
-              <span class="status-dot"></span>
-              <div>
-                <strong id="sessionUserName">Usuário conectado</strong>
-                <p id="sessionUserEmail">Sincronizado com Supabase</p>
-              </div>
-            </div>
-
-            <form class="alert-builder" id="priceAlertForm">
-              <label class="field-group">
-                <span>Produto desejado</span>
-                <input id="alertProductQuery" type="text" placeholder="TV 75 Samsung" required />
-              </label>
-              <label class="field-group">
-                <span>Marca opcional</span>
-                <input id="alertBrand" type="text" placeholder="Samsung, LG, TCL..." />
-              </label>
-              <label class="field-group">
-                <span>Preço máximo</span>
-                <input id="alertTargetPrice" type="number" min="1" step="0.01" placeholder="3500" required />
-              </label>
-              <label class="field-group">
-                <span>Fonte</span>
-                <select id="alertSource">
-                  <option value="all">Todas</option>
-                  <option value="amazon">Amazon</option>
-                  <option value="mercadolivre">Mercado Livre</option>
-                </select>
-              </label>
-              <label class="field-group">
-                <span>Canal</span>
-                <select id="alertChannel">
-                  <option value="email">E-mail</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="both">E-mail e WhatsApp</option>
-                </select>
-              </label>
-              <label class="field-group">
-                <span>E-mail de aviso</span>
-                <input id="alertNotificationEmail" type="email" placeholder="voce@email.com" />
-              </label>
-              <label class="field-group">
-                <span>WhatsApp</span>
-                <input id="alertWhatsappPhone" type="tel" placeholder="+55 85 99999-9999" />
-              </label>
-              <button class="primary-button" type="submit">Criar alerta</button>
-            </form>
-
-            <div class="saved-alerts">
-              <div class="panel-heading">
-                <h3>Alertas salvos</h3>
-                <button class="text-button" id="reloadAlertsButton" type="button">Recarregar</button>
-              </div>
-              <div class="saved-alerts-list" id="priceAlertsList"></div>
-            </div>
-          </div>
-        </section>
-
-        <section class="monitor-console" id="configuracoes">
-          <aside class="panel-card filter-panel" aria-label="Filtros de produtos">
-            <div class="filter-heading">
-              <h2>Filtros</h2>
-              <button class="text-button" id="clearProductFiltersButton" type="button">Limpar tudo</button>
-            </div>
-
-            <section class="filter-section">
-              <button class="filter-section-title" type="button">
-                <span>Categoria</span>
-                <span aria-hidden="true">⌃</span>
-              </button>
-              <div class="category-tabs vertical" aria-label="Categorias">
-                <button class="category-button active" type="button" data-category="all">Todos <span id="categoryCountAll">0</span></button>
-                <button class="category-button" type="button" data-category="eletronicos">Eletrônicos <span id="categoryCountEletronicos">0</span></button>
-                <button class="category-button" type="button" data-category="casa">Casa <span id="categoryCountCasa">0</span></button>
-                <button class="category-button" type="button" data-category="informatica">Informática <span id="categoryCountInformatica">0</span></button>
-                <button class="category-button" type="button" data-category="audio">Áudio <span id="categoryCountAudio">0</span></button>
-                <button class="category-button" type="button" data-category="games">Games <span id="categoryCountGames">0</span></button>
-                <button class="category-button" type="button" data-category="cozinha">Cozinha <span id="categoryCountCozinha">0</span></button>
-                <button class="category-button" type="button" data-category="moda">Moda <span id="categoryCountModa">0</span></button>
-                <button class="category-button" type="button" data-category="outros">Outros <span id="categoryCountOutros">0</span></button>
-              </div>
-            </section>
-
-            <section class="filter-section">
-              <button class="filter-section-title" type="button">
-                <span>Faixa de preço</span>
-                <span aria-hidden="true">⌃</span>
-              </button>
-              <div class="two-columns">
-                <label class="field-group">
-                  <span>Mínimo</span>
-                  <input id="minPriceFilter" type="number" min="0" step="0.01" placeholder="R$ mínimo" />
-                </label>
-                <label class="field-group">
-                  <span>Máximo</span>
-                  <input id="maxPriceFilter" type="number" min="0" step="0.01" placeholder="R$ máximo" />
-                </label>
-              </div>
-            </section>
-
-            <section class="filter-section">
-              <button class="filter-section-title" type="button">
-                <span>Desconto mínimo</span>
-                <span aria-hidden="true">⌃</span>
-              </button>
-              <div class="discount-filter-group">
-                <button class="discount-filter" type="button" data-discount="10">10%</button>
-                <button class="discount-filter" type="button" data-discount="20">20%</button>
-                <button class="discount-filter" type="button" data-discount="30">30%</button>
-                <button class="discount-filter" type="button" data-discount="40">40%</button>
-                <button class="discount-filter active" type="button" data-discount="0">Todos</button>
-              </div>
-            </section>
-
-            <section class="filter-section">
-              <button class="filter-section-title" type="button">
-                <span>Marketplace</span>
-                <span aria-hidden="true">⌃</span>
-              </button>
-              <label class="field-group">
-                <span>Fonte</span>
-                <select id="sourceFilter">
-                  <option value="all">Todos os marketplaces</option>
-                  <option value="mercadolivre">Mercado Livre</option>
-                  <option value="amazon">Amazon</option>
-                  <option value="shopee">Shopee</option>
-                  <option value="olx">OLX</option>
-                </select>
-              </label>
-              <label class="toggle-row compact-toggle">
-                <input id="onlyChanges" type="checkbox" />
-                <span>Somente mudanças de preço</span>
-              </label>
-            </section>
-
-            <section class="filter-section source-config">
-              <div class="filter-section-title static">
-                <span>Fontes do radar</span>
-              </div>
-
-            <label class="toggle-row">
-              <input id="demoEnabled" type="checkbox" />
-              <span>Demo local</span>
-            </label>
-
-            <label class="toggle-row">
-              <input id="mercadoLivreEnabled" type="checkbox" checked />
-              <span>Mercado Livre</span>
-            </label>
-            <label class="field-group">
-              <span>Busca Mercado Livre</span>
-              <input id="mercadoLivreQuery" type="text" value="notebook" autocomplete="off" />
-            </label>
-            <div class="config-status" id="mercadoLivreStatus">Mercado Livre: aguardando servidor</div>
-            <a class="setup-inline-link" href="./mercadolivre-setup.html">Conectar Mercado Livre</a>
-
-            <label class="toggle-row">
-              <input id="amazonEnabled" type="checkbox" checked />
-              <span>Amazon</span>
-            </label>
-            <label class="field-group">
-              <span>Busca Amazon</span>
-              <input id="amazonQuery" type="text" value="fone bluetooth" autocomplete="off" />
-            </label>
-            <div class="config-status" id="amazonStatus">Amazon: aguardando servidor</div>
-
-            <div class="two-columns">
-              <label class="field-group">
-                <span>Intervalo</span>
-                <select id="refreshInterval">
-                  <option value="15000">15s</option>
-                  <option value="30000" selected>30s</option>
-                  <option value="60000">1min</option>
-                  <option value="300000">5min</option>
-                </select>
-              </label>
-              <label class="field-group">
-                <span>Produtos</span>
-                <input id="itemLimit" type="number" min="20" max="2000" value="1000" />
-              </label>
-            </div>
-              <button class="primary-button filter-apply-button" id="saveConfigButton" type="button">Aplicar filtros</button>
-            </section>
-
-            <div class="filter-trust-card">
-              <span class="status-dot"></span>
-              <div>
-                <strong>Segurança e confiança</strong>
-                <p>Ofertas verificadas a cada coleta do n8n.</p>
-              </div>
-            </div>
-          </aside>
-
-          <section class="panel-card products-area" id="anuncios" aria-label="Lista de produtos">
-            <div class="products-hero">
-              <div>
-                <h2>Garimpos</h2>
-                <p class="panel-subtitle">Explore milhares de ofertas monitoradas em um só lugar.</p>
-              </div>
-              <img src="./assets/garimpanda-panda.png" alt="" />
-            </div>
-
-            <div class="toolbar">
-              <label class="search-box">
-                <span class="sr-only">Buscar nos produtos</span>
-                <input id="globalSearch" type="search" placeholder="Busque por produtos, marcas ou categorias..." />
-              </label>
-              <div class="products-count">
-                <strong id="productResultCount">0 produtos encontrados</strong>
-                <span id="productRangeText">Mostrando 0 de 0</span>
-              </div>
-              <select id="sortMode" aria-label="Ordenar produtos">
-                <option value="change">Mais relevantes</option>
-                <option value="priceAsc">Menor preço</option>
-                <option value="priceDesc">Maior preço</option>
-                <option value="discount">Maior desconto</option>
-                <option value="source">Fonte</option>
-              </select>
-              <div class="view-toggle" aria-label="Modo de visualização">
-                <button class="active" type="button" aria-label="Visualização em grade">
-                  <span></span><span></span><span></span><span></span>
-                </button>
-                <button type="button" aria-label="Visualização em lista">
-                  <i></i><i></i><i></i>
-                </button>
-              </div>
-            </div>
-
-            <div class="product-info-banner">
-              <span aria-hidden="true">%</span>
-              <div>
-                <strong>O Garimpanda monitora preços e destaca boas ofertas.</strong>
-                <p>Aqui você encontra descontos reais em milhares de produtos dos melhores marketplaces.</p>
-              </div>
-            </div>
-            <div class="product-grid" id="productGrid" aria-live="polite"></div>
-            <div class="pagination-bar">
-              <div class="pagination" id="productPagination" aria-label="Paginação de produtos"></div>
-              <label class="page-size-control">
-                <span class="sr-only">Produtos por página</span>
-                <select id="pageSizeSelect">
-                  <option value="20" selected>20 por página</option>
-                  <option value="40">40 por página</option>
-                  <option value="60">60 por página</option>
-                  <option value="100">100 por página</option>
-                </select>
-              </label>
-            </div>
-          </section>
-
-          <aside class="panel-card events-panel" aria-label="Eventos recentes">
-            <div class="panel-heading">
-              <h2>Histórico recente</h2>
-              <button class="text-button" id="clearHistoryButton" type="button">Limpar</button>
-            </div>
-            <div class="timeline" id="timeline"></div>
-          </aside>
-        </section>
-
-        <section class="disclosure-band" id="integracoes" aria-label="Aviso de afiliado">
-          <strong>Aviso de afiliado:</strong>
-          como Associado da Amazon, podemos receber comissão por compras qualificadas feitas por links deste site.
-          Preços e disponibilidade podem mudar sem aviso.
-        </section>
-      </main>
-    </div>
-
-    <template id="productCardTemplate">
-      <article class="product-card">
-        <a class="product-image-link" target="_blank" rel="noreferrer">
-          <img class="product-image" alt="" loading="lazy" />
-        </a>
-        <div class="product-body">
-          <div class="product-meta">
-            <span class="source-badge"></span>
-            <span class="change-badge"></span>
-          </div>
-          <h3 class="product-title"></h3>
-          <p class="product-seller"></p>
-          <p class="product-note"></p>
-          <div class="price-row">
-            <strong class="product-price"></strong>
-            <span class="price-change"></span>
-          </div>
-          <p class="product-rating"></p>
-          <div class="history-strip" aria-label="Histórico de preço"></div>
-          <div class="product-actions">
-            <a class="product-link" target="_blank" rel="noreferrer">Abrir produto</a>
-            <button class="text-button product-alert-button" type="button">Criar alerta</button>
-          </div>
-        </div>
-      </article>
-    </template>
-
-    <template id="timelineItemTemplate">
-      <article class="timeline-item">
-        <div class="timeline-dot" aria-hidden="true"></div>
-        <div>
-          <strong class="timeline-title"></strong>
-          <p class="timeline-detail"></p>
-          <time class="timeline-time"></time>
-        </div>
-      </article>
-    </template>
-
-    <script src="./app.js?v=garimpanda1" defer></script>
+    <script src="./entry.js?v=pages1" defer></script>
   </body>
 </html>

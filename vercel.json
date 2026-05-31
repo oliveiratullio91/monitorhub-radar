@@ -13,6 +13,30 @@
       "destination": "/site/app.js"
     },
     {
+      "source": "/entry.js",
+      "destination": "/site/entry.js"
+    },
+    {
+      "source": "/produtos.html",
+      "destination": "/site/produtos.html"
+    },
+    {
+      "source": "/como-funciona.html",
+      "destination": "/site/como-funciona.html"
+    },
+    {
+      "source": "/radar.html",
+      "destination": "/site/radar.html"
+    },
+    {
+      "source": "/alertas.html",
+      "destination": "/site/alertas.html"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "/site/assets/:path*"
+    },
+    {
       "source": "/mercadolivre-setup.html",
       "destination": "/site/mercadolivre-setup.html"
     },
