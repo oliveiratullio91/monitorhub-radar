@@ -7,6 +7,7 @@ Este repositorio contem o kit inicial para montar o projeto no n8n:
 - `workflows/monitoramento-anuncios-precos-oportunidades.json`: workflow base para importar no n8n.
 - `workflows/monitoramento-marketplaces-amazon-mercado-livre.json`: workflow preparado para Mercado Livre e Amazon via API autorizada.
 - `workflows/monitorhub-feed-n8n-mercado-livre.json`: workflow que envia os produtos coletados pelo n8n diretamente para o dashboard.
+- `workflows/monitorhub-promocoes-mercado-livre.json`: workflow que envia somente itens com promocao ativa do Mercado Livre.
 - `site/index.html`, `site/styles.css`, `site/app.js`: painel local para acompanhar produtos em tempo real.
 - `server/server.js`: backend local que consulta Mercado Livre e Amazon sem expor credenciais no navegador.
 - `api/config.js`, `api/products.js` e `api/n8n/products.js`: funcoes serverless preparadas para Vercel.
@@ -60,6 +61,19 @@ O painel agora prioriza produtos enviados pelo n8n em `POST /api/n8n/products`.
 4. Abra o dashboard e clique em `Atualizar`.
 
 Se quiser proteger a escrita do feed, defina `N8N_INGEST_TOKEN` na Vercel/local e coloque o mesmo valor em `monitorHubIngestToken` no workflow.
+
+### Somente promocoes do Mercado Livre
+
+Para listar apenas produtos que estao em promocao, importe `workflows/monitorhub-promocoes-mercado-livre.json`.
+
+No node `Configuracao Promocoes`, preencha:
+
+- `mercadoLivreUserId`: ID do usuario/vendedor autorizado.
+- `mercadoLivreAccessToken`: token OAuth do Mercado Livre.
+- `minDiscountPercent`: desconto minimo para entrar no painel.
+- `promotionTypes`: tipos de promocao aceitos.
+
+O filtro exige `status=started`, `original_price` maior que `price` e preco promocional maior que zero.
 
 ## Painel local
 

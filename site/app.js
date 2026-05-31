@@ -386,6 +386,11 @@ function categorizeProduct(product) {
 }
 
 function curationNote(product) {
+  if (isPromotion(product)) {
+    const label = product.promotionName || product.promotionType || "promocao ativa";
+    const discount = promotionDiscountText(product);
+    return `${label}${discount ? ` - ${discount}` : ""}. Item enviado pelo n8n por estar com preco promocional no Mercado Livre.`;
+  }
   if (product.changeType === "drop") return "Queda detectada. Vale confirmar frete, garantia e vendedor antes de decidir.";
   if (product.changeType === "new") return "Novo item no radar. Acompanhe mais leituras para entender se o preco se sustenta.";
   if (product.category === "informatica") return "Compare especificacoes, memoria, armazenamento e garantia com alternativas proximas.";
@@ -732,6 +737,7 @@ function renderProducts(products) {
     sourceBadge.textContent = product.source;
     changeBadge.textContent = formatChange(product);
     changeBadge.classList.add(product.changeType);
+    changeBadge.classList.toggle("promotion", isPromotion(product));
     title.textContent = product.title;
     seller.textContent = product.seller || product.availability || product.query || "Fonte sem vendedor informado";
     note.textContent = curationNote(product);
@@ -813,6 +819,7 @@ function formatMoney(value, currency = "BRL") {
 }
 
 function formatChange(product) {
+  if (isPromotion(product)) return promotionDiscountText(product) || "Promocao";
   if (product.changeType === "new") return "Novo";
   if (product.changeType === "drop") return "Queda";
   if (product.changeType === "up") return "Aumento";
@@ -820,11 +827,27 @@ function formatChange(product) {
 }
 
 function changeText(product) {
+  if (isPromotion(product) && product.originalPrice) {
+    return `de ${formatMoney(product.originalPrice, product.currency)}`;
+  }
   if (product.changeType === "new") return "primeira leitura";
   if (product.priceDiff === null || product.priceDiff === undefined) return "";
   const sign = product.priceDiff > 0 ? "+" : "";
   const percent = product.percentDiff === null ? "" : ` (${sign}${product.percentDiff}%)`;
   return `${sign}${formatMoney(product.priceDiff, product.currency)}${percent}`;
+}
+
+function isPromotion(product) {
+  return Boolean(product.promotionId || product.promotionType || product.originalPrice || Number(product.discountPercent) > 0);
+}
+
+function promotionDiscountText(product) {
+  const discount = Number(product.discountPercent);
+  if (Number.isFinite(discount) && discount > 0) return `${Math.round(discount)}% OFF`;
+  if (product.originalPrice && product.price && product.originalPrice > product.price) {
+    return `${Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF`;
+  }
+  return "";
 }
 
 function placeholderImage(label) {

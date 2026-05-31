@@ -1,0 +1,219 @@
+{
+  "id": "monitorhub-promocoes-mercado-livre",
+  "name": "MonitorHub - Somente Promocoes Mercado Livre",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b8a4f5d9-6ec1-4f3c-9898-0c2ddcc20101",
+      "name": "Executar manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -820,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "3d7939e7-6690-42bc-a1f8-2e74a9720102",
+      "name": "Agendamento - a cada 30 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -820,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "monitorhub-endpoint",
+              "name": "monitorHubEndpoint",
+              "value": "https://monitorhub-radar.vercel.app/api/n8n/products",
+              "type": "string"
+            },
+            {
+              "id": "monitorhub-token",
+              "name": "monitorHubIngestToken",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "ml-user-id",
+              "name": "mercadoLivreUserId",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "ml-access-token",
+              "name": "mercadoLivreAccessToken",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "max-promotions",
+              "name": "maxPromotions",
+              "value": 20,
+              "type": "number"
+            },
+            {
+              "id": "limit-per-promotion",
+              "name": "limitPerPromotion",
+              "value": 50,
+              "type": "number"
+            },
+            {
+              "id": "min-discount",
+              "name": "minDiscountPercent",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "promotion-types",
+              "name": "promotionTypes",
+              "value": "DEAL,MARKETPLACE_CAMPAIGN,DOD,LIGHTNING,PRICE_DISCOUNT,SELLER_CAMPAIGN,SMART,PRICE_MATCHING,UNHEALTHY_STOCK,PRE_NEGOTIATED",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "79d0952e-8b44-4f89-814e-606eb2c20103",
+      "name": "Configuracao Promocoes",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -540,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $input.first().json;\nconst now = new Date().toISOString();\nconst token = String(cfg.mercadoLivreAccessToken || '').trim();\nconst userId = String(cfg.mercadoLivreUserId || '').trim();\nconst maxPromotions = Math.max(1, Math.min(Number(cfg.maxPromotions || 20), 50));\nconst limitPerPromotion = Math.max(1, Math.min(Number(cfg.limitPerPromotion || 50), 100));\nconst minDiscountPercent = Math.max(0, Number(cfg.minDiscountPercent || 0));\nconst allowedTypes = new Set(String(cfg.promotionTypes || '').split(',').map((type) => type.trim()).filter(Boolean));\nconst errors = [];\n\nfunction basePayload(products = []) {\n  return {\n    runId: $execution?.id || `promocoes-${Date.now()}`,\n    source: 'n8n',\n    sourceName: 'Mercado Livre Promocoes',\n    query: 'Promocoes ativas Mercado Livre',\n    currency: 'BRL',\n    products,\n    errors,\n    fetchedAt: now,\n    monitorHubEndpoint: cfg.monitorHubEndpoint,\n    monitorHubIngestToken: cfg.monitorHubIngestToken\n  };\n}\n\nif (!token || !userId) {\n  errors.push('n8n: preencha mercadoLivreAccessToken e mercadoLivreUserId no node Configuracao Promocoes.');\n  return [{ json: basePayload([]) }];\n}\n\nfunction toNumber(value) {\n  if (value === null || value === undefined || value === '') return null;\n  if (typeof value === 'number') return Number.isFinite(value) ? value : null;\n  const raw = String(value).replace(/\\s/g, '').replace(/R\\$/gi, '').replace(/[^0-9,.-]/g, '');\n  if (!raw) return null;\n  const hasComma = raw.includes(',');\n  const hasDot = raw.includes('.');\n  let normalized = raw;\n  if (hasComma && hasDot) normalized = raw.lastIndexOf(',') > raw.lastIndexOf('.') ? raw.replace(/\\./g, '').replace(',', '.') : raw.replace(/,/g, '');\n  else if (hasComma) normalized = raw.replace(',', '.');\n  const number = Number(normalized);\n  return Number.isFinite(number) ? number : null;\n}\n\nfunction statusValue(value) {\n  return String(value?.id || value || '').toLowerCase();\n}\n\nfunction discountPercent(price, originalPrice) {\n  if (!price || !originalPrice || originalPrice <= price) return 0;\n  return Number((((originalPrice - price) / originalPrice) * 100).toFixed(2));\n}\n\nasync function mlGet(path) {\n  const response = await fetch(`https://api.mercadolibre.com${path}`, {\n    headers: {\n      Accept: 'application/json',\n      Authorization: `Bearer ${token}`,\n      'User-Agent': 'n8n-monitorhub-promocoes/1.0'\n    }\n  });\n  const text = await response.text();\n  let payload = null;\n  try { payload = text ? JSON.parse(text) : null; } catch { payload = { raw: text }; }\n  if (!response.ok) {\n    const detail = payload?.message || payload?.error || payload?.raw || response.statusText;\n    throw new Error(`HTTP ${response.status}: ${detail}`);\n  }\n  return payload;\n}\n\nlet campaigns = [];\ntry {\n  const campaignPayload = await mlGet(`/seller-promotions/users/${encodeURIComponent(userId)}?app_version=v2&limit=${maxPromotions}`);\n  campaigns = (Array.isArray(campaignPayload?.results) ? campaignPayload.results : [])\n    .filter((campaign) => statusValue(campaign.status) === 'started')\n    .filter((campaign) => !allowedTypes.size || allowedTypes.has(String(campaign.type || '').trim()))\n    .slice(0, maxPromotions);\n} catch (error) {\n  errors.push(`n8n: falha ao consultar promocoes do Mercado Livre (${error.message}).`);\n  return [{ json: basePayload([]) }];\n}\n\nconst promotedById = new Map();\nfor (const campaign of campaigns) {\n  const promotionId = String(campaign.id || '').trim();\n  const promotionType = String(campaign.type || '').trim();\n  if (!promotionId || !promotionType) continue;\n\n  try {\n    const path = `/seller-promotions/promotions/${encodeURIComponent(promotionId)}/items?promotion_type=${encodeURIComponent(promotionType)}&status=started&app_version=v2&limit=${limitPerPromotion}`;\n    const itemPayload = await mlGet(path);\n    const items = Array.isArray(itemPayload?.results) ? itemPayload.results : [];\n\n    for (const item of items) {\n      const id = String(item.id || item.item_id || '').trim();\n      const price = toNumber(item.price);\n      const originalPrice = toNumber(item.original_price);\n      const discount = discountPercent(price, originalPrice);\n      if (!id || !price || !originalPrice || originalPrice <= price || discount < minDiscountPercent) continue;\n\n      const previous = promotedById.get(id);\n      if (previous && previous.discountPercent >= discount) continue;\n      promotedById.set(id, {\n        id,\n        price,\n        originalPrice,\n        discountPercent: discount,\n        promotionId,\n        promotionType,\n        promotionName: String(campaign.name || promotionType),\n        promotionStatus: statusValue(item.status) || 'started'\n      });\n    }\n  } catch (error) {\n    errors.push(`n8n: falha ao consultar itens da promocao ${promotionId} (${error.message}).`);\n  }\n}\n\nconst promotedItems = [...promotedById.values()];\nconst detailsById = new Map();\nfor (let index = 0; index < promotedItems.length; index += 20) {\n  const ids = promotedItems.slice(index, index + 20).map((item) => item.id);\n  try {\n    const detailPayload = await mlGet(`/items?ids=${ids.join(',')}`);\n    const details = Array.isArray(detailPayload) ? detailPayload : [];\n    for (const detail of details) {\n      const body = detail?.body || detail;\n      if (body?.id) detailsById.set(String(body.id), body);\n    }\n  } catch (error) {\n    errors.push(`n8n: falha ao buscar detalhes de ${ids.length} itens (${error.message}).`);\n  }\n}\n\nconst products = promotedItems.map((promo) => {\n  const detail = detailsById.get(promo.id) || {};\n  const title = String(detail.title || promo.id);\n  const url = String(detail.permalink || `https://produto.mercadolivre.com.br/${promo.id}`);\n  return {\n    id: promo.id,\n    title,\n    price: promo.price,\n    originalPrice: promo.originalPrice,\n    discountPercent: promo.discountPercent,\n    currency: detail.currency_id || 'BRL',\n    url,\n    image: detail.secure_thumbnail || detail.thumbnail || detail.pictures?.[0]?.url || '',\n    seller: detail.seller?.nickname || String(detail.seller_id || ''),\n    availability: detail.available_quantity ? `${detail.available_quantity} disponivel` : String(detail.status || promo.promotionStatus),\n    source: 'Mercado Livre Promocoes',\n    sourceKind: 'mercadolivre',\n    query: 'Promocoes ativas Mercado Livre',\n    fetchedAt: now,\n    opportunityScore: Math.min(100, Math.max(1, Math.round(70 + promo.discountPercent))),\n    promotionId: promo.promotionId,\n    promotionType: promo.promotionType,\n    promotionName: promo.promotionName,\n    notes: `${promo.promotionName} (${promo.promotionType}) - ${Math.round(promo.discountPercent)}% OFF`\n  };\n});\n\nproducts.sort((a, b) => (b.discountPercent || 0) - (a.discountPercent || 0));\nif (!products.length && !errors.length) {\n  errors.push('n8n: nenhuma promocao ativa com preco promocional/original foi encontrada para esta conta.');\n}\n\nreturn [{ json: basePayload(products) }];"
+      },
+      "id": "12c9df4e-8493-4f69-9944-bdbf9f220104",
+      "name": "Coletar somente itens em promocao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.monitorHubEndpoint }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $json.monitorHubIngestToken ? 'Bearer ' + $json.monitorHubIngestToken : '' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { runId: $json.runId, source: $json.source, sourceName: $json.sourceName, query: $json.query, currency: $json.currency, products: $json.products, errors: $json.errors, fetchedAt: $json.fetchedAt } }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "57e73827-05ff-41a7-aec1-a8237b3e0105",
+      "name": "Enviar promocoes ao MonitorHub",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "content": "Este workflow envia apenas itens em promocao real para o dashboard.\n\nCriterio usado:\n- campanha do seller com status started\n- item da campanha com status started\n- price maior que zero\n- original_price maior que price\n- desconto minimo configurado\n\nA API oficial de promocoes retorna promocoes da conta vendedora autorizada, nao uma lista publica de todo o marketplace.",
+        "height": 260,
+        "width": 380,
+        "color": 4
+      },
+      "id": "6ea91cd9-53d2-4e6c-b0a3-0a4d0e910106",
+      "name": "Como funciona",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -540,
+        -80
+      ]
+    }
+  ],
+  "connections": {
+    "Executar manualmente": {
+      "main": [
+        [
+          {
+            "node": "Configuracao Promocoes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agendamento - a cada 30 minutos": {
+      "main": [
+        [
+          {
+            "node": "Configuracao Promocoes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuracao Promocoes": {
+      "main": [
+        [
+          {
+            "node": "Coletar somente itens em promocao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Coletar somente itens em promocao": {
+      "main": [
+        [
+          {
+            "node": "Enviar promocoes ao MonitorHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-05-31T00:00:00.000Z",
+  "versionId": "monitorhub-promocoes-v1"
+}

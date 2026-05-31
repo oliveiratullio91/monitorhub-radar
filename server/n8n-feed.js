@@ -93,6 +93,19 @@ function normalizeIncomingProduct(record, context, index, now) {
       "buybox.price",
       "prices.price",
     ])),
+    originalPrice: toNumber(pick(record, [
+      "originalPrice",
+      "original_price",
+      "regular_amount",
+      "regularAmount",
+      "list_price",
+    ])),
+    discountPercent: toNumber(pick(record, [
+      "discountPercent",
+      "discount_percent",
+      "discount",
+      "sale_discount",
+    ])),
     currency: String(pick(record, ["currency", "currency_id"]) || context.currency || "BRL").trim(),
     url,
     image: String(pick(record, [
@@ -119,6 +132,9 @@ function normalizeIncomingProduct(record, context, index, now) {
     query: String(pick(record, ["query", "search"]) || context.query || context.mercadoLivreQuery || "").trim(),
     fetchedAt: String(pick(record, ["fetchedAt", "checked_at", "created_at", "updated_at"]) || now),
     opportunityScore: toNumber(pick(record, ["opportunityScore", "opportunity_score", "score"])),
+    promotionId: String(pick(record, ["promotionId", "promotion_id", "campaign_id"]) || "").trim(),
+    promotionType: String(pick(record, ["promotionType", "promotion_type", "campaign_type"]) || "").trim(),
+    promotionName: String(pick(record, ["promotionName", "promotion_name", "campaign_name"]) || "").trim(),
     notes: String(pick(record, ["notes", "note", "analysis", "reason"]) || "").trim(),
   };
 }

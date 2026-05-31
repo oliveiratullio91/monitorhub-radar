@@ -1216,6 +1216,11 @@ select option {
   color: var(--green);
 }
 
+.change-badge.promotion {
+  background: rgba(255, 152, 0, 0.16);
+  color: var(--orange);
+}
+
 .change-badge.up {
   background: var(--danger-soft);
   color: var(--danger);
