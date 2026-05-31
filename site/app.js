@@ -126,7 +126,7 @@ function getConfig() {
     amazonEnabled: elements.amazonEnabled.checked,
     amazonQuery: elements.amazonQuery.value.trim() || "fone bluetooth",
     refreshInterval: Number(elements.refreshInterval.value),
-    itemLimit: Math.max(1, Math.min(Number(elements.itemLimit.value || 12), 50)),
+    itemLimit: Math.max(1, Math.min(Number(elements.itemLimit.value || 100), 500)),
   };
 }
 
@@ -138,7 +138,7 @@ function applyConfig(config) {
   elements.amazonEnabled.checked = config.amazonEnabled !== false;
   elements.amazonQuery.value = config.amazonQuery || "fone bluetooth";
   elements.refreshInterval.value = String(config.refreshInterval || 30000);
-  elements.itemLimit.value = String(config.itemLimit || 12);
+    elements.itemLimit.value = String(config.itemLimit || 100);
 }
 
 function saveConfig() {
@@ -198,7 +198,7 @@ function prepareDemoMode() {
 }
 
 async function fetchProductsFromBackend(config) {
-  const n8nPayload = await fetchN8nProducts(config.itemLimit);
+  const n8nPayload = await fetchN8nProducts(500);
   if (n8nPayload && (n8nPayload.products?.length || n8nPayload.updatedAt || n8nPayload.errors?.length)) {
     setStatusElement(elements.mercadoLivreStatus, "n8n: feed conectado ao dashboard", true);
     return n8nPayload;
