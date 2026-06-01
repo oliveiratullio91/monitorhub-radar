@@ -1,13 +1,65 @@
 import {
+  buildMercadoLivreAuthorizationUrl,
   clearOauthCookie,
+  codeChallengeFromVerifier,
   decodeCookiePayload,
+  encodeCookiePayload,
   exchangeMercadoLivreCode,
   getCookie,
+  getRequestOrigin,
   mercadoLivreTokenCookie,
+  oauthCookie,
   oauthHtml,
+  randomBase64Url,
 } from "../../_mercadolivre-oauth.js";
 
 export default async function handler(request, response) {
+  const action = getRouteAction(request);
+
+  if (action === "start") return startMercadoLivreOAuth(request, response);
+  if (action === "callback") return finishMercadoLivreOAuth(request, response);
+
+  return response.status(404).json({ ok: false, error: "Rota OAuth do Mercado Livre nao encontrada" });
+}
+
+function startMercadoLivreOAuth(request, response) {
+  if (request.method !== "POST") {
+    response.setHeader("Allow", "POST");
+    return response.status(405).json({ ok: false, error: "Metodo nao permitido" });
+  }
+
+  const body = typeof request.body === "object" && request.body ? request.body : {};
+  const clientId = process.env.MERCADO_LIVRE_CLIENT_ID || String(body.clientId || "").trim();
+  const clientSecret = process.env.MERCADO_LIVRE_CLIENT_SECRET || String(body.clientSecret || "").trim();
+  const redirectUri = process.env.MERCADO_LIVRE_REDIRECT_URI
+    || String(body.redirectUri || `${getRequestOrigin(request)}/api/mercadolivre/oauth/callback`).trim();
+
+  if (!clientId || !clientSecret) {
+    return response.status(400).json({
+      ok: false,
+      error: "Cadastre MERCADO_LIVRE_CLIENT_ID e MERCADO_LIVRE_CLIENT_SECRET nas Environment Variables da Vercel.",
+    });
+  }
+
+  const state = randomBase64Url(24);
+  const codeVerifier = randomBase64Url(64);
+  const codeChallenge = codeChallengeFromVerifier(codeVerifier);
+  const cookiePayload = encodeCookiePayload({ state, codeVerifier, redirectUri });
+
+  response.setHeader("Set-Cookie", oauthCookie(cookiePayload));
+  response.setHeader("Cache-Control", "no-store");
+  return response.status(200).json({
+    ok: true,
+    authUrl: buildMercadoLivreAuthorizationUrl({
+      clientId,
+      redirectUri,
+      state,
+      codeChallenge,
+    }),
+  });
+}
+
+async function finishMercadoLivreOAuth(request, response) {
   const url = new URL(request.url || "/api/mercadolivre/oauth/callback", `https://${request.headers.host || "localhost"}`);
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
@@ -69,4 +121,9 @@ export default async function handler(request, response) {
       exchangeError.message || "Erro inesperado na autorizacao.",
     ));
   }
+}
+
+function getRouteAction(request) {
+  const url = new URL(request.url || "/api/mercadolivre/oauth", `https://${request.headers.host || "localhost"}`);
+  return decodeURIComponent(url.pathname.split("/").filter(Boolean).pop() || "").toLowerCase();
 }
