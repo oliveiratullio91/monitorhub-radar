@@ -6875,6 +6875,10 @@ video {
   justify-content: flex-end;
 }
 
+.home-page .topbar-actions.home-actions {
+  justify-content: flex-end;
+}
+
 .home-page {
   overflow-x: hidden;
 }
@@ -7443,8 +7447,8 @@ video {
     display: none;
   }
 
-  .home-page .topbar-actions {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 42px;
+  .home-page .topbar-actions.home-actions {
+    grid-template-columns: minmax(0, 1fr) 42px;
   }
 
   .home-page .topbar-actions .user-chip {
