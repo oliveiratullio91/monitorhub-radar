@@ -77,6 +77,7 @@ const state = {
   auth: readStorage(ALERT_AUTH_KEY, null),
   priceAlerts: [],
   alertsLoading: false,
+  selectedAlertProduct: null,
 };
 
 const elements = {
@@ -142,6 +143,7 @@ const elements = {
   sessionUserName: document.querySelector("#sessionUserName"),
   sessionUserEmail: document.querySelector("#sessionUserEmail"),
   priceAlertForm: document.querySelector("#priceAlertForm"),
+  selectedProductPreview: document.querySelector("#selectedProductPreview"),
   alertProductQuery: document.querySelector("#alertProductQuery"),
   alertBrand: document.querySelector("#alertBrand"),
   alertTargetPrice: document.querySelector("#alertTargetPrice"),
@@ -453,10 +455,12 @@ async function submitPriceAlert(event) {
         notificationChannel: elements.alertChannel.value,
         notificationEmail: elements.alertNotificationEmail.value,
         whatsappPhone: elements.alertWhatsappPhone.value,
+        product: state.selectedAlertProduct,
       },
     });
     state.priceAlerts = [payload.alert, ...state.priceAlerts];
     elements.priceAlertForm.reset();
+    state.selectedAlertProduct = null;
     prefillAlertContacts();
     setSupabaseStatus("Alerta salvo. O n8n vai comparar nas proximas coletas.", true);
   } catch (error) {
@@ -547,6 +551,7 @@ function prefillAlertFromProduct(product) {
     brand: product.seller && product.seller.length <= 30 ? product.seller : "",
     targetPrice: product.price ? Number(product.price).toFixed(2) : "",
     source: product.sourceKind === "amazon" ? "amazon" : product.sourceKind === "mercadolivre" ? "mercadolivre" : "all",
+    product: selectedProductDraft(product),
   };
   sessionStorage.setItem(ALERT_DRAFT_KEY, JSON.stringify(draft));
 
@@ -581,10 +586,64 @@ function applyStoredAlertDraft() {
 }
 
 function applyAlertDraft(draft) {
+  state.selectedAlertProduct = draft.product || null;
   if (elements.alertProductQuery) elements.alertProductQuery.value = draft.productQuery || "";
   if (elements.alertBrand) elements.alertBrand.value = draft.brand || "";
   if (elements.alertTargetPrice) elements.alertTargetPrice.value = draft.targetPrice || "";
   if (elements.alertSource) elements.alertSource.value = draft.source || "all";
+  renderSelectedProductPreview();
+}
+
+function selectedProductDraft(product) {
+  if (!product) return null;
+  return {
+    id: String(product.id || ""),
+    key: String(product.key || `${product.source || product.sourceKind || "marketplace"}:${product.id || product.url || product.title}`),
+    title: String(product.title || ""),
+    url: String(product.url || ""),
+    image: String(product.image || ""),
+    source: compactSourceName(product.source),
+    sourceKind: String(product.sourceKind || ""),
+    currentPrice: product.price ?? null,
+    originalPrice: product.originalPrice ?? null,
+    currency: product.currency || "BRL",
+  };
+}
+
+function renderSelectedProductPreview() {
+  const container = elements.selectedProductPreview;
+  if (!container) return;
+  container.textContent = "";
+  container.classList.toggle("is-hidden", !state.selectedAlertProduct);
+  if (!state.selectedAlertProduct) return;
+
+  const product = state.selectedAlertProduct;
+  const image = document.createElement("img");
+  image.src = product.image || placeholderImage(product.source);
+  image.alt = "";
+
+  const content = document.createElement("div");
+  const label = document.createElement("span");
+  label.textContent = "Produto selecionado";
+  const title = document.createElement("strong");
+  title.textContent = product.title || "Produto do catalogo";
+  const meta = document.createElement("p");
+  meta.textContent = [
+    product.source || "Fonte",
+    product.currentPrice ? `preco atual ${formatMoney(product.currentPrice, product.currency)}` : "",
+  ].filter(Boolean).join(" | ");
+  content.append(label, title, meta);
+
+  const clearButton = document.createElement("button");
+  clearButton.type = "button";
+  clearButton.className = "text-button";
+  clearButton.textContent = "Remover";
+  clearButton.addEventListener("click", () => {
+    state.selectedAlertProduct = null;
+    renderSelectedProductPreview();
+  });
+
+  container.append(image, content, clearButton);
 }
 
 function renderPriceAlertsArea() {
@@ -602,6 +661,7 @@ function renderPriceAlertsArea() {
   }
 
   prefillAlertContacts();
+  renderSelectedProductPreview();
   renderSavedPriceAlerts();
 }
 
@@ -638,7 +698,7 @@ function renderSavedPriceAlerts() {
     header.className = "saved-alert-header";
     const titleWrap = document.createElement("div");
     const title = document.createElement("strong");
-    title.textContent = alert.productQuery;
+    title.textContent = alert.productTitle || alert.productQuery;
     const meta = document.createElement("p");
     meta.textContent = [
       sourceLabel(alert.source),
@@ -651,6 +711,32 @@ function renderSavedPriceAlerts() {
     status.className = `alert-status ${alert.status === "paused" ? "paused" : "active"}`;
     status.textContent = alert.status === "paused" ? "Pausado" : "Ativo";
     header.append(titleWrap, status);
+
+    const productSummary = document.createElement("div");
+    productSummary.className = "saved-alert-product";
+    if (alert.productImage || alert.productUrl || alert.productCurrentPrice) {
+      const image = document.createElement("img");
+      image.src = alert.productImage || placeholderImage(alert.productSourceLabel || alert.source);
+      image.alt = "";
+      const productCopy = document.createElement("div");
+      const productTitle = document.createElement("span");
+      productTitle.textContent = alert.productQuery;
+      const productMeta = document.createElement("small");
+      productMeta.textContent = [
+        alert.productSourceLabel || sourceLabel(alert.source),
+        alert.productCurrentPrice ? `preco salvo ${formatMoney(alert.productCurrentPrice, alert.productCurrency)}` : "",
+      ].filter(Boolean).join(" | ");
+      productCopy.append(productTitle, productMeta);
+      productSummary.append(image, productCopy);
+      if (alert.productUrl) {
+        const link = document.createElement("a");
+        link.href = alert.productUrl;
+        link.target = "_blank";
+        link.rel = "noreferrer";
+        link.textContent = "Ver produto";
+        productSummary.append(link);
+      }
+    }
 
     const details = document.createElement("div");
     details.className = "saved-alert-details";
@@ -675,7 +761,9 @@ function renderSavedPriceAlerts() {
     deleteButton.addEventListener("click", () => deleteSavedAlert(alert.id));
     actions.append(toggleButton, deleteButton);
 
-    card.append(header, details, actions);
+    card.append(header);
+    if (productSummary.childElementCount) card.append(productSummary);
+    card.append(details, actions);
     fragment.append(card);
   });
 
@@ -1778,6 +1866,12 @@ function bindEvents() {
   elements.signupForm?.addEventListener("submit", submitSignup);
   elements.loginForm?.addEventListener("submit", submitLogin);
   elements.logoutButton?.addEventListener("click", clearAuthSession);
+  elements.alertProductQuery?.addEventListener("input", () => {
+    if (state.selectedAlertProduct && elements.alertProductQuery.value.trim() !== state.selectedAlertProduct.title) {
+      state.selectedAlertProduct = null;
+      renderSelectedProductPreview();
+    }
+  });
   elements.priceAlertForm?.addEventListener("submit", submitPriceAlert);
   elements.reloadAlertsButton?.addEventListener("click", loadPriceAlerts);
 }

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Radar de precos Garimpanda com alertas personalizados." />
     <title>Garimpanda - Radar</title>
-    <link rel="stylesheet" href="./styles.css?v=pages5" />
+    <link rel="stylesheet" href="./styles.css?v=supabase1" />
   </head>
   <body class="page-body radar-page">
     <div class="dashboard-shell">
@@ -127,10 +127,11 @@
             </div>
 
             <form class="alert-builder" id="priceAlertForm">
-              <label class="field-group">
+              <label class="field-group alert-product-query-field">
                 <span>Produto desejado</span>
                 <input id="alertProductQuery" type="text" placeholder="TV 75 Samsung" required />
               </label>
+              <div class="selected-product-preview is-hidden" id="selectedProductPreview" aria-live="polite"></div>
               <label class="field-group">
                 <span>Marca opcional</span>
                 <input id="alertBrand" type="text" placeholder="Samsung, LG, TCL..." />
@@ -155,7 +156,7 @@
                   <option value="both">E-mail e WhatsApp</option>
                 </select>
               </label>
-              <label class="field-group">
+              <label class="field-group alert-email-field">
                 <span>E-mail de aviso</span>
                 <input id="alertNotificationEmail" type="email" placeholder="voce@email.com" />
               </label>
@@ -178,6 +179,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=pages3" defer></script>
+    <script src="./app.js?v=supabase1" defer></script>
   </body>
 </html>

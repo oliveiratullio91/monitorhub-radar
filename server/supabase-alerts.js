@@ -147,6 +147,44 @@ export async function deletePriceAlert(user, id) {
   return { ok: true, deletedId: cleanId };
 }
 
+export async function listPendingAlertNotifications(options = {}) {
+  ensureSupabaseConfigured();
+  const limit = clamp(Number(options.limit || 100), 1, 500);
+  const params = new URLSearchParams({
+    select: "*",
+    status: "eq.pending",
+    order: "created_at.asc",
+    limit: String(limit),
+  });
+  const records = await supabaseRestFetch(`/${NOTIFICATIONS_TABLE}?${params.toString()}`, { service: true });
+  return Array.isArray(records) ? records.map(normalizeNotificationRecord) : [];
+}
+
+export async function updateAlertNotificationStatus(body = {}) {
+  ensureSupabaseConfigured();
+  const id = String(body.id || "").trim();
+  if (!id) throw httpError("Informe a notificacao que deve ser atualizada.", 400);
+
+  const status = normalizeNotificationStatus(body.status);
+  const patch = {
+    status,
+    error_message: status === "failed" ? String(body.errorMessage || body.error_message || "").trim() : null,
+    sent_at: status === "sent" ? new Date().toISOString() : null,
+  };
+
+  const params = new URLSearchParams({
+    id: `eq.${id}`,
+    select: "*",
+  });
+  const updated = await supabaseRestFetch(`/${NOTIFICATIONS_TABLE}?${params.toString()}`, {
+    method: "PATCH",
+    service: true,
+    prefer: "return=representation",
+    body: patch,
+  });
+  return normalizeNotificationRecord(firstRecord(updated));
+}
+
 export async function evaluatePriceAlerts(products = [], options = {}) {
   ensureSupabaseConfigured();
   const limit = clamp(Number(options.limit || DEFAULT_MATCH_LIMIT), 1, DEFAULT_MATCH_LIMIT);
@@ -208,6 +246,15 @@ function findBestProductMatch(alert, products) {
     if (price === null || price > alert.targetPrice) continue;
     if (source !== "all" && normalizeSourceFilter(product.sourceKind || product.source) !== source) continue;
 
+    if (matchesSavedProduct(alert, product)) {
+      const exactScore = 1000 + Math.max(0, alert.targetPrice - price) / Math.max(alert.targetPrice, 1);
+      if (exactScore > bestScore) {
+        bestMatch = product;
+        bestScore = exactScore;
+      }
+      continue;
+    }
+
     const text = normalizeSearchText([
       product.title,
       product.seller,
@@ -224,6 +271,18 @@ function findBestProductMatch(alert, products) {
   }
 
   return bestMatch;
+}
+
+function matchesSavedProduct(alert, product) {
+  const currentKey = normalizeComparable(productKey(product));
+  const currentId = normalizeComparable(product.id);
+  const currentUrl = normalizeComparable(product.url);
+
+  return Boolean(
+    (alert.productKey && currentKey && normalizeComparable(alert.productKey) === currentKey)
+    || (alert.productId && currentId && normalizeComparable(alert.productId) === currentId)
+    || (alert.productUrl && currentUrl && normalizeComparable(alert.productUrl) === currentUrl)
+  );
 }
 
 function termsMatch(text, terms) {
@@ -276,22 +335,25 @@ function buildMatchMessage(alert, product) {
 
 async function markMatchesAsNotified(matches) {
   for (const match of matches) {
-    const notification = await supabaseRestFetch(`/${NOTIFICATIONS_TABLE}`, {
-      method: "POST",
-      service: true,
-      prefer: "return=minimal",
-      body: {
-        alert_id: match.alertId,
-        user_id: match.userId,
-        channel: match.notificationChannel,
-        product_key: match.product.key,
-        product_title: match.product.title,
-        product_price: match.product.price,
-        product_url: match.product.url,
-        message: match.message,
-        status: "pending",
-      },
-    }).catch(() => null);
+    const notificationChannels = channelsForNotification(match.notificationChannel);
+    for (const channel of notificationChannels) {
+      await supabaseRestFetch(`/${NOTIFICATIONS_TABLE}`, {
+        method: "POST",
+        service: true,
+        prefer: "return=minimal",
+        body: {
+          alert_id: match.alertId,
+          user_id: match.userId,
+          channel,
+          product_key: match.product.key,
+          product_title: match.product.title,
+          product_price: match.product.price,
+          product_url: match.product.url,
+          message: match.message,
+          status: "pending",
+        },
+      }).catch(() => null);
+    }
 
     const params = new URLSearchParams({
       id: `eq.${match.alertId}`,
@@ -307,8 +369,11 @@ async function markMatchesAsNotified(matches) {
         updated_at: new Date().toISOString(),
       },
     });
-    void notification;
   }
+}
+
+function channelsForNotification(channel) {
+  return channel === "both" ? ["email", "whatsapp"] : [normalizeNotificationChannel(channel)];
 }
 
 function validatePriceAlertPayload(body, user) {
@@ -319,6 +384,7 @@ function validatePriceAlertPayload(body, user) {
   const notificationChannel = normalizeNotificationChannel(body.notificationChannel || body.notification_channel || "email");
   const notificationEmail = normalizeEmail(body.notificationEmail || body.notification_email || user.email);
   const whatsappPhone = normalizePhone(body.whatsappPhone || body.whatsapp_phone || user.phone);
+  const selectedProduct = normalizeSelectedProduct(body.product || body.selectedProduct || body.selected_product || {});
 
   if (productQuery.length < 3) throw httpError("Informe o produto com pelo menos 3 caracteres.", 400);
   if (!targetPrice || targetPrice <= 0) throw httpError("Informe um preco alvo valido.", 400);
@@ -335,6 +401,15 @@ function validatePriceAlertPayload(body, user) {
     user_name: user.name || "",
     whatsapp_phone: whatsappPhone,
     product_query: productQuery,
+    product_id: selectedProduct.id,
+    product_key: selectedProduct.key,
+    product_title: selectedProduct.title,
+    product_url: selectedProduct.url,
+    product_image: selectedProduct.image,
+    product_source_label: selectedProduct.source,
+    product_current_price: selectedProduct.currentPrice,
+    product_original_price: selectedProduct.originalPrice,
+    product_currency: selectedProduct.currency,
     brand,
     source,
     target_price: targetPrice,
@@ -351,6 +426,26 @@ function normalizeAlertRecord(record = {}) {
     userName: String(record.user_name || ""),
     whatsappPhone: String(record.whatsapp_phone || ""),
     productQuery: String(record.product_query || ""),
+    productId: String(record.product_id || ""),
+    productKey: String(record.product_key || ""),
+    productTitle: String(record.product_title || ""),
+    productUrl: String(record.product_url || ""),
+    productImage: String(record.product_image || ""),
+    productSourceLabel: String(record.product_source_label || ""),
+    productCurrentPrice: normalizePrice(record.product_current_price, { allowNull: true }),
+    productOriginalPrice: normalizePrice(record.product_original_price, { allowNull: true }),
+    productCurrency: String(record.product_currency || "BRL"),
+    product: {
+      id: String(record.product_id || ""),
+      key: String(record.product_key || ""),
+      title: String(record.product_title || ""),
+      url: String(record.product_url || ""),
+      image: String(record.product_image || ""),
+      source: String(record.product_source_label || ""),
+      currentPrice: normalizePrice(record.product_current_price, { allowNull: true }),
+      originalPrice: normalizePrice(record.product_original_price, { allowNull: true }),
+      currency: String(record.product_currency || "BRL"),
+    },
     brand: String(record.brand || ""),
     source: normalizeSourceFilter(record.source || "all"),
     targetPrice: normalizePrice(record.target_price, { allowNull: true }),
@@ -360,6 +455,24 @@ function normalizeAlertRecord(record = {}) {
     matchedProductKey: String(record.matched_product_key || ""),
     createdAt: String(record.created_at || ""),
     updatedAt: String(record.updated_at || ""),
+  };
+}
+
+function normalizeNotificationRecord(record = {}) {
+  return {
+    id: String(record.id || ""),
+    alertId: String(record.alert_id || ""),
+    userId: String(record.user_id || ""),
+    channel: String(record.channel || ""),
+    productKey: String(record.product_key || ""),
+    productTitle: String(record.product_title || ""),
+    productPrice: normalizePrice(record.product_price, { allowNull: true }),
+    productUrl: String(record.product_url || ""),
+    message: String(record.message || ""),
+    status: normalizeNotificationStatus(record.status || "pending"),
+    errorMessage: String(record.error_message || ""),
+    sentAt: String(record.sent_at || ""),
+    createdAt: String(record.created_at || ""),
   };
 }
 
@@ -387,6 +500,42 @@ function normalizeUser(user = {}) {
     email: normalizeEmail(user.email),
     name: String(metadata.name || user.name || "").trim(),
     phone: normalizePhone(metadata.phone || user.phone || ""),
+  };
+}
+
+function normalizeSelectedProduct(product = {}) {
+  const id = String(product.id || "").trim();
+  const url = String(product.url || "").trim();
+  const title = String(product.title || "").trim();
+  const source = String(product.source || product.sourceLabel || "").trim();
+  const sourceKind = normalizeSourceFilter(product.sourceKind || source);
+  const key = String(product.key || product.productKey || (id ? `${source || sourceKind}:${id}` : "")).trim();
+
+  if (!id && !url && !title) {
+    return {
+      id: "",
+      key: "",
+      title: "",
+      url: "",
+      image: "",
+      source: "",
+      currentPrice: null,
+      originalPrice: null,
+      currency: "BRL",
+    };
+  }
+
+  return {
+    id,
+    key,
+    title,
+    url,
+    image: String(product.image || "").trim(),
+    source,
+    currentPrice: normalizePrice(product.currentPrice ?? product.price, { allowNull: true }),
+    originalPrice: normalizePrice(product.originalPrice, { allowNull: true }),
+    currency: String(product.currency || "BRL").trim().toUpperCase() || "BRL",
+    sourceKind,
   };
 }
 
@@ -467,6 +616,10 @@ function normalizeSearchText(value) {
     .trim();
 }
 
+function normalizeComparable(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
 function tokenize(value) {
   return normalizeSearchText(value).split(" ").filter((term) => term.length >= 2);
 }
@@ -513,6 +666,12 @@ function normalizeNotificationChannel(value) {
 
 function normalizeAlertStatus(value) {
   return String(value || "active").toLowerCase() === "paused" ? "paused" : "active";
+}
+
+function normalizeNotificationStatus(value) {
+  const normalized = String(value || "pending").toLowerCase();
+  if (["sent", "failed"].includes(normalized)) return normalized;
+  return "pending";
 }
 
 function normalizeEmail(value) {

@@ -19,10 +19,12 @@ import {
   deletePriceAlert,
   evaluatePriceAlerts,
   getUserFromAuthorizationHeader,
+  listPendingAlertNotifications,
   listPriceAlerts,
   publicSupabaseConfig,
   signInPriceAlertUser,
   signUpPriceAlertUser,
+  updateAlertNotificationStatus,
   updatePriceAlert,
 } from "./supabase-alerts.js";
 
@@ -104,8 +106,19 @@ const server = createServer(async (request, response) => {
         : (await getN8nProducts(new URLSearchParams({ limit: String(body.limit || url.searchParams.get("limit") || 1000) }))).products;
       return sendJson(response, await evaluatePriceAlerts(products, {
         limit: body.limit || url.searchParams.get("limit") || 1000,
-        markNotified: Boolean(body.markNotified),
+        markNotified: parseBoolean(body.markNotified ?? url.searchParams.get("markNotified")),
       }));
+    }
+
+    if (url.pathname === "/api/alerts/notifications") {
+      if (request.method === "OPTIONS") return sendEmpty(response, 204);
+      if (!["GET", "PATCH"].includes(request.method)) return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
+      if (!canEvaluateAlerts(request)) return sendJson(response, { ok: false, error: "Token do n8n invalido" }, 401);
+      if (request.method === "GET") {
+        const notifications = await listPendingAlertNotifications({ limit: url.searchParams.get("limit") || 100 });
+        return sendJson(response, { ok: true, notifications, count: notifications.length });
+      }
+      return sendJson(response, { ok: true, notification: await updateAlertNotificationStatus(await readJson(request)) });
     }
 
     if (url.pathname === "/api/n8n/products") {
@@ -308,7 +321,7 @@ function sendJson(response, payload, status = 200) {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-N8N-Token",
   });
   response.end(JSON.stringify(payload, null, 2));
@@ -318,8 +331,12 @@ function sendEmpty(response, status = 204) {
   response.writeHead(status, {
     "Cache-Control": "no-store",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization, X-N8N-Token",
   });
   response.end();
+}
+
+function parseBoolean(value) {
+  return ["1", "true", "yes", "on"].includes(String(value || "").toLowerCase());
 }

@@ -71,7 +71,7 @@ Os workflows de coleta recorrente usam cron fixo `0 0,30 * * * *`, ou seja, exec
 
 ## Alertas personalizados com Supabase
 
-O dashboard possui a area `Meus Alertas`, onde o usuario cria conta, entra e salva um produto desejado com preco maximo. O backend compara esses alertas contra o feed real do n8n e gera notificacoes pendentes no Supabase.
+O dashboard possui a area `Meus Alertas`, onde o usuario cria conta, entra e salva um produto desejado com preco maximo. Quando o alerta nasce a partir de um card de produto, o backend tambem salva o item exato, imagem, link, fonte e preco atual. O backend compara esses alertas contra o feed real do n8n e gera notificacoes pendentes no Supabase.
 
 1. No Supabase, crie ou abra um projeto.
 2. Va em `SQL Editor` e rode `docs/supabase-alertas.sql`.
@@ -84,10 +84,10 @@ O dashboard possui a area `Meus Alertas`, onde o usuario cria conta, entra e sal
 6. No n8n, depois que os produtos forem enviados para `/api/n8n/products`, chame:
 
 ```text
-GET https://monitorhub-radar.vercel.app/api/alerts/evaluate?limit=1000
+GET https://monitorhub-radar.vercel.app/api/alerts/evaluate?limit=1000&markNotified=true
 ```
 
-Para registrar cada match como notificacao pendente, use `POST /api/alerts/evaluate` com:
+Tambem funciona via `POST /api/alerts/evaluate` com:
 
 ```json
 {
@@ -97,6 +97,23 @@ Para registrar cada match como notificacao pendente, use `POST /api/alerts/evalu
 ```
 
 Se `N8N_INGEST_TOKEN` estiver configurado, envie o mesmo valor no header `X-N8N-Token`.
+
+Depois da avaliacao, o n8n deve buscar a fila em:
+
+```text
+GET https://monitorhub-radar.vercel.app/api/alerts/notifications
+```
+
+Depois que enviar por Gmail, SMTP ou WhatsApp, marque a notificacao:
+
+```json
+{
+  "id": "id-da-notificacao",
+  "status": "sent"
+}
+```
+
+Use `PATCH /api/alerts/notifications` para essa atualizacao. Em caso de falha, envie `status: "failed"` e `errorMessage`.
 
 ### Somente promocoes do Mercado Livre
 

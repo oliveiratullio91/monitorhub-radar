@@ -10,6 +10,15 @@ create table if not exists public.monitorhub_price_alerts (
   user_name text,
   whatsapp_phone text,
   product_query text not null,
+  product_id text,
+  product_key text,
+  product_title text,
+  product_url text,
+  product_image text,
+  product_source_label text,
+  product_current_price numeric(12, 2),
+  product_original_price numeric(12, 2),
+  product_currency text not null default 'BRL',
   brand text,
   source text not null default 'all'
     check (source in ('all', 'amazon', 'mercadolivre')),
@@ -24,6 +33,17 @@ create table if not exists public.monitorhub_price_alerts (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.monitorhub_price_alerts
+  add column if not exists product_id text,
+  add column if not exists product_key text,
+  add column if not exists product_title text,
+  add column if not exists product_url text,
+  add column if not exists product_image text,
+  add column if not exists product_source_label text,
+  add column if not exists product_current_price numeric(12, 2),
+  add column if not exists product_original_price numeric(12, 2),
+  add column if not exists product_currency text not null default 'BRL';
 
 create table if not exists public.monitorhub_alert_notifications (
   id uuid primary key default gen_random_uuid(),
@@ -47,6 +67,9 @@ create index if not exists monitorhub_price_alerts_user_idx
 
 create index if not exists monitorhub_price_alerts_active_idx
   on public.monitorhub_price_alerts (status, source, target_price);
+
+create index if not exists monitorhub_price_alerts_product_key_idx
+  on public.monitorhub_price_alerts (product_key);
 
 create index if not exists monitorhub_alert_notifications_alert_idx
   on public.monitorhub_alert_notifications (alert_id, created_at desc);
@@ -89,3 +112,11 @@ create policy "monitorhub users can read own notifications"
   for select
   to authenticated
   using (auth.uid() = user_id);
+
+-- Fluxo sugerido no n8n:
+-- 1. Apos atualizar /api/n8n/products, chame GET ou POST /api/alerts/evaluate?limit=1000
+--    com markNotified=true para criar registros pendentes em monitorhub_alert_notifications.
+-- 2. Chame GET /api/alerts/notifications para listar pendencias.
+-- 3. Envie por Gmail/SMTP/WhatsApp no n8n.
+-- 4. Marque cada notificacao com PATCH /api/alerts/notifications:
+--    { "id": "...", "status": "sent" } ou { "id": "...", "status": "failed", "errorMessage": "..." }.

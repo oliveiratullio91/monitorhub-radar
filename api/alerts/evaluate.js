@@ -19,7 +19,7 @@ export default async function handler(request, response) {
       : (await getN8nProducts(new URLSearchParams({ limit: String(body.limit || url.searchParams.get("limit") || 1000) }))).products;
     const payload = await evaluatePriceAlerts(products, {
       limit: body.limit || url.searchParams.get("limit") || 1000,
-      markNotified: Boolean(body.markNotified),
+      markNotified: parseBoolean(body.markNotified ?? url.searchParams.get("markNotified")),
     });
 
     response.setHeader("Cache-Control", "no-store");
@@ -31,4 +31,8 @@ export default async function handler(request, response) {
       matches: [],
     });
   }
+}
+
+function parseBoolean(value) {
+  return ["1", "true", "yes", "on"].includes(String(value || "").toLowerCase());
 }
