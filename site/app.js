@@ -6,6 +6,8 @@ const ALERT_AUTH_KEY = "monitorhub-alert-auth-v1";
 const ALERT_DRAFT_KEY = "garimpanda-alert-draft-v1";
 const DEMO_MODE_AVAILABLE = false;
 const IS_LOCALHOST = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+const PRICE_RANGE_DEFAULT_MAX = 10000;
+const PRICE_RANGE_STEP = 1;
 
 const dashboardFormatter = new Intl.NumberFormat("pt-BR");
 
@@ -90,6 +92,9 @@ const elements = {
   sourceFilter: document.querySelector("#sourceFilter"),
   minPriceFilter: document.querySelector("#minPriceFilter"),
   maxPriceFilter: document.querySelector("#maxPriceFilter"),
+  minPriceRange: document.querySelector("#minPriceRange"),
+  maxPriceRange: document.querySelector("#maxPriceRange"),
+  priceRangeControl: document.querySelector("#priceRangeControl"),
   discountButtons: document.querySelectorAll(".discount-filter"),
   ratingButtons: document.querySelectorAll(".rating-filter"),
   clearProductFiltersButton: document.querySelector("#clearProductFiltersButton"),
@@ -880,8 +885,7 @@ function visibleProducts() {
   const term = elements.globalSearch?.value.trim().toLowerCase() || "";
   const onlyChanges = Boolean(elements.onlyChanges?.checked);
   const source = elements.sourceFilter?.value || "all";
-  const minPrice = Number(elements.minPriceFilter?.value || 0);
-  const maxPrice = Number(elements.maxPriceFilter?.value || 0);
+  const { min: minPrice, max: maxPrice, maxLimit: maxPriceLimit } = normalizedPriceValues();
   let products = [...state.products];
 
   if (term) {
@@ -892,7 +896,7 @@ function visibleProducts() {
   if (state.selectedCategory !== "all") products = products.filter((product) => product.category === state.selectedCategory);
   if (source !== "all") products = products.filter((product) => (product.sourceKind || product.source || "").toLowerCase().replace(/\s+/g, "").includes(source));
   if (minPrice > 0) products = products.filter((product) => Number(product.price || 0) >= minPrice);
-  if (maxPrice > 0) products = products.filter((product) => Number(product.price || 0) <= maxPrice);
+  if (maxPrice < maxPriceLimit) products = products.filter((product) => Number(product.price || 0) <= maxPrice);
   if (state.minDiscount > 0) products = products.filter((product) => Number(product.discountPercent || discountFromPrices(product) || 0) >= state.minDiscount);
   if (state.minRating > 0) products = products.filter((product) => productRatingValue(product) >= state.minRating);
 
@@ -1021,6 +1025,7 @@ function setCountText(id, value) {
 }
 
 function render() {
+  renderPriceRangeControls(state.products);
   const products = visibleProducts();
   clampCurrentPage(products.length);
   const pageProducts = paginatedProducts(products);
@@ -1040,6 +1045,28 @@ function render() {
       ? `${state.lastUpdated.toLocaleDateString("pt-BR")} ${state.lastUpdated.toLocaleTimeString("pt-BR")}`
       : "Nenhuma coleta realizada";
   }
+}
+
+function renderPriceRangeControls(products) {
+  if (!elements.minPriceRange || !elements.maxPriceRange || !elements.priceRangeControl) return;
+
+  const rangeMax = priceRangeMax(products);
+  [elements.minPriceRange, elements.maxPriceRange].forEach((range) => {
+    range.max = String(rangeMax);
+    range.step = String(PRICE_RANGE_STEP);
+  });
+
+  syncPriceRangesFromFields();
+}
+
+function priceRangeMax(products) {
+  const highestPrice = products.reduce((highest, product) => {
+    const values = [product.price, product.originalPrice].map(Number).filter(Number.isFinite);
+    return Math.max(highest, ...values);
+  }, 0);
+  if (!highestPrice) return PRICE_RANGE_DEFAULT_MAX;
+  const rounded = Math.ceil(highestPrice / 500) * 500;
+  return Math.max(1000, rounded);
 }
 
 function renderMetrics(products) {
@@ -1426,6 +1453,63 @@ function resetProductPageAndRender() {
   render();
 }
 
+function clampNumber(value, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return min;
+  return Math.min(max, Math.max(min, number));
+}
+
+function normalizedPriceValues() {
+  const maxLimit = Number(elements.maxPriceRange?.max || PRICE_RANGE_DEFAULT_MAX);
+  const hasMinValue = elements.minPriceFilter && elements.minPriceFilter.value !== "";
+  const hasMaxValue = elements.maxPriceFilter && elements.maxPriceFilter.value !== "";
+  const minValue = hasMinValue ? clampNumber(elements.minPriceFilter.value, 0, maxLimit) : 0;
+  const maxValue = hasMaxValue ? clampNumber(elements.maxPriceFilter.value, 0, maxLimit) : maxLimit;
+  return {
+    min: Math.min(minValue, maxValue),
+    max: Math.max(minValue, maxValue),
+    maxLimit,
+    hasMinValue,
+    hasMaxValue,
+  };
+}
+
+function syncPriceRangesFromFields() {
+  if (!elements.minPriceRange || !elements.maxPriceRange) return;
+  const { min, max, maxLimit, hasMinValue, hasMaxValue } = normalizedPriceValues();
+  elements.minPriceRange.value = String(min);
+  elements.maxPriceRange.value = String(max);
+  if (elements.minPriceFilter) elements.minPriceFilter.value = hasMinValue && min > 0 ? String(min) : "";
+  if (elements.maxPriceFilter) elements.maxPriceFilter.value = hasMaxValue ? String(max) : "";
+  updatePriceRangeVisual(min, max, maxLimit);
+}
+
+function syncPriceFieldsFromRanges(changedRange) {
+  if (!elements.minPriceRange || !elements.maxPriceRange) return;
+  const maxLimit = Number(elements.maxPriceRange.max || PRICE_RANGE_DEFAULT_MAX);
+  let min = clampNumber(elements.minPriceRange.value, 0, maxLimit);
+  let max = clampNumber(elements.maxPriceRange.value, 0, maxLimit);
+
+  if (min > max) {
+    if (changedRange === elements.minPriceRange) max = min;
+    else min = max;
+  }
+
+  elements.minPriceRange.value = String(min);
+  elements.maxPriceRange.value = String(max);
+  if (elements.minPriceFilter) elements.minPriceFilter.value = min > 0 ? String(min) : "";
+  if (elements.maxPriceFilter) elements.maxPriceFilter.value = max < maxLimit ? String(max) : "";
+  updatePriceRangeVisual(min, max, maxLimit);
+}
+
+function updatePriceRangeVisual(min, max, maxLimit) {
+  if (!elements.priceRangeControl) return;
+  const minPercent = maxLimit ? (min / maxLimit) * 100 : 0;
+  const maxPercent = maxLimit ? (max / maxLimit) * 100 : 100;
+  elements.priceRangeControl.style.setProperty("--range-min", `${minPercent}%`);
+  elements.priceRangeControl.style.setProperty("--range-max", `${maxPercent}%`);
+}
+
 function setMinimumDiscount(value) {
   state.minDiscount = Number(value || 0);
   elements.discountButtons.forEach((button) => {
@@ -1451,6 +1535,7 @@ function clearProductFilters() {
   if (elements.sourceFilter) elements.sourceFilter.value = "all";
   if (elements.minPriceFilter) elements.minPriceFilter.value = "";
   if (elements.maxPriceFilter) elements.maxPriceFilter.value = "";
+  syncPriceRangesFromFields();
   state.selectedCategory = "all";
   state.currentPage = 1;
   state.minDiscount = 0;
@@ -1558,11 +1643,31 @@ function bindEvents() {
     elements.sortMode,
     elements.onlyChanges,
     elements.sourceFilter,
-    elements.minPriceFilter,
-    elements.maxPriceFilter,
   ].filter(Boolean).forEach((element) => {
     element.addEventListener("input", resetProductPageAndRender);
     element.addEventListener("change", resetProductPageAndRender);
+  });
+
+  [elements.minPriceFilter, elements.maxPriceFilter].filter(Boolean).forEach((element) => {
+    element.addEventListener("input", () => {
+      syncPriceRangesFromFields();
+      resetProductPageAndRender();
+    });
+    element.addEventListener("change", () => {
+      syncPriceRangesFromFields();
+      resetProductPageAndRender();
+    });
+  });
+
+  [elements.minPriceRange, elements.maxPriceRange].filter(Boolean).forEach((element) => {
+    element.addEventListener("input", () => {
+      syncPriceFieldsFromRanges(element);
+      resetProductPageAndRender();
+    });
+    element.addEventListener("change", () => {
+      syncPriceFieldsFromRanges(element);
+      resetProductPageAndRender();
+    });
   });
 
   elements.pageSizeSelect?.addEventListener("change", () => {

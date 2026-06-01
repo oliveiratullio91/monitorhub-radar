@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Catalogo Garimpanda com ofertas monitoradas pelo n8n." />
     <title>Garimpanda - Produtos</title>
-    <link rel="stylesheet" href="./styles.css?v=products4" />
+    <link rel="stylesheet" href="./styles.css?v=products5" />
   </head>
   <body class="page-body products-page">
     <div class="dashboard-shell">
@@ -98,10 +98,12 @@
                   <input id="maxPriceFilter" type="number" min="0" step="0.01" placeholder="Maximo" />
                 </label>
               </div>
-              <div class="price-range-track" aria-hidden="true">
-                <span></span>
-                <i></i>
-                <span></span>
+              <div class="price-range-control" id="priceRangeControl">
+                <div class="price-range-rail" aria-hidden="true">
+                  <span></span>
+                </div>
+                <input id="minPriceRange" type="range" min="0" max="10000" value="0" step="1" aria-label="Preco minimo" />
+                <input id="maxPriceRange" type="range" min="0" max="10000" value="10000" step="1" aria-label="Preco maximo" />
               </div>
             </section>
 
@@ -261,6 +263,6 @@
       </article>
     </template>
 
-    <script src="./app.js?v=products4" defer></script>
+    <script src="./app.js?v=products5" defer></script>
   </body>
 </html>
