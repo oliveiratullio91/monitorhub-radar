@@ -14,6 +14,7 @@ import { getN8nProducts, ingestN8nProducts } from "./n8n-feed.js";
 import { getMercadoLivreOffers } from "./mercadolivre-offers-page.js";
 import { getAmazonDeals } from "./amazon-deals-page.js";
 import {
+  buildSupabaseOAuthUrl,
   canEvaluateAlerts,
   createPriceAlert,
   deletePriceAlert,
@@ -81,6 +82,17 @@ const server = createServer(async (request, response) => {
       if (request.method === "OPTIONS") return sendEmpty(response, 204);
       if (request.method !== "GET") return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
       return sendJson(response, { ok: true, user: await getUserFromAuthorizationHeader(request.headers.authorization) });
+    }
+
+    if (url.pathname === "/api/auth/google") {
+      if (request.method === "OPTIONS") return sendEmpty(response, 204);
+      if (request.method !== "GET") return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
+      const redirectTo = safeRedirectTo(url.searchParams.get("redirectTo"), url.origin);
+      response.writeHead(302, {
+        Location: buildSupabaseOAuthUrl("google", redirectTo),
+        "Cache-Control": "no-store",
+      });
+      return response.end();
     }
 
     if (url.pathname === "/api/alerts") {
@@ -339,4 +351,15 @@ function sendEmpty(response, status = 204) {
 
 function parseBoolean(value) {
   return ["1", "true", "yes", "on"].includes(String(value || "").toLowerCase());
+}
+
+function safeRedirectTo(value, origin) {
+  try {
+    const fallback = new URL("/produtos.html", origin);
+    if (!value) return fallback.toString();
+    const candidate = new URL(value, origin);
+    return candidate.origin === fallback.origin ? candidate.toString() : fallback.toString();
+  } catch {
+    return new URL("/produtos.html", origin).toString();
+  }
 }

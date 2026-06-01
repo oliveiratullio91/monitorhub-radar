@@ -115,6 +115,17 @@ Depois que enviar por Gmail, SMTP ou WhatsApp, marque a notificacao:
 
 Use `PATCH /api/alerts/notifications` para essa atualizacao. Em caso de falha, envie `status: "failed"` e `errorMessage`.
 
+### Login com Google
+
+O front possui botoes `Entrar com Google` que iniciam o OAuth em `/api/auth/google`. Para ativar esse fluxo, habilite o provider Google em `Authentication > Providers` no Supabase e adicione as URLs de retorno usadas pelo site, por exemplo:
+
+```text
+https://monitorhub-radar.vercel.app/produtos.html
+https://monitorhub-radar.vercel.app/radar.html
+http://127.0.0.1:8090/produtos.html
+http://127.0.0.1:8090/radar.html
+```
+
 ### Somente promocoes do Mercado Livre
 
 Para listar apenas produtos que estao em promocao, importe `workflows/monitorhub-promocoes-mercado-livre.json`.

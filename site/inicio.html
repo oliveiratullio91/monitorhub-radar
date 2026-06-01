@@ -31,13 +31,13 @@
 
         <div class="topbar-actions home-actions">
           <a class="secondary-button nav-button" href="./index.html">Entrar</a>
-          <div class="user-chip">
-            <span class="avatar" aria-hidden="true">TO</span>
+          <a class="user-chip" href="./index.html" data-user-chip>
+            <span class="avatar" data-user-avatar aria-hidden="true">?</span>
             <span>
-              <strong>Ola, Tullio</strong>
-              <small>Radar ativo</small>
+              <strong data-user-name>Visitante</strong>
+              <small data-user-status>Entrar para alertas</small>
             </span>
-          </div>
+          </a>
         </div>
       </header>
 
@@ -165,6 +165,6 @@
       </article>
     </template>
 
-    <script src="./app.js?v=supabase1" defer></script>
+    <script src="./app.js?v=google-auth1" defer></script>
   </body>
 </html>

@@ -5,6 +5,7 @@ const emailInput = document.querySelector("#entryLoginEmail");
 const passwordInput = document.querySelector("#entryLoginPassword");
 const passwordToggle = document.querySelector("#passwordToggle");
 const statusText = document.querySelector("#entryLoginStatus");
+const googleLoginButton = document.querySelector("#entryGoogleLogin");
 
 function setStatus(message, ready = false) {
   if (!statusText) return;
@@ -16,6 +17,61 @@ function setLoading(loading) {
   form?.querySelectorAll("button, input").forEach((element) => {
     element.disabled = loading;
   });
+  if (googleLoginButton) googleLoginButton.disabled = loading;
+}
+
+async function consumeOAuthRedirect() {
+  const params = new URLSearchParams(window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "");
+  const accessToken = params.get("access_token");
+  const error = params.get("error_description") || params.get("error");
+
+  if (error) {
+    history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    setStatus(`Login com Google interrompido: ${error}`);
+    return;
+  }
+
+  if (!accessToken) return;
+
+  setLoading(true);
+  setStatus("Confirmando login com Google...");
+  const refreshToken = params.get("refresh_token") || "";
+  const expiresIn = Number(params.get("expires_in") || 0);
+  const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : "";
+  history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+
+  try {
+    const response = await fetch("/api/auth/me", {
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || payload.ok === false || !payload.user) {
+      throw new Error(payload.error || "Nao foi possivel validar sua conta Google.");
+    }
+
+    localStorage.setItem(ALERT_AUTH_KEY, JSON.stringify({
+      user: payload.user,
+      session: {
+        accessToken,
+        refreshToken,
+        expiresAt,
+      },
+    }));
+    setStatus("Login com Google confirmado. Abrindo produtos...", true);
+    window.location.href = "./produtos.html";
+  } catch (error) {
+    setStatus(error.message || "Falha ao concluir login com Google.");
+    setLoading(false);
+  }
+}
+
+function startGoogleLogin() {
+  const redirectTo = new URL("/produtos.html", window.location.origin);
+  window.location.href = `/api/auth/google?redirectTo=${encodeURIComponent(redirectTo.toString())}`;
 }
 
 form?.addEventListener("submit", async (event) => {
@@ -61,3 +117,7 @@ passwordToggle?.addEventListener("click", () => {
   passwordInput.type = shouldShow ? "text" : "password";
   passwordToggle.setAttribute("aria-label", shouldShow ? "Ocultar senha" : "Mostrar senha");
 });
+
+googleLoginButton?.addEventListener("click", startGoogleLogin);
+
+consumeOAuthRedirect();

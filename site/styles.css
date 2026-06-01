@@ -228,11 +228,13 @@ h3 {
   min-height: 48px;
   border-color: transparent;
   background: transparent;
+  text-decoration: none;
 }
 
 .avatar {
   display: grid;
   place-items: center;
+  overflow: hidden;
   width: 42px;
   height: 42px;
   border: 1px solid rgba(255, 255, 255, 0.34);
@@ -241,6 +243,17 @@ h3 {
   color: #fff;
   font-size: 0.78rem;
   font-weight: 900;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar.has-photo {
+  padding: 0;
+  background: #fff;
 }
 
 .user-chip strong,
@@ -3725,6 +3738,48 @@ table td {
   box-shadow: 0 8px 20px rgba(20, 37, 31, 0.03);
 }
 
+.google-login-button {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  border: 1px solid rgba(24, 57, 46, 0.12);
+  border-radius: 10px;
+  background: #fff;
+  color: #101820;
+  font: inherit;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(20, 37, 31, 0.03);
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.google-login-button span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(24, 57, 46, 0.1);
+  border-radius: 999px;
+  color: #4285f4;
+  font-weight: 950;
+}
+
+.google-login-button:hover {
+  border-color: rgba(15, 163, 115, 0.28);
+  background: #f6fbf8;
+  transform: translateY(-1px);
+}
+
+.google-login-button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
 .create-account-button:hover {
   border-color: rgba(15, 163, 115, 0.28);
   background: #f6fbf8;
@@ -3950,6 +4005,7 @@ table td {
 }
 
 .login-panel .login-divider,
+.login-panel .google-login-button,
 .login-panel .create-account-button,
 .login-panel .guest-link {
   max-width: 430px;
@@ -5447,6 +5503,10 @@ video {
   border-radius: 12px;
 }
 
+.google-login-button {
+  max-width: none;
+}
+
 .guest-link {
   justify-self: center;
   margin-top: 16px;
@@ -5858,11 +5918,13 @@ video {
 }
 
 .login-screen .login-input-shell,
+.login-screen .google-login-button,
 .login-screen .create-account-button {
   border-color: rgba(24, 57, 46, 0.12);
   box-shadow: 0 10px 24px rgba(20, 37, 31, 0.04);
 }
 
+.login-screen .login-form-card .google-login-button,
 .login-screen .login-form-card .create-account-button {
   display: flex;
   width: 100%;

@@ -34,13 +34,13 @@
             <span class="notification-dot" aria-hidden="true"></span>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16v-5a6 6 0 1 0-12 0v5l-2 2h16l-2-2Z" /><path d="M9.5 20a2.8 2.8 0 0 0 5 0" /></svg>
           </button>
-          <div class="user-chip">
-            <span class="avatar" aria-hidden="true">TO</span>
+          <a class="user-chip" href="./index.html" data-user-chip>
+            <span class="avatar" data-user-avatar aria-hidden="true">?</span>
             <span>
-              <strong>Ola, Tullio</strong>
-              <small>Product Owner</small>
+              <strong data-user-name>Visitante</strong>
+              <small data-user-status>Entrar para alertas</small>
             </span>
-          </div>
+          </a>
         </div>
       </header>
 
@@ -206,6 +206,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=supabase1" defer></script>
+    <script src="./app.js?v=google-auth1" defer></script>
   </body>
 </html>

@@ -25,6 +25,15 @@ export function isSupabaseConfigured() {
   return Boolean(env.SUPABASE_URL && env.SUPABASE_ANON_KEY && env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
+export function buildSupabaseOAuthUrl(provider, redirectTo) {
+  ensureSupabaseAuthConfigured();
+  const authUrl = new URL("/auth/v1/authorize", withTrailingSlash(env.SUPABASE_URL));
+  authUrl.searchParams.set("provider", String(provider || "google").trim().toLowerCase());
+  authUrl.searchParams.set("redirect_to", String(redirectTo || "").trim());
+  authUrl.searchParams.set("scopes", "email profile");
+  return authUrl.toString();
+}
+
 export async function signUpPriceAlertUser(body = {}) {
   ensureSupabaseAuthConfigured();
   const email = normalizeEmail(body.email);
@@ -495,11 +504,13 @@ function normalizeAuthPayload(payload = {}) {
 
 function normalizeUser(user = {}) {
   const metadata = user.user_metadata || user.raw_user_meta_data || {};
+  const email = normalizeEmail(user.email);
   return {
     id: String(user.id || ""),
-    email: normalizeEmail(user.email),
-    name: String(metadata.name || user.name || "").trim(),
+    email,
+    name: String(metadata.full_name || metadata.name || user.name || email.split("@")[0] || "").trim(),
     phone: normalizePhone(metadata.phone || user.phone || ""),
+    avatarUrl: String(metadata.avatar_url || metadata.picture || user.avatar_url || "").trim(),
   };
 }
 

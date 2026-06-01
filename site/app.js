@@ -153,6 +153,8 @@ const elements = {
   alertWhatsappPhone: document.querySelector("#alertWhatsappPhone"),
   reloadAlertsButton: document.querySelector("#reloadAlertsButton"),
   priceAlertsList: document.querySelector("#priceAlertsList"),
+  userChips: document.querySelectorAll("[data-user-chip]"),
+  googleLoginButtons: document.querySelectorAll("[data-google-login]"),
 };
 
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -170,6 +172,49 @@ function readStorage(key, fallback) {
 
 function writeStorage(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+async function consumeOAuthRedirect() {
+  const params = new URLSearchParams(window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "");
+  const accessToken = params.get("access_token");
+  const error = params.get("error_description") || params.get("error");
+
+  if (error) {
+    history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    setSupabaseStatus(`Login com Google interrompido: ${error}`, false);
+    return;
+  }
+
+  if (!accessToken) return;
+
+  const refreshToken = params.get("refresh_token") || "";
+  const expiresIn = Number(params.get("expires_in") || 0);
+  const expiresAt = expiresIn ? new Date(Date.now() + expiresIn * 1000).toISOString() : "";
+  history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+
+  state.auth = {
+    user: {},
+    session: {
+      accessToken,
+      refreshToken,
+      expiresAt,
+    },
+  };
+
+  try {
+    const payload = await apiRequest("/api/auth/me");
+    state.auth.user = payload.user;
+    writeStorage(ALERT_AUTH_KEY, state.auth);
+    setSupabaseStatus("Login com Google confirmado.", true);
+  } catch (error) {
+    clearAuthSession();
+    setSupabaseStatus(error.message || "Nao foi possivel concluir o login com Google.", false);
+  }
+}
+
+function startGoogleLogin(targetPath = `${window.location.pathname}${window.location.search}`) {
+  const redirectTo = new URL(targetPath || "/produtos.html", window.location.origin);
+  window.location.href = `/api/auth/google?redirectTo=${encodeURIComponent(redirectTo.toString())}`;
 }
 
 function getConfig() {
@@ -405,12 +450,14 @@ function handleAuthPayload(payload) {
   };
   writeStorage(ALERT_AUTH_KEY, state.auth);
   prefillAlertContacts();
+  renderUserHeader();
 }
 
 function clearAuthSession() {
   state.auth = null;
   state.priceAlerts = [];
   localStorage.removeItem(ALERT_AUTH_KEY);
+  renderUserHeader();
   renderPriceAlertsArea();
 }
 
@@ -526,6 +573,9 @@ function setAuthLoading(loading) {
     form?.querySelectorAll("button, input").forEach((item) => {
       item.disabled = loading;
     });
+  });
+  elements.googleLoginButtons.forEach((button) => {
+    button.disabled = loading;
   });
 }
 
@@ -648,6 +698,7 @@ function renderSelectedProductPreview() {
 
 function renderPriceAlertsArea() {
   const isLoggedIn = Boolean(state.auth?.session?.accessToken);
+  renderUserHeader();
   elements.authForms?.classList.toggle("is-hidden", isLoggedIn);
   elements.alertsWorkspace?.classList.toggle("is-hidden", !isLoggedIn);
   elements.logoutButton?.classList.toggle("is-hidden", !isLoggedIn);
@@ -663,6 +714,54 @@ function renderPriceAlertsArea() {
   prefillAlertContacts();
   renderSelectedProductPreview();
   renderSavedPriceAlerts();
+}
+
+function renderUserHeader() {
+  if (!elements.userChips?.length) return;
+  const user = state.auth?.user || {};
+  const isLoggedIn = Boolean(state.auth?.session?.accessToken);
+  const displayName = isLoggedIn ? displayUserName(user) : "Visitante";
+  const status = isLoggedIn ? "Radar ativo" : "Entrar para alertas";
+  const initials = userInitials(displayName, user.email);
+
+  elements.userChips.forEach((chip) => {
+    const avatar = chip.querySelector("[data-user-avatar]");
+    const name = chip.querySelector("[data-user-name]");
+    const userStatus = chip.querySelector("[data-user-status]");
+
+    chip.classList.toggle("is-logged-in", isLoggedIn);
+    chip.setAttribute("href", isLoggedIn ? "./radar.html#meus-alertas" : "./index.html");
+    chip.setAttribute("aria-label", isLoggedIn ? `Conta de ${displayName}` : "Entrar no Garimpanda");
+
+    if (name) name.textContent = isLoggedIn ? `Ola, ${displayName}` : displayName;
+    if (userStatus) userStatus.textContent = status;
+    if (!avatar) return;
+
+    avatar.textContent = "";
+    avatar.classList.toggle("has-photo", Boolean(isLoggedIn && user.avatarUrl));
+    if (isLoggedIn && user.avatarUrl) {
+      const image = document.createElement("img");
+      image.src = user.avatarUrl;
+      image.alt = "";
+      image.referrerPolicy = "no-referrer";
+      avatar.append(image);
+    } else {
+      avatar.textContent = initials;
+    }
+  });
+}
+
+function displayUserName(user = {}) {
+  const value = String(user.name || "").trim();
+  if (value) return value.split(/\s+/).slice(0, 2).join(" ");
+  const email = String(user.email || "").trim();
+  return email ? email.split("@")[0] : "Usuario";
+}
+
+function userInitials(name, email = "") {
+  const source = String(name || email || "U").trim();
+  const words = source.includes("@") ? [source.split("@")[0]] : source.split(/\s+/);
+  return words.slice(0, 2).map((word) => word[0] || "").join("").toUpperCase() || "U";
 }
 
 function renderSavedPriceAlerts() {
@@ -1161,6 +1260,7 @@ function setCountText(id, value) {
 }
 
 function render() {
+  renderUserHeader();
   renderPriceRangeControls(state.products);
   const products = visibleProducts();
   clampCurrentPage(products.length);
@@ -1865,6 +1965,9 @@ function bindEvents() {
 
   elements.signupForm?.addEventListener("submit", submitSignup);
   elements.loginForm?.addEventListener("submit", submitLogin);
+  elements.googleLoginButtons.forEach((button) => {
+    button.addEventListener("click", () => startGoogleLogin(`${window.location.pathname}${window.location.search}${window.location.hash}`));
+  });
   elements.logoutButton?.addEventListener("click", clearAuthSession);
   elements.alertProductQuery?.addEventListener("input", () => {
     if (state.selectedAlertProduct && elements.alertProductQuery.value.trim() !== state.selectedAlertProduct.title) {
@@ -1887,6 +1990,7 @@ async function init() {
   bindEvents();
   render();
   await loadServerConfig();
+  await consumeOAuthRedirect();
   await verifyStoredSession();
   applyStoredAlertDraft();
   applyAutomaticDemoFallback(hasSavedConfig);
