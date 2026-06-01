@@ -7,6 +7,7 @@ const ALERT_DRAFT_KEY = "garimpanda-alert-draft-v1";
 const VIEW_MODE_KEY = "garimpanda-product-view-mode-v1";
 const DEMO_MODE_AVAILABLE = false;
 const IS_LOCALHOST = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+const IS_HOME_PAGE = document.body.classList.contains("home-page");
 const PRICE_RANGE_DEFAULT_MAX = 10000;
 const PRICE_RANGE_STEP = 1;
 
@@ -72,7 +73,7 @@ const state = {
   pageSize: 20,
   minDiscount: 0,
   minRating: 0,
-  productViewMode: readStorage(VIEW_MODE_KEY, "grid"),
+  productViewMode: IS_HOME_PAGE ? "grid" : readStorage(VIEW_MODE_KEY, "grid"),
   auth: readStorage(ALERT_AUTH_KEY, null),
   priceAlerts: [],
   alertsLoading: false,
@@ -1788,7 +1789,7 @@ async function init() {
   prepareDemoMode();
   applyConfig(readStorage(CONFIG_KEY, null));
   normalizeRadarSourceSelection();
-  state.pageSize = Number(elements.pageSizeSelect?.value || 20);
+  state.pageSize = Number(elements.pageSizeSelect?.value || (IS_HOME_PAGE ? 6 : 20));
   bindEvents();
   render();
   await loadServerConfig();

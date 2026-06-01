@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Garimpanda encontra ofertas reais, compara precos e ajuda voce a economizar com alertas inteligentes." />
+    <title>Garimpanda - Inicio</title>
+    <link rel="stylesheet" href="./styles.css?v=home1" />
+  </head>
+  <body class="page-body home-page">
+    <div class="dashboard-shell">
+      <header class="topbar">
+        <a class="topbar-brand" href="./inicio.html" aria-label="Garimpanda">
+          <span class="brand-mark" aria-hidden="true">
+            <img src="./assets/garimpanda-panda.png" alt="" />
+          </span>
+          <span>
+            <strong>Garim<span>panda</span></strong>
+            <small>Encontre ofertas reais, compare precos e receba alertas no momento certo.</small>
+            <small class="sr-only" id="connectionText">Aguardando atualizacao</small>
+          </span>
+        </a>
+
+        <nav class="top-nav" aria-label="Navegacao principal">
+          <a class="active" href="./inicio.html">Inicio</a>
+          <a href="./produtos.html">Produtos</a>
+          <a href="./como-funciona.html">Como funciona</a>
+          <a href="./radar.html">Radar</a>
+          <a href="./alertas.html">Alertas</a>
+        </nav>
+
+        <div class="topbar-actions">
+          <a class="secondary-button nav-button" href="./index.html">Entrar</a>
+          <a class="primary-button nav-button" href="./produtos.html">Ver ofertas</a>
+          <div class="user-chip">
+            <span class="avatar" aria-hidden="true">TO</span>
+            <span>
+              <strong>Ola, Tullio</strong>
+              <small>Radar ativo</small>
+            </span>
+          </div>
+        </div>
+      </header>
+
+      <main class="dashboard-main home-main">
+        <section class="home-hero">
+          <div class="home-hero-copy">
+            <span class="hero-kicker">Radar inteligente de ofertas</span>
+            <h1>Garimpe ofertas reais sem perder tempo.</h1>
+            <p>
+              O Garimpanda usa automacao com n8n para coletar ofertas, comparar precos e
+              destacar produtos com potencial de economia no Mercado Livre e na Amazon.
+            </p>
+            <div class="home-hero-actions">
+              <a class="primary-button" href="./produtos.html">Explorar produtos</a>
+              <a class="secondary-button" href="./radar.html">Criar alerta</a>
+            </div>
+            <dl class="home-stats">
+              <div>
+                <dt>1.000+</dt>
+                <dd>produtos monitorados</dd>
+              </div>
+              <div>
+                <dt>30 min</dt>
+                <dd>intervalo de coleta</dd>
+              </div>
+              <div>
+                <dt>n8n</dt>
+                <dd>automacao integrada</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="home-hero-visual" aria-hidden="true">
+            <img src="./assets/garimpanda-panda-cutout.png" alt="" />
+            <span class="hero-float-card top">Ofertas verificadas</span>
+            <span class="hero-float-card bottom">Alertas por preco ideal</span>
+          </div>
+        </section>
+
+        <section class="home-featured panel-card" id="destaques">
+          <div class="home-section-heading">
+            <div>
+              <span class="section-kicker">Destaques monitorados</span>
+              <h2>Algumas oportunidades encontradas pelo radar</h2>
+              <p>Produtos reais do feed aparecem aqui em destaque. A lista completa fica na pagina de produtos.</p>
+            </div>
+            <a class="text-button" href="./produtos.html">Ver todos</a>
+          </div>
+          <select class="is-hidden" id="pageSizeSelect" aria-hidden="true" tabindex="-1">
+            <option value="6" selected>6 por pagina</option>
+          </select>
+          <div class="product-grid home-featured-grid" id="productGrid" aria-live="polite"></div>
+        </section>
+
+        <section class="home-how">
+          <div class="home-section-heading">
+            <div>
+              <span class="section-kicker">Como funciona</span>
+              <h2>Da coleta ao alerta, tudo organizado em etapas</h2>
+            </div>
+            <a class="text-button" href="./como-funciona.html">Ver detalhes</a>
+          </div>
+
+          <div class="home-steps">
+            <article>
+              <span>1</span>
+              <h3>Coleta automatica</h3>
+              <p>O n8n busca ofertas em horarios fixos, seguindo o padrao de 00 e 30 minutos.</p>
+            </article>
+            <article>
+              <span>2</span>
+              <h3>Normalizacao</h3>
+              <p>A plataforma padroniza nome, preco, desconto, fonte, imagem e link do produto.</p>
+            </article>
+            <article>
+              <span>3</span>
+              <h3>Curadoria visual</h3>
+              <p>Produtos entram no catalogo com filtros por categoria, desconto, fonte e faixa de preco.</p>
+            </article>
+            <article>
+              <span>4</span>
+              <h3>Alertas pessoais</h3>
+              <p>Quando o preco desejado aparece, o radar deixa o aviso pronto para envio ao usuario.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="home-cta panel-card">
+          <div>
+            <span class="section-kicker">Pronto para garimpar?</span>
+            <h2>Veja o catalogo completo ou configure seu primeiro radar de preco.</h2>
+          </div>
+          <div class="home-cta-actions">
+            <a class="primary-button" href="./produtos.html">Abrir produtos</a>
+            <a class="secondary-button" href="./radar.html">Configurar radar</a>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <template id="productCardTemplate">
+      <article class="product-card">
+        <a class="product-image-link" target="_blank" rel="noreferrer">
+          <img class="product-image" alt="" loading="lazy" />
+        </a>
+        <div class="product-body">
+          <div class="product-meta">
+            <span class="source-badge"></span>
+            <span class="change-badge"></span>
+          </div>
+          <h3 class="product-title"></h3>
+          <p class="product-seller"></p>
+          <p class="product-note"></p>
+          <div class="price-row">
+            <strong class="product-price"></strong>
+            <span class="price-change"></span>
+          </div>
+          <p class="product-rating"></p>
+          <div class="history-strip" aria-label="Historico de preco"></div>
+          <div class="product-actions">
+            <a class="product-link" target="_blank" rel="noreferrer">Ver oferta</a>
+            <button class="text-button product-alert-button" type="button">Alerta</button>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <script src="./app.js?v=home1" defer></script>
+  </body>
+</html>
