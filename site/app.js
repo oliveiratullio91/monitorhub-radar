@@ -881,10 +881,32 @@ function setConnectionText(text) {
   if (elements.connectionText) elements.connectionText.textContent = text;
 }
 
+function productSourceToken(product) {
+  return String(product.sourceKind || product.source || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function selectedSourceFilters() {
+  const checkboxSources = [
+    { element: elements.mercadoLivreEnabled, value: "mercadolivre" },
+    { element: elements.amazonEnabled, value: "amazon" },
+  ].filter((item) => item.element);
+
+  if (checkboxSources.length) {
+    return checkboxSources.filter((item) => item.element.checked).map((item) => item.value);
+  }
+
+  const source = elements.sourceFilter?.value || "all";
+  return source === "all" ? [] : [source];
+}
+
 function visibleProducts() {
   const term = elements.globalSearch?.value.trim().toLowerCase() || "";
   const onlyChanges = Boolean(elements.onlyChanges?.checked);
-  const source = elements.sourceFilter?.value || "all";
+  const selectedSources = selectedSourceFilters();
   const { min: minPrice, max: maxPrice, maxLimit: maxPriceLimit } = normalizedPriceValues();
   let products = [...state.products];
 
@@ -894,7 +916,7 @@ function visibleProducts() {
 
   if (onlyChanges) products = products.filter((product) => product.changeType !== "stable");
   if (state.selectedCategory !== "all") products = products.filter((product) => product.category === state.selectedCategory);
-  if (source !== "all") products = products.filter((product) => (product.sourceKind || product.source || "").toLowerCase().replace(/\s+/g, "").includes(source));
+  if (selectedSources.length) products = products.filter((product) => selectedSources.some((source) => productSourceToken(product).includes(source)));
   if (minPrice > 0) products = products.filter((product) => Number(product.price || 0) >= minPrice);
   if (maxPrice < maxPriceLimit) products = products.filter((product) => Number(product.price || 0) <= maxPrice);
   if (state.minDiscount > 0) products = products.filter((product) => Number(product.discountPercent || discountFromPrices(product) || 0) >= state.minDiscount);
@@ -1533,6 +1555,8 @@ function clearProductFilters() {
   if (elements.sortMode) elements.sortMode.value = "change";
   if (elements.onlyChanges) elements.onlyChanges.checked = false;
   if (elements.sourceFilter) elements.sourceFilter.value = "all";
+  if (elements.mercadoLivreEnabled) elements.mercadoLivreEnabled.checked = true;
+  if (elements.amazonEnabled) elements.amazonEnabled.checked = true;
   if (elements.minPriceFilter) elements.minPriceFilter.value = "";
   if (elements.maxPriceFilter) elements.maxPriceFilter.value = "";
   syncPriceRangesFromFields();
@@ -1545,6 +1569,7 @@ function clearProductFilters() {
   elements.ratingButtons.forEach((button) => button.classList.remove("active"));
   elements.discountButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
   elements.ratingButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
+  writeStorage(CONFIG_KEY, getConfig());
   render();
 }
 
@@ -1703,6 +1728,7 @@ function bindEvents() {
     element.addEventListener("change", () => {
       normalizeRadarSourceSelection(element);
       saveConfig();
+      resetProductPageAndRender();
       clearTimeout(state.timer);
       refreshProducts();
     });

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Catalogo Garimpanda com ofertas monitoradas pelo n8n." />
     <title>Garimpanda - Produtos</title>
-    <link rel="stylesheet" href="./styles.css?v=products9" />
+    <link rel="stylesheet" href="./styles.css?v=products10" />
   </head>
   <body class="page-body products-page">
     <div class="dashboard-shell">
@@ -134,19 +134,27 @@
               </div>
             </section>
 
-            <section class="filter-section">
+            <section class="filter-section source-filter-section">
               <button class="filter-section-title" type="button">
                 <span>Fontes do radar</span>
                 <span aria-hidden="true">^</span>
               </button>
-              <label class="field-group">
-                <span>Buscar em</span>
-                <select id="sourceFilter">
-                  <option value="all">Todos os marketplaces</option>
-                  <option value="mercadolivre">Mercado Livre</option>
-                  <option value="amazon">Amazon</option>
-                </select>
-              </label>
+              <div class="source-choice-grid compact-source-grid" aria-label="Marketplaces usados na busca">
+                <label class="source-choice compact-source-choice">
+                  <input id="mercadoLivreEnabled" type="checkbox" checked />
+                  <span>
+                    <strong>Mercado Livre</strong>
+                    <small>Ofertas e promocoes</small>
+                  </span>
+                </label>
+                <label class="source-choice compact-source-choice">
+                  <input id="amazonEnabled" type="checkbox" checked />
+                  <span>
+                    <strong>Amazon</strong>
+                    <small>Ofertas do dia</small>
+                  </span>
+                </label>
+              </div>
               <label class="toggle-row compact-toggle">
                 <input id="onlyChanges" type="checkbox" />
                 <span>Somente mudancas de preco</span>
