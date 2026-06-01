@@ -6871,6 +6871,10 @@ video {
   min-width: 0;
 }
 
+.page-body .topbar-actions.compact-actions {
+  justify-content: flex-end;
+}
+
 .home-page {
   overflow-x: hidden;
 }
@@ -7452,5 +7456,12 @@ video {
 
   .home-page .topbar-actions .user-chip > span:not(.avatar) {
     display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-body .topbar-actions.compact-actions {
+    grid-template-columns: 42px auto;
+    width: auto;
   }
 }
