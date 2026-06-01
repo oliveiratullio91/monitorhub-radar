@@ -7465,3 +7465,22 @@ video {
     width: auto;
   }
 }
+
+/* Keep internal pages aligned with the header width */
+.page-body .topbar,
+.page-body .dashboard-main,
+.page-body .page-main,
+.products-page .dashboard-main,
+.home-page .home-main {
+  width: min(1500px, calc(100% - 36px));
+}
+
+@media (max-width: 760px) {
+  .page-body .topbar,
+  .page-body .dashboard-main,
+  .page-body .page-main,
+  .products-page .dashboard-main,
+  .home-page .home-main {
+    width: min(100% - 20px, 1500px);
+  }
+}
