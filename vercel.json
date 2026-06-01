@@ -5,6 +5,10 @@
       "destination": "/site/index.html"
     },
     {
+      "source": "/index.html",
+      "destination": "/site/index.html"
+    },
+    {
       "source": "/styles.css",
       "destination": "/site/styles.css"
     },
