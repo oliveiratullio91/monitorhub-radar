@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Catalogo Garimpanda com ofertas monitoradas pelo n8n." />
     <title>Garimpanda - Produtos</title>
-    <link rel="stylesheet" href="./styles.css?v=products8" />
+    <link rel="stylesheet" href="./styles.css?v=products9" />
   </head>
   <body class="page-body products-page">
     <div class="dashboard-shell">
@@ -136,11 +136,11 @@
 
             <section class="filter-section">
               <button class="filter-section-title" type="button">
-                <span>Marketplace</span>
+                <span>Fontes do radar</span>
                 <span aria-hidden="true">^</span>
               </button>
               <label class="field-group">
-                <span>Fonte</span>
+                <span>Buscar em</span>
                 <select id="sourceFilter">
                   <option value="all">Todos os marketplaces</option>
                   <option value="mercadolivre">Mercado Livre</option>
@@ -151,28 +151,6 @@
                 <input id="onlyChanges" type="checkbox" />
                 <span>Somente mudancas de preco</span>
               </label>
-            </section>
-
-            <section class="filter-section source-config">
-              <div class="filter-section-title static">
-                <span>Fontes do radar</span>
-              </div>
-              <div class="source-choice-grid" aria-label="Fontes usadas na busca">
-                <label class="source-choice">
-                  <input id="mercadoLivreEnabled" type="checkbox" checked />
-                  <span>
-                    <strong>Mercado Livre</strong>
-                    <small>Ofertas e promocoes</small>
-                  </span>
-                </label>
-                <label class="source-choice">
-                  <input id="amazonEnabled" type="checkbox" checked />
-                  <span>
-                    <strong>Amazon</strong>
-                    <small>Ofertas do dia</small>
-                  </span>
-                </label>
-              </div>
             </section>
 
             <div class="filter-trust-card">

@@ -6305,3 +6305,228 @@ video {
     height: 150px;
   }
 }
+
+/* Product filters responsive pass */
+.products-page .monitor-console,
+.products-page .filter-panel,
+.products-page .products-area,
+.products-page .products-area .toolbar,
+.products-page .product-grid {
+  max-width: 100%;
+}
+
+.products-page .filter-panel {
+  align-self: start;
+  width: 100%;
+  overflow: clip;
+}
+
+.products-page .filter-panel select,
+.products-page .price-field input,
+.products-page .products-area select,
+.products-page .products-area input {
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+.products-page .compact-toggle {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: start;
+  line-height: 1.25;
+}
+
+.products-page .compact-toggle span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.products-page .topbar-brand small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.products-page .filter-trust-card,
+.products-page .field-group {
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  .products-page .filter-panel {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 18px;
+    row-gap: 0;
+  }
+
+  .products-page .filter-heading,
+  .products-page .filter-trust-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .products-page .filter-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .page-body .topbar {
+    width: calc(100% - 16px);
+    max-width: calc(100vw - 16px);
+    overflow: visible;
+  }
+
+  .page-body .top-nav {
+    flex-wrap: wrap;
+    gap: 6px;
+    overflow: visible;
+  }
+
+  .page-body .top-nav a {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 0;
+    padding: 9px 8px;
+    text-align: center;
+  }
+
+  .page-body .topbar-actions {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) minmax(0, 1fr) 42px;
+    gap: 8px;
+    overflow: visible;
+  }
+
+  .products-page .topbar-actions .nav-button {
+    width: 100%;
+    min-width: 0;
+    padding: 0 8px;
+  }
+
+  .products-page .topbar-actions .user-chip {
+    width: 42px;
+    min-width: 42px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .products-page .topbar-actions .user-chip > span:not(.avatar) {
+    display: none;
+  }
+
+  .products-page .page-intro {
+    min-height: 194px;
+  }
+
+  .products-page .page-intro > div {
+    max-width: calc(100% - 136px);
+  }
+
+  .products-page .page-intro h1 {
+    font-size: clamp(2.25rem, 11vw, 3.05rem);
+    overflow-wrap: normal;
+  }
+
+  .products-page .page-intro p {
+    max-width: 260px;
+  }
+
+  .products-page .page-intro img {
+    right: 4px;
+    width: 136px;
+    height: 136px;
+  }
+
+  .products-page .filter-panel {
+    grid-template-columns: 1fr;
+    padding: 18px 16px;
+  }
+
+  .products-page .filter-section {
+    padding: 16px 0;
+  }
+
+  .products-page .category-tabs.vertical {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .products-page .category-tabs.vertical .category-button {
+    min-height: 38px;
+    border: 1px solid #e3ebe7;
+    border-radius: 10px;
+    background: #fff;
+    padding: 0 9px;
+  }
+
+  .products-page .category-tabs.vertical .category-button.active {
+    border-color: rgba(0, 150, 96, 0.28);
+    background: #eefaf4;
+  }
+
+  .products-page .price-input-row {
+    grid-template-columns: minmax(0, 1fr) 8px minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .products-page .price-field {
+    min-height: 48px;
+    padding-inline: 9px;
+  }
+
+  .products-page .price-field,
+  .products-page .price-field input {
+    font-size: 0.84rem;
+  }
+
+  .products-page .price-range-control {
+    margin-top: 12px;
+  }
+
+  .products-page .rating-filter {
+    min-height: 35px;
+    padding-inline: 10px;
+  }
+}
+
+@media (max-width: 430px) {
+  .products-page .page-intro {
+    min-height: 188px;
+    padding: 18px;
+  }
+
+  .products-page .page-intro > div {
+    max-width: calc(100% - 118px);
+  }
+
+  .products-page .page-intro h1 {
+    font-size: clamp(2.05rem, 10.4vw, 2.65rem);
+  }
+
+  .products-page .page-intro p {
+    max-width: 220px;
+    font-size: 0.88rem;
+  }
+
+  .products-page .page-intro img {
+    right: 0;
+    bottom: 8px;
+    width: 122px;
+    height: 122px;
+  }
+
+  .products-page .filter-panel {
+    padding-inline: 14px;
+  }
+
+  .products-page .discount-filter-group {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .products-page .discount-filter {
+    min-height: 34px;
+    font-size: 0.72rem;
+  }
+}
