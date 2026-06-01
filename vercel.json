@@ -17,6 +17,10 @@
       "destination": "/site/entry.js"
     },
     {
+      "source": "/inicio.html",
+      "destination": "/site/inicio.html"
+    },
+    {
       "source": "/produtos.html",
       "destination": "/site/produtos.html"
     },
