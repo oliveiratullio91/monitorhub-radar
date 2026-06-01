@@ -68,6 +68,7 @@ const state = {
   currentPage: 1,
   pageSize: 20,
   minDiscount: 0,
+  minRating: 0,
   auth: readStorage(ALERT_AUTH_KEY, null),
   priceAlerts: [],
   alertsLoading: false,
@@ -90,6 +91,7 @@ const elements = {
   minPriceFilter: document.querySelector("#minPriceFilter"),
   maxPriceFilter: document.querySelector("#maxPriceFilter"),
   discountButtons: document.querySelectorAll(".discount-filter"),
+  ratingButtons: document.querySelectorAll(".rating-filter"),
   clearProductFiltersButton: document.querySelector("#clearProductFiltersButton"),
   productResultCount: document.querySelector("#productResultCount"),
   productRangeText: document.querySelector("#productRangeText"),
@@ -892,6 +894,7 @@ function visibleProducts() {
   if (minPrice > 0) products = products.filter((product) => Number(product.price || 0) >= minPrice);
   if (maxPrice > 0) products = products.filter((product) => Number(product.price || 0) <= maxPrice);
   if (state.minDiscount > 0) products = products.filter((product) => Number(product.discountPercent || discountFromPrices(product) || 0) >= state.minDiscount);
+  if (state.minRating > 0) products = products.filter((product) => productRatingValue(product) >= state.minRating);
 
   const sortMode = elements.sortMode?.value || "change";
   products.sort((a, b) => {
@@ -1427,6 +1430,16 @@ function setMinimumDiscount(value) {
   state.minDiscount = Number(value || 0);
   elements.discountButtons.forEach((button) => {
     button.classList.toggle("active", Number(button.dataset.discount || 0) === state.minDiscount);
+    button.setAttribute("aria-pressed", String(Number(button.dataset.discount || 0) === state.minDiscount));
+  });
+  resetProductPageAndRender();
+}
+
+function setMinimumRating(value) {
+  state.minRating = Number(value || 0);
+  elements.ratingButtons.forEach((button) => {
+    button.classList.toggle("active", Number(button.dataset.rating || 0) === state.minRating);
+    button.setAttribute("aria-pressed", String(Number(button.dataset.rating || 0) === state.minRating));
   });
   resetProductPageAndRender();
 }
@@ -1441,8 +1454,12 @@ function clearProductFilters() {
   state.selectedCategory = "all";
   state.currentPage = 1;
   state.minDiscount = 0;
+  state.minRating = 0;
   elements.categoryButtons.forEach((button) => button.classList.toggle("active", button.dataset.category === "all"));
-  elements.discountButtons.forEach((button) => button.classList.toggle("active", Number(button.dataset.discount || 0) === 0));
+  elements.discountButtons.forEach((button) => button.classList.remove("active"));
+  elements.ratingButtons.forEach((button) => button.classList.remove("active"));
+  elements.discountButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
+  elements.ratingButtons.forEach((button) => button.setAttribute("aria-pressed", "false"));
   render();
 }
 
@@ -1485,10 +1502,18 @@ function promotionDiscountText(product) {
 }
 
 function ratingText(product) {
-  const seed = String(product.id || product.title || "").split("").reduce((total, char) => total + char.charCodeAt(0), 0);
-  const rating = (4.5 + (seed % 5) / 10).toFixed(1).replace(".", ",");
+  const seed = productSeed(product);
+  const rating = productRatingValue(product).toFixed(1).replace(".", ",");
   const reviews = dashboardFormatter.format(900 + (seed % 7800));
   return `★ ${rating} (${reviews})`;
+}
+
+function productRatingValue(product) {
+  return 4.5 + (productSeed(product) % 5) / 10;
+}
+
+function productSeed(product) {
+  return String(product.id || product.title || "").split("").reduce((total, char) => total + char.charCodeAt(0), 0);
 }
 
 function placeholderImage(label) {
@@ -1546,7 +1571,17 @@ function bindEvents() {
   });
 
   elements.discountButtons.forEach((button) => {
-    button.addEventListener("click", () => setMinimumDiscount(button.dataset.discount));
+    button.addEventListener("click", () => {
+      const discount = Number(button.dataset.discount || 0);
+      setMinimumDiscount(state.minDiscount === discount ? 0 : discount);
+    });
+  });
+
+  elements.ratingButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const rating = Number(button.dataset.rating || 0);
+      setMinimumRating(state.minRating === rating ? 0 : rating);
+    });
   });
 
   elements.clearProductFiltersButton?.addEventListener("click", clearProductFilters);

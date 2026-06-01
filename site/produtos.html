@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Catalogo Garimpanda com ofertas monitoradas pelo n8n." />
     <title>Garimpanda - Produtos</title>
-    <link rel="stylesheet" href="./styles.css?v=products3" />
+    <link rel="stylesheet" href="./styles.css?v=products4" />
   </head>
   <body class="page-body products-page">
     <div class="dashboard-shell">
@@ -69,16 +69,17 @@
                 <span aria-hidden="true">^</span>
               </button>
               <div class="category-tabs vertical" aria-label="Categorias">
-                <button class="category-button active" type="button" data-category="all">Todos <span id="categoryCountAll">0</span></button>
-                <button class="category-button" type="button" data-category="eletronicos">Eletronicos <span id="categoryCountEletronicos">0</span></button>
-                <button class="category-button" type="button" data-category="casa">Casa <span id="categoryCountCasa">0</span></button>
-                <button class="category-button" type="button" data-category="informatica">Informatica <span id="categoryCountInformatica">0</span></button>
-                <button class="category-button" type="button" data-category="audio">Audio <span id="categoryCountAudio">0</span></button>
-                <button class="category-button" type="button" data-category="games">Games <span id="categoryCountGames">0</span></button>
-                <button class="category-button" type="button" data-category="cozinha">Cozinha <span id="categoryCountCozinha">0</span></button>
-                <button class="category-button" type="button" data-category="moda">Moda <span id="categoryCountModa">0</span></button>
-                <button class="category-button" type="button" data-category="outros">Outros <span id="categoryCountOutros">0</span></button>
+                <button class="category-button active" type="button" data-category="all"><span class="category-label">Todos</span><span id="categoryCountAll">0</span></button>
+                <button class="category-button" type="button" data-category="eletronicos"><span class="category-label">Eletronicos</span><span id="categoryCountEletronicos">0</span></button>
+                <button class="category-button" type="button" data-category="casa"><span class="category-label">Casa</span><span id="categoryCountCasa">0</span></button>
+                <button class="category-button" type="button" data-category="informatica"><span class="category-label">Informatica</span><span id="categoryCountInformatica">0</span></button>
+                <button class="category-button" type="button" data-category="audio"><span class="category-label">Audio</span><span id="categoryCountAudio">0</span></button>
+                <button class="category-button" type="button" data-category="games"><span class="category-label">Games</span><span id="categoryCountGames">0</span></button>
+                <button class="category-button" type="button" data-category="cozinha"><span class="category-label">Cozinha</span><span id="categoryCountCozinha">0</span></button>
+                <button class="category-button" type="button" data-category="moda"><span class="category-label">Moda</span><span id="categoryCountModa">0</span></button>
+                <button class="category-button" type="button" data-category="outros"><span class="category-label">Outros</span><span id="categoryCountOutros">0</span></button>
               </div>
+              <button class="filter-link-button" type="button">Ver mais</button>
             </section>
 
             <section class="filter-section">
@@ -86,15 +87,21 @@
                 <span>Faixa de preco</span>
                 <span aria-hidden="true">^</span>
               </button>
-              <div class="two-columns">
-                <label class="field-group">
-                  <span>Minimo</span>
-                  <input id="minPriceFilter" type="number" min="0" step="0.01" placeholder="R$ minimo" />
+              <div class="price-input-row">
+                <label class="price-field">
+                  <span>R$</span>
+                  <input id="minPriceFilter" type="number" min="0" step="0.01" placeholder="Minimo" />
                 </label>
-                <label class="field-group">
-                  <span>Maximo</span>
-                  <input id="maxPriceFilter" type="number" min="0" step="0.01" placeholder="R$ maximo" />
+                <span class="range-separator" aria-hidden="true">-</span>
+                <label class="price-field">
+                  <span>R$</span>
+                  <input id="maxPriceFilter" type="number" min="0" step="0.01" placeholder="Maximo" />
                 </label>
+              </div>
+              <div class="price-range-track" aria-hidden="true">
+                <span></span>
+                <i></i>
+                <span></span>
               </div>
             </section>
 
@@ -108,7 +115,20 @@
                 <button class="discount-filter" type="button" data-discount="20">20%</button>
                 <button class="discount-filter" type="button" data-discount="30">30%</button>
                 <button class="discount-filter" type="button" data-discount="40">40%</button>
-                <button class="discount-filter active" type="button" data-discount="0">Todos</button>
+                <button class="discount-filter" type="button" data-discount="50">50%+</button>
+              </div>
+            </section>
+
+            <section class="filter-section">
+              <button class="filter-section-title" type="button">
+                <span>Faixa de avaliacao</span>
+                <span aria-hidden="true">^</span>
+              </button>
+              <div class="rating-filter-group" aria-label="Filtro por avaliacao">
+                <button class="rating-filter" type="button" data-rating="1">★ <span>ou mais</span></button>
+                <button class="rating-filter" type="button" data-rating="2">★ ★ <span>ou mais</span></button>
+                <button class="rating-filter" type="button" data-rating="3">★ ★ ★ <span>ou mais</span></button>
+                <button class="rating-filter" type="button" data-rating="4">★ ★ ★ ★ <span>ou mais</span></button>
               </div>
             </section>
 
@@ -241,6 +261,6 @@
       </article>
     </template>
 
-    <script src="./app.js?v=products3" defer></script>
+    <script src="./app.js?v=products4" defer></script>
   </body>
 </html>
