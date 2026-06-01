@@ -6703,3 +6703,117 @@ video {
     min-height: 200px;
   }
 }
+
+/* Product card global sizing refinement */
+.products-page {
+  --product-card-media-height: clamp(154px, 13vw, 178px);
+  --product-card-gap: 7px;
+}
+
+.products-page .product-grid.product-card-view {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 236px), 1fr));
+  align-items: stretch;
+  gap: 16px;
+}
+
+.products-page .product-grid.product-card-view .product-card {
+  grid-template-rows: var(--product-card-media-height) minmax(0, 1fr);
+  min-height: 0;
+  height: 100%;
+  border-radius: 20px;
+}
+
+.products-page .product-grid.product-card-view .product-image-link {
+  min-height: 0;
+  height: var(--product-card-media-height);
+  padding: 16px 16px 10px;
+}
+
+.products-page .product-grid.product-card-view .product-image {
+  max-height: calc(var(--product-card-media-height) - 28px);
+}
+
+.products-page .product-grid.product-card-view .product-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--product-card-gap);
+  min-height: 0;
+  padding: 13px 14px 15px;
+}
+
+.products-page .product-grid.product-card-view .product-title {
+  display: block;
+  min-height: 0;
+  overflow: visible;
+  color: #0f1a27;
+  font-size: 0.9rem;
+  line-height: 1.22;
+  -webkit-line-clamp: initial;
+}
+
+.products-page .product-grid.product-card-view .product-seller {
+  min-height: 17px;
+  font-size: 0.76rem;
+}
+
+.products-page .product-grid.product-card-view .product-note {
+  display: block;
+  min-height: 0;
+  overflow: visible;
+  color: #52625b;
+  font-size: 0.76rem;
+  line-height: 1.32;
+  -webkit-line-clamp: initial;
+}
+
+.products-page .product-grid.product-card-view .price-row {
+  margin-top: 2px;
+}
+
+.products-page .product-grid.product-card-view .product-price {
+  font-size: clamp(1.05rem, 1.7vw, 1.18rem);
+}
+
+.products-page .product-grid.product-card-view .price-change,
+.products-page .product-grid.product-card-view .product-rating {
+  font-size: 0.76rem;
+}
+
+.products-page .product-grid.product-card-view .product-actions {
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.products-page .product-grid.product-card-view .product-link,
+.products-page .product-grid.product-card-view .product-alert-button {
+  min-height: 36px;
+}
+
+@media (max-width: 720px) {
+  .products-page {
+    --product-card-media-height: 164px;
+  }
+
+  .products-page .product-grid.product-card-view {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+    gap: 14px;
+  }
+
+  .products-page .product-grid.product-card-view .product-body {
+    padding: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .products-page {
+    --product-card-media-height: 188px;
+  }
+
+  .products-page .product-grid.product-card-view {
+    grid-template-columns: 1fr;
+  }
+
+  .products-page .product-grid.product-card-view .product-title {
+    font-size: 0.96rem;
+  }
+}
