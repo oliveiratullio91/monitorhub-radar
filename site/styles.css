@@ -5952,3 +5952,186 @@ video {
     padding: 30px 22px 34px;
   }
 }
+
+/* Premium compact hero for product catalog */
+.products-page .page-intro {
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 34%);
+  min-height: clamp(190px, 15vw, 245px);
+  border-color: rgba(13, 74, 53, 0.12);
+  border-radius: 28px;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.99) 0%, rgba(255, 255, 255, 0.95) 52%, rgba(232, 249, 241, 0.78) 100%),
+    url("./assets/garimpanda-login-bg.png") center bottom / cover no-repeat;
+  box-shadow:
+    0 24px 70px rgba(20, 72, 54, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  padding: clamp(24px, 3vw, 38px) clamp(24px, 4vw, 50px);
+}
+
+.products-page .page-intro::before {
+  position: absolute;
+  inset: 18px 22px 18px auto;
+  z-index: 0;
+  width: min(430px, 36%);
+  border: 1px solid rgba(0, 150, 96, 0.08);
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(226, 247, 237, 0.48)),
+    url("./assets/garimpanda-background.png") right bottom / cover no-repeat;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  content: "";
+}
+
+.products-page .page-intro::after {
+  position: absolute;
+  right: 26%;
+  top: 26px;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  background: rgba(0, 150, 96, 0.12);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  content: "";
+}
+
+.products-page .page-intro > div {
+  position: relative;
+  z-index: 2;
+  max-width: min(650px, 62%);
+}
+
+.products-page .page-intro .hero-kicker {
+  border: 1px solid rgba(0, 150, 96, 0.1);
+  background: rgba(214, 244, 229, 0.92);
+  box-shadow: 0 12px 26px rgba(22, 93, 68, 0.06);
+}
+
+.products-page .page-intro h1 {
+  margin-top: 18px;
+  font-size: clamp(3.25rem, 6vw, 6.1rem);
+  line-height: 0.86;
+  letter-spacing: 0;
+}
+
+.products-page .page-intro p {
+  max-width: 560px;
+  margin-top: 12px;
+  color: #586a64;
+  font-size: clamp(1rem, 1.1vw, 1.16rem);
+  line-height: 1.45;
+}
+
+.products-page .page-intro img {
+  position: absolute;
+  right: clamp(26px, 5vw, 78px);
+  bottom: -4px;
+  z-index: 2;
+  width: clamp(180px, 18vw, 300px);
+  height: clamp(180px, 18vw, 300px);
+  margin: 0;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 24px 34px rgba(20, 72, 54, 0.16));
+}
+
+@media (max-width: 980px) {
+  .products-page .page-intro {
+    grid-template-columns: 1fr;
+    min-height: 220px;
+    padding: 26px;
+  }
+
+  .products-page .page-intro::before {
+    inset: 16px 16px 16px auto;
+    width: min(300px, 42%);
+  }
+
+  .products-page .page-intro::after {
+    right: 38%;
+    top: 24px;
+  }
+
+  .products-page .page-intro > div {
+    max-width: calc(100% - 320px);
+  }
+
+  .products-page .page-intro h1 {
+    font-size: clamp(2.85rem, 9vw, 5rem);
+  }
+
+  .products-page .page-intro img {
+    right: 18px;
+    width: clamp(170px, 31vw, 260px);
+    height: clamp(170px, 31vw, 260px);
+  }
+}
+
+@media (max-width: 640px) {
+  .products-page .page-intro {
+    min-height: 205px;
+    padding: 22px;
+  }
+
+  .products-page .page-intro::before {
+    width: 210px;
+    opacity: 0.78;
+  }
+
+  .products-page .page-intro::after {
+    display: none;
+  }
+
+  .products-page .page-intro > div {
+    max-width: min(360px, calc(100% - 190px));
+  }
+
+  .products-page .page-intro h1 {
+    margin-top: 14px;
+    font-size: clamp(2.55rem, 13vw, 4rem);
+  }
+
+  .products-page .page-intro p {
+    max-width: 280px;
+    font-size: 0.95rem;
+  }
+
+  .products-page .page-intro img {
+    right: -28px;
+    bottom: -2px;
+    width: 190px;
+    height: 190px;
+  }
+}
+
+@media (max-width: 430px) {
+  .products-page .page-intro {
+    min-height: 190px;
+    padding: 20px;
+  }
+
+  .products-page .page-intro > div {
+    max-width: calc(100% - 92px);
+  }
+
+  .products-page .page-intro .hero-kicker {
+    font-size: 0.74rem;
+    padding: 8px 12px;
+  }
+
+  .products-page .page-intro h1 {
+    font-size: clamp(2.35rem, 14vw, 3.25rem);
+  }
+
+  .products-page .page-intro p {
+    max-width: 230px;
+    font-size: 0.9rem;
+  }
+
+  .products-page .page-intro img {
+    right: -58px;
+    width: 168px;
+    height: 168px;
+  }
+}
