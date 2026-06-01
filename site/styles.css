@@ -4630,8 +4630,22 @@ table td {
   outline: 0;
 }
 
+.products-page .price-field input[type="number"] {
+  padding: 0;
+  appearance: textfield;
+  -moz-appearance: textfield;
+  font-variant-numeric: tabular-nums;
+}
+
+.products-page .price-field input[type="number"]::-webkit-inner-spin-button,
+.products-page .price-field input[type="number"]::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
 .products-page .price-field input::placeholder {
   color: #8b9892;
+  opacity: 1;
 }
 
 .products-page .range-separator {
