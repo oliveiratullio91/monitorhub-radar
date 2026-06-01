@@ -4,6 +4,7 @@ const EVENTS_KEY = "radar-produtos-events-v4";
 const HISTORY_KEY = "radar-produtos-history-v4";
 const ALERT_AUTH_KEY = "monitorhub-alert-auth-v1";
 const ALERT_DRAFT_KEY = "garimpanda-alert-draft-v1";
+const VIEW_MODE_KEY = "garimpanda-product-view-mode-v1";
 const DEMO_MODE_AVAILABLE = false;
 const IS_LOCALHOST = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
 const PRICE_RANGE_DEFAULT_MAX = 10000;
@@ -71,6 +72,7 @@ const state = {
   pageSize: 20,
   minDiscount: 0,
   minRating: 0,
+  productViewMode: readStorage(VIEW_MODE_KEY, "grid"),
   auth: readStorage(ALERT_AUTH_KEY, null),
   priceAlerts: [],
   alertsLoading: false,
@@ -98,6 +100,7 @@ const elements = {
   discountButtons: document.querySelectorAll(".discount-filter"),
   ratingButtons: document.querySelectorAll(".rating-filter"),
   clearProductFiltersButton: document.querySelector("#clearProductFiltersButton"),
+  viewModeButtons: document.querySelectorAll("[data-view-mode]"),
   productResultCount: document.querySelector("#productResultCount"),
   productRangeText: document.querySelector("#productRangeText"),
   productPagination: document.querySelector("#productPagination"),
@@ -965,6 +968,28 @@ function renderProductSummary(totalProducts, pageCount) {
   elements.productRangeText.textContent = `Mostrando ${dashboardFormatter.format(start)}-${dashboardFormatter.format(end)} de ${dashboardFormatter.format(totalProducts)}`;
 }
 
+function normalizedProductViewMode(mode) {
+  return mode === "list" ? "list" : "grid";
+}
+
+function setProductViewMode(mode, persist = true) {
+  state.productViewMode = normalizedProductViewMode(mode);
+  renderProductViewMode();
+  if (persist) writeStorage(VIEW_MODE_KEY, state.productViewMode);
+}
+
+function renderProductViewMode() {
+  const mode = normalizedProductViewMode(state.productViewMode);
+  state.productViewMode = mode;
+  elements.productGrid?.classList.toggle("product-list-view", mode === "list");
+  elements.productGrid?.classList.toggle("product-card-view", mode === "grid");
+  elements.viewModeButtons.forEach((button) => {
+    const isActive = button.dataset.viewMode === mode;
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+}
+
 function renderPagination(totalProducts) {
   const container = elements.productPagination;
   if (!container) return;
@@ -1051,6 +1076,7 @@ function render() {
   const products = visibleProducts();
   clampCurrentPage(products.length);
   const pageProducts = paginatedProducts(products);
+  renderProductViewMode();
   renderMetrics(state.products);
   renderCategoryCounts(state.products);
   renderProductSummary(products.length, pageProducts.length);
@@ -1698,6 +1724,12 @@ function bindEvents() {
   elements.pageSizeSelect?.addEventListener("change", () => {
     state.pageSize = Number(elements.pageSizeSelect.value || 20);
     resetProductPageAndRender();
+  });
+
+  elements.viewModeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      setProductViewMode(button.dataset.viewMode);
+    });
   });
 
   elements.discountButtons.forEach((button) => {

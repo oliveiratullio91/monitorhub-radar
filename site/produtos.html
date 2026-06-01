@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Catalogo Garimpanda com ofertas monitoradas pelo n8n." />
     <title>Garimpanda - Produtos</title>
-    <link rel="stylesheet" href="./styles.css?v=products10" />
+    <link rel="stylesheet" href="./styles.css?v=products11" />
   </head>
   <body class="page-body products-page">
     <div class="dashboard-shell">
@@ -188,10 +188,10 @@
                 <option value="source">Fonte</option>
               </select>
               <div class="view-toggle" aria-label="Modo de visualizacao">
-                <button class="active" type="button" aria-label="Visualizacao em grade">
+                <button class="active" type="button" data-view-mode="grid" aria-label="Visualizacao em grade" aria-pressed="true">
                   <span></span><span></span><span></span><span></span>
                 </button>
-                <button type="button" aria-label="Visualizacao em lista">
+                <button type="button" data-view-mode="list" aria-label="Visualizacao em lista" aria-pressed="false">
                   <i></i><i></i><i></i>
                 </button>
               </div>
@@ -249,6 +249,6 @@
       </article>
     </template>
 
-    <script src="./app.js?v=products5" defer></script>
+    <script src="./app.js?v=products11" defer></script>
   </body>
 </html>
