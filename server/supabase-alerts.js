@@ -34,6 +34,12 @@ export function buildSupabaseOAuthUrl(provider, redirectTo) {
   return authUrl.toString();
 }
 
+export async function resolveSupabaseOAuthRedirect(provider, redirectTo) {
+  const authUrl = buildSupabaseOAuthUrl(provider, redirectTo);
+  const status = await inspectSupabaseOAuthUrl(authUrl, provider);
+  return status.ok ? { ok: true, url: authUrl } : status;
+}
+
 export async function signUpPriceAlertUser(body = {}) {
   ensureSupabaseAuthConfigured();
   const email = normalizeEmail(body.email);
@@ -500,6 +506,49 @@ function normalizeAuthPayload(payload = {}) {
     } : null,
     requiresEmailConfirmation: Boolean(user.id && !accessToken),
   };
+}
+
+async function inspectSupabaseOAuthUrl(authUrl, provider) {
+  try {
+    const response = await fetch(authUrl, {
+      method: "GET",
+      redirect: "manual",
+      headers: {
+        Accept: "application/json, text/plain;q=0.9, */*;q=0.8",
+      },
+    });
+
+    if (response.status >= 300 && response.status < 400) return { ok: true };
+    if (response.status < 400) return { ok: true };
+
+    const message = await readOAuthErrorMessage(response);
+    if (response.status === 400 && /unsupported provider|provider is not enabled/i.test(message)) {
+      return {
+        ok: false,
+        code: `${provider || "google"}-provider-disabled`,
+        message: "Login com Google ainda nao foi habilitado no Supabase.",
+      };
+    }
+
+    return {
+      ok: false,
+      code: `${provider || "google"}-provider-error`,
+      message: message || "Nao foi possivel iniciar o login social.",
+    };
+  } catch {
+    return { ok: true };
+  }
+}
+
+async function readOAuthErrorMessage(response) {
+  const text = await response.text().catch(() => "");
+  if (!text) return "";
+  try {
+    const payload = JSON.parse(text);
+    return String(payload.msg || payload.message || payload.error_description || payload.error || text);
+  } catch {
+    return text;
+  }
 }
 
 function normalizeUser(user = {}) {

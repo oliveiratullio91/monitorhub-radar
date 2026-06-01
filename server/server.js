@@ -14,7 +14,6 @@ import { getN8nProducts, ingestN8nProducts } from "./n8n-feed.js";
 import { getMercadoLivreOffers } from "./mercadolivre-offers-page.js";
 import { getAmazonDeals } from "./amazon-deals-page.js";
 import {
-  buildSupabaseOAuthUrl,
   canEvaluateAlerts,
   createPriceAlert,
   deletePriceAlert,
@@ -23,6 +22,7 @@ import {
   listPendingAlertNotifications,
   listPriceAlerts,
   publicSupabaseConfig,
+  resolveSupabaseOAuthRedirect,
   signInPriceAlertUser,
   signUpPriceAlertUser,
   updateAlertNotificationStatus,
@@ -88,8 +88,10 @@ const server = createServer(async (request, response) => {
       if (request.method === "OPTIONS") return sendEmpty(response, 204);
       if (request.method !== "GET") return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
       const redirectTo = safeRedirectTo(url.searchParams.get("redirectTo"), url.origin);
+      const failureTo = safeRedirectTo(url.searchParams.get("failureTo"), url.origin, "/index.html");
+      const oauth = await resolveSupabaseOAuthRedirect("google", redirectTo);
       response.writeHead(302, {
-        Location: buildSupabaseOAuthUrl("google", redirectTo),
+        Location: oauth.ok ? oauth.url : withAuthError(failureTo, oauth.code),
         "Cache-Control": "no-store",
       });
       return response.end();
@@ -353,13 +355,19 @@ function parseBoolean(value) {
   return ["1", "true", "yes", "on"].includes(String(value || "").toLowerCase());
 }
 
-function safeRedirectTo(value, origin) {
+function safeRedirectTo(value, origin, fallbackPath = "/produtos.html") {
   try {
-    const fallback = new URL("/produtos.html", origin);
+    const fallback = new URL(fallbackPath, origin);
     if (!value) return fallback.toString();
     const candidate = new URL(value, origin);
     return candidate.origin === fallback.origin ? candidate.toString() : fallback.toString();
   } catch {
-    return new URL("/produtos.html", origin).toString();
+    return new URL(fallbackPath, origin).toString();
   }
+}
+
+function withAuthError(redirectUrl, code = "google-provider-error") {
+  const target = new URL(redirectUrl);
+  target.searchParams.set("authError", code);
+  return target.toString();
 }

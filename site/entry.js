@@ -7,6 +7,11 @@ const passwordToggle = document.querySelector("#passwordToggle");
 const statusText = document.querySelector("#entryLoginStatus");
 const googleLoginButton = document.querySelector("#entryGoogleLogin");
 
+const AUTH_ERROR_MESSAGES = {
+  "google-provider-disabled": "Login com Google ainda nao esta ativo no Supabase. Configure o provider Google ou entre com e-mail e senha por enquanto.",
+  "google-provider-error": "Nao foi possivel iniciar o login com Google agora. Tente novamente ou use e-mail e senha.",
+};
+
 function setStatus(message, ready = false) {
   if (!statusText) return;
   statusText.textContent = message;
@@ -18,6 +23,17 @@ function setLoading(loading) {
     element.disabled = loading;
   });
   if (googleLoginButton) googleLoginButton.disabled = loading;
+}
+
+function consumeAuthQueryMessage() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("authError");
+  if (!code) return;
+
+  params.delete("authError");
+  const query = params.toString();
+  history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+  setStatus(AUTH_ERROR_MESSAGES[code] || AUTH_ERROR_MESSAGES["google-provider-error"]);
 }
 
 async function consumeOAuthRedirect() {
@@ -71,7 +87,8 @@ async function consumeOAuthRedirect() {
 
 function startGoogleLogin() {
   const redirectTo = new URL("/produtos.html", window.location.origin);
-  window.location.href = `/api/auth/google?redirectTo=${encodeURIComponent(redirectTo.toString())}`;
+  const failureTo = new URL("/index.html", window.location.origin);
+  window.location.href = `/api/auth/google?redirectTo=${encodeURIComponent(redirectTo.toString())}&failureTo=${encodeURIComponent(failureTo.toString())}`;
 }
 
 form?.addEventListener("submit", async (event) => {
@@ -120,4 +137,5 @@ passwordToggle?.addEventListener("click", () => {
 
 googleLoginButton?.addEventListener("click", startGoogleLogin);
 
+consumeAuthQueryMessage();
 consumeOAuthRedirect();

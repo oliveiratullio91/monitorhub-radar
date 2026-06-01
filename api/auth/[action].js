@@ -1,7 +1,7 @@
 import { readJsonBody, setCorsHeaders } from "../_body.js";
 import {
-  buildSupabaseOAuthUrl,
   getUserFromAuthorizationHeader,
+  resolveSupabaseOAuthRedirect,
   signInPriceAlertUser,
   signUpPriceAlertUser,
 } from "../../server/supabase-alerts.js";
@@ -35,8 +35,10 @@ export default async function handler(request, response) {
       const url = new URL(request.url || "/api/auth/google", `https://${request.headers.host || "localhost"}`);
       const origin = getRequestOrigin(request);
       const redirectTo = safeRedirectTo(url.searchParams.get("redirectTo"), origin);
+      const failureTo = safeRedirectTo(url.searchParams.get("failureTo"), origin, "/index.html");
+      const oauth = await resolveSupabaseOAuthRedirect("google", redirectTo);
       response.writeHead(302, {
-        Location: buildSupabaseOAuthUrl("google", redirectTo),
+        Location: oauth.ok ? oauth.url : withAuthError(failureTo, oauth.code),
         "Cache-Control": "no-store",
       });
       return response.end();
@@ -67,13 +69,19 @@ function getRequestOrigin(request) {
   return `${protocol}://${host}`;
 }
 
-function safeRedirectTo(value, origin) {
+function safeRedirectTo(value, origin, fallbackPath = "/produtos.html") {
   try {
-    const fallback = new URL("/produtos.html", origin);
+    const fallback = new URL(fallbackPath, origin);
     if (!value) return fallback.toString();
     const candidate = new URL(value, origin);
     return candidate.origin === fallback.origin ? candidate.toString() : fallback.toString();
   } catch {
-    return new URL("/produtos.html", origin).toString();
+    return new URL(fallbackPath, origin).toString();
   }
+}
+
+function withAuthError(redirectUrl, code = "google-provider-error") {
+  const target = new URL(redirectUrl);
+  target.searchParams.set("authError", code);
+  return target.toString();
 }

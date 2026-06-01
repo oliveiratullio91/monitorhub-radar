@@ -10,6 +10,10 @@ const IS_LOCALHOST = ["localhost", "127.0.0.1", "::1"].includes(window.location.
 const IS_HOME_PAGE = document.body.classList.contains("home-page");
 const PRICE_RANGE_DEFAULT_MAX = 10000;
 const PRICE_RANGE_STEP = 1;
+const AUTH_ERROR_MESSAGES = {
+  "google-provider-disabled": "Login com Google ainda nao esta ativo no Supabase. Configure o provider Google ou entre com e-mail e senha por enquanto.",
+  "google-provider-error": "Nao foi possivel iniciar o login com Google agora. Tente novamente ou use e-mail e senha.",
+};
 
 const dashboardFormatter = new Intl.NumberFormat("pt-BR");
 
@@ -212,9 +216,21 @@ async function consumeOAuthRedirect() {
   }
 }
 
+function consumeAuthQueryMessage() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("authError");
+  if (!code) return;
+
+  params.delete("authError");
+  const query = params.toString();
+  history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+  setSupabaseStatus(AUTH_ERROR_MESSAGES[code] || AUTH_ERROR_MESSAGES["google-provider-error"], false);
+}
+
 function startGoogleLogin(targetPath = `${window.location.pathname}${window.location.search}`) {
   const redirectTo = new URL(targetPath || "/produtos.html", window.location.origin);
-  window.location.href = `/api/auth/google?redirectTo=${encodeURIComponent(redirectTo.toString())}`;
+  const failureTo = new URL(`${window.location.pathname}${window.location.search}${window.location.hash}`, window.location.origin);
+  window.location.href = `/api/auth/google?redirectTo=${encodeURIComponent(redirectTo.toString())}&failureTo=${encodeURIComponent(failureTo.toString())}`;
 }
 
 function getConfig() {
@@ -1990,6 +2006,7 @@ async function init() {
   bindEvents();
   render();
   await loadServerConfig();
+  consumeAuthQueryMessage();
   await consumeOAuthRedirect();
   await verifyStoredSession();
   applyStoredAlertDraft();
