@@ -189,12 +189,27 @@ async function getCatalogProducts(searchParams) {
   } catch (error) {
     const limit = Math.max(200, Math.min(Number(searchParams.get("sourceLimit") || 2000), 2000));
     const feed = await getN8nProducts(new URLSearchParams({ limit: String(limit) })).catch(() => null);
+    const fallbackProducts = feed?.products?.length
+      ? feed.products
+      : await getCatalogOfferFallbackProducts(searchParams);
     return {
-      ...buildCatalogSuggestionsFromProducts(feed?.products || [], searchParams),
+      ...buildCatalogSuggestionsFromProducts(fallbackProducts, searchParams),
       catalogFallback: true,
       warning: error.message || "Catalogo Supabase indisponivel; usando feed local.",
     };
   }
+}
+
+async function getCatalogOfferFallbackProducts(searchParams) {
+  const offerLimit = Math.min(Number(searchParams.get("offerLimit") || 160), 240);
+  const [mercadoLivre, amazon] = await Promise.all([
+    getMercadoLivreOffers(new URLSearchParams({ limit: String(offerLimit), pages: "4" })).catch(() => null),
+    getAmazonDeals(new URLSearchParams({ limit: String(offerLimit), pages: "2" })).catch(() => null),
+  ]);
+  return [
+    ...(mercadoLivre?.products || []),
+    ...(amazon?.products || []),
+  ];
 }
 
 async function startMercadoLivreOAuth(body, response) {

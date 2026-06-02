@@ -1,5 +1,7 @@
 import { getProducts } from "../server/marketplaces.js";
 import { getN8nProducts } from "../server/n8n-feed.js";
+import { getAmazonDeals } from "../server/amazon-deals-page.js";
+import { getMercadoLivreOffers } from "../server/mercadolivre-offers-page.js";
 import {
   buildCatalogSuggestionsFromProducts,
   indexCatalogProducts,
@@ -54,5 +56,15 @@ async function getCatalogFallbackProducts(searchParams) {
   const limit = Math.max(200, Math.min(Number(searchParams.get("sourceLimit") || 2000), 2000));
   const feed = await getN8nProducts(new URLSearchParams({ limit: String(limit) })).catch(() => null);
   if (feed?.products?.length) return feed.products;
-  return [];
+
+  const offerLimit = Math.min(Number(searchParams.get("offerLimit") || 160), 240);
+  const [mercadoLivre, amazon] = await Promise.all([
+    getMercadoLivreOffers(new URLSearchParams({ limit: String(offerLimit), pages: "4" })).catch(() => null),
+    getAmazonDeals(new URLSearchParams({ limit: String(offerLimit), pages: "2" })).catch(() => null),
+  ]);
+
+  return [
+    ...(mercadoLivre?.products || []),
+    ...(amazon?.products || []),
+  ];
 }
