@@ -103,7 +103,7 @@ Depois da avaliacao, existem duas formas de disparar avisos.
 1. Disparo automatico pela propria API:
 
 ```text
-POST https://monitorhub-radar.vercel.app/api/alerts/dispatch?evaluate=true
+POST https://monitorhub-radar.vercel.app/api/alerts/notifications?evaluate=true
 ```
 
 Esse endpoint avalia os alertas, envia e-mail/WhatsApp quando os provedores estiverem configurados e marca a notificacao como `sent` ou `failed`.

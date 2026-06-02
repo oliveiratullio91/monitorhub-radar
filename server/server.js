@@ -148,11 +148,33 @@ const server = createServer(async (request, response) => {
 
     if (url.pathname === "/api/alerts/notifications") {
       if (request.method === "OPTIONS") return sendEmpty(response, 204);
-      if (!["GET", "PATCH"].includes(request.method)) return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
+      if (!["GET", "PATCH", "POST"].includes(request.method)) return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
       if (!canEvaluateAlerts(request)) return sendJson(response, { ok: false, code: "RAD-FEED-002", error: "RAD-FEED-002 - Token de ingestao invalido" }, 401);
       if (request.method === "GET") {
         const notifications = await listPendingAlertNotifications({ limit: url.searchParams.get("limit") || 100 });
         return sendJson(response, { ok: true, notifications, count: notifications.length });
+      }
+      if (request.method === "POST") {
+        const body = await readJson(request).catch(() => ({}));
+        let evaluation = null;
+        if (parseBoolean(body.evaluate ?? url.searchParams.get("evaluate"))) {
+          const products = Array.isArray(body.products)
+            ? body.products
+            : (await getN8nProducts(new URLSearchParams({ limit: String(body.productLimit || url.searchParams.get("productLimit") || 1000) }))).products;
+          evaluation = await evaluatePriceAlerts(products, {
+            limit: body.productLimit || url.searchParams.get("productLimit") || 1000,
+            markNotified: true,
+          });
+        }
+        return sendJson(response, {
+          ok: true,
+          evaluation,
+          dispatch: await dispatchPendingAlertNotifications({
+            limit: body.limit || url.searchParams.get("limit") || 100,
+            dryRun: body.dryRun ?? url.searchParams.get("dryRun"),
+            channel: body.channel || url.searchParams.get("channel") || "",
+          }),
+        });
       }
       return sendJson(response, { ok: true, notification: await updateAlertNotificationStatus(await readJson(request)) });
     }
