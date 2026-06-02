@@ -221,7 +221,7 @@ function normalizePublicFeedErrors(errors) {
     if (/sem itens publicados|sem anuncios proprios/i.test(value)) return "RAD-ML-003 - Conta conectada sem anuncios proprios retornados.";
     if (/mercado livre|mercadolivre|MERCADO_LIVRE|oauth|app id|secret key/i.test(value)) return "RAD-ML-001 - Fonte Mercado Livre temporariamente indisponivel.";
     if (/amazon|AMAZON_/i.test(value)) return "RAD-AMZ-001 - Fonte Amazon temporariamente indisponivel.";
-    if (/feed|ingest|coleta|n8n|N8N|X-N8N/i.test(value)) return "RAD-FEED-001 - Aguardando entrada de produtos do motor de coleta.";
+    if (/feed|ingest|coleta|n8n|N8N|X-N8N/i.test(value)) return "RAD-FEED-001 - Radar aguardando novas oportunidades.";
     return "RAD-GEN-001 - Falha operacional. Consulte o codigo informado.";
   });
 }

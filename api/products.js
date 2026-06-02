@@ -57,7 +57,7 @@ async function getCatalogProducts(searchParams) {
     return {
       ...buildCatalogSuggestionsFromProducts(fallbackProducts, searchParams),
       catalogFallback: true,
-      warning: "RAD-DATA-002 - Catalogo indisponivel; usando feed local.",
+      warning: "RAD-DATA-002 - Catalogo temporariamente indisponivel; usando oportunidades recentes.",
     };
   }
 }

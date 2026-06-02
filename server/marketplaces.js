@@ -232,7 +232,7 @@ export async function getProducts(searchParams, options = {}) {
       fallback = {
         active: true,
         source: "public-offers",
-        reason: "Ofertas publicas reais ativas: a vitrine esta usando as paginas de ofertas do Mercado Livre e da Amazon enquanto o motor de coleta sincroniza.",
+        reason: "Ofertas publicas reais ativas: a vitrine esta usando oportunidades do Mercado Livre e da Amazon enquanto novos destaques sao avaliados.",
       };
       errors.splice(0, errors.length, ...errors.filter((error) => !isResolvedByPublicOffers(error)));
     } else {
@@ -245,7 +245,7 @@ export async function getProducts(searchParams, options = {}) {
     fallback = {
       active: true,
       source: "demo",
-      reason: "Credenciais reais ausentes ou coleta bloqueada; exibindo catalogo demonstrativo local ate Mercado Livre/Amazon serem configurados.",
+      reason: "Fontes em revisao; exibindo catalogo de referencia enquanto novas oportunidades sao avaliadas.",
     };
   }
 
@@ -408,7 +408,7 @@ async function getDemoProducts({ limit }) {
 async function getMercadoLivreProducts({ query, limit }, options = {}) {
   const accessToken = await ensureMercadoLivreAccessToken(options);
   if (!accessToken) {
-    throw new Error("RAD-ML-002 - Fonte Mercado Livre aguardando credencial de integracao.");
+    throw new Error("RAD-ML-002 - Fonte Mercado Livre aguardando autorizacao.");
   }
 
   const authHeaders = {
@@ -575,7 +575,7 @@ async function getAmazonFromEndpoint({ query, limit }) {
 async function getAmazonFromCreatorsApi({ query, limit }) {
   const missing = missingAmazonKeys();
   if (missing.length) {
-    throw new Error("RAD-AMZ-002 - Fonte Amazon aguardando credencial de integracao.");
+    throw new Error("RAD-AMZ-002 - Fonte Amazon aguardando autorizacao.");
   }
 
   const apiClient = new ApiClient();
@@ -927,7 +927,7 @@ function toNumber(value) {
 }
 
 function formatSourceError(source, error) {
-  return `${source}: ${error.message || "falha na coleta"}`;
+  return `${source}: ${error.message || "fonte temporariamente indisponivel"}`;
 }
 
 function parseSources(value) {

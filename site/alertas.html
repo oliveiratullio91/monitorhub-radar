@@ -3,9 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Dashboard Garimpanda de alertas, execucoes e indicadores de monitoramento." />
+    <meta name="description" content="Dashboard Garimpanda de alertas, oportunidades e sinais de compra." />
     <title>Garimpanda - Alertas</title>
-    <link rel="stylesheet" href="./styles.css?v=auth-header1" />
+    <link rel="stylesheet" href="./styles.css?v=brand-copy1" />
   </head>
   <body class="page-body alerts-page">
     <div class="dashboard-shell">
@@ -16,7 +16,7 @@
           </span>
           <span>
             <strong>Garim<span>panda</span></strong>
-            <small>Monitoramento automatico de anuncios, precos e oportunidades.</small>
+            <small>Oportunidades, sinais de preco e compradores prontos para boas ofertas.</small>
             <small class="sr-only" id="connectionText">Aguardando atualizacao</small>
           </span>
         </a>
@@ -47,17 +47,17 @@
       <main class="dashboard-main page-main">
         <section class="page-intro compact-intro">
           <div>
-            <span class="hero-kicker">Painel operacional</span>
-            <h1>Alertas e execucoes</h1>
-            <p>Acompanhe o que o radar coletou, quais produtos mudaram e quais oportunidades foram geradas.</p>
+            <span class="hero-kicker">Painel de oportunidades</span>
+            <h1>Alertas e sinais de compra</h1>
+            <p>Acompanhe produtos em destaque, mudancas de preco e oportunidades que podem virar compra.</p>
           </div>
           <dl class="intro-status">
             <div>
               <dt>Ultima atualizacao</dt>
-              <dd id="lastUpdatedText">Nenhuma coleta realizada</dd>
+              <dd id="lastUpdatedText">Nenhuma atualizacao realizada</dd>
             </div>
             <div>
-              <dt>Proxima execucao</dt>
+              <dt>Proxima leitura</dt>
               <dd id="automationNextRun">Calculando</dd>
             </div>
           </dl>
@@ -136,17 +136,17 @@
           </aside>
 
           <aside class="panel-card flow-card">
-            <h2>Execucoes do Fluxo</h2>
+            <h2>Radar em atividade</h2>
             <div class="flow-success">
               <span class="flow-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></svg>
               </span>
               <div>
-                <p>Ultima execucao bem-sucedida</p>
-                <strong id="automationLastRun">Aguardando coleta</strong>
+                <p>Ultima leitura de oportunidades</p>
+                <strong id="automationLastRun">Aguardando atualizacao</strong>
               </div>
               <dl>
-                <dt>Execucoes hoje</dt>
+                <dt>Leituras hoje</dt>
                 <dd><span id="automationToday">0</span> de 48</dd>
               </dl>
             </div>
@@ -177,26 +177,26 @@
           </article>
 
           <aside class="panel-card upcoming-card">
-            <h2>Proximas Execucoes</h2>
+            <h2>Proximas leituras</h2>
             <div class="upcoming-list">
               <article>
                 <span class="clock-icon" aria-hidden="true"></span>
-                <strong>Coleta - Mercado Livre</strong>
+                <strong>Radar - Mercado Livre</strong>
                 <time>00 e 30 min</time>
               </article>
               <article>
                 <span class="clock-icon" aria-hidden="true"></span>
-                <strong>Coleta - Amazon</strong>
+                <strong>Radar - Amazon</strong>
                 <time>00 e 30 min</time>
               </article>
               <article>
                 <span class="clock-icon" aria-hidden="true"></span>
                 <strong>Avaliacao de alertas</strong>
-                <time>Apos cada coleta</time>
+                <time>Apos cada leitura</time>
               </article>
               <article>
                 <span class="clock-icon" aria-hidden="true"></span>
-                <strong>Persistencia do feed</strong>
+                <strong>Catalogo de oportunidades</strong>
                 <time>Continuo</time>
               </article>
             </div>
@@ -206,6 +206,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=auth-header1" defer></script>
+    <script src="./app.js?v=brand-copy1" defer></script>
   </body>
 </html>

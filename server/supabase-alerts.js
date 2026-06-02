@@ -1317,7 +1317,7 @@ async function supabaseFetch(pathname, options = {}) {
 
   if (!response.ok) {
     const detail = payload?.msg || payload?.message || payload?.error_description || payload?.error || payload?.hint || payload?.raw || response.statusText;
-    throw httpError(`RAD-DATA-001 - Servico de dados respondeu HTTP ${response.status}.`, response.status);
+    throw httpError(`RAD-DATA-001 - Radar temporariamente indisponivel.`, response.status);
   }
 
   return payload;
@@ -1325,13 +1325,13 @@ async function supabaseFetch(pathname, options = {}) {
 
 function ensureSupabaseAuthConfigured() {
   if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
-    throw httpError("RAD-AUTH-001 - Servico de autenticacao aguardando configuracao.", 503);
+    throw httpError("RAD-AUTH-001 - Conta aguardando configuracao.", 503);
   }
 }
 
 function ensureSupabaseConfigured() {
   if (!isSupabaseConfigured()) {
-    throw httpError("RAD-DATA-001 - Servico de dados aguardando configuracao.", 503);
+    throw httpError("RAD-DATA-001 - Radar aguardando configuracao.", 503);
   }
 }
 

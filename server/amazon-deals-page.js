@@ -46,7 +46,7 @@ export async function getAmazonDeals(searchParams = new URLSearchParams()) {
   }
 
   if (!config?.marketplaceId || !config?.aapiConfig?.uri || !config?.csrfToken) {
-    errors.push("Amazon: configuracao interna de paginacao nao foi encontrada; apenas o primeiro lote foi coletado.");
+    errors.push("RAD-AMZ-003 - Amazon retornou apenas o primeiro lote de oportunidades.");
   } else if (products.length < limit && maxPages > 1) {
     const remainingPages = Math.max(0, Math.min(maxPages - 1, Math.ceil((limit - products.length) / PAGE_SIZE)));
     const cookieHeader = buildCookieHeader(page.setCookies);

@@ -231,7 +231,7 @@ function isEnvironmentAuthUnavailable(error) {
 
 function setSessionSyncUnavailableStatus() {
   setDataServiceStatus(
-    "RAD-DATA-001 - Sessao mantida, mas a sincronizacao esta indisponivel neste ambiente.",
+    "RAD-DATA-001 - Sessao mantida, mas os alertas estao temporariamente indisponiveis.",
     false,
   );
 }
@@ -395,9 +395,9 @@ async function loadServerConfig() {
 function renderServerStatus() {
   const config = state.serverConfig;
   if (!config) {
-    setStatusElement(elements.mercadoLivreStatus, "Mercado Livre: servidor indisponivel", false);
-    setStatusElement(elements.amazonStatus, "Amazon: servidor indisponivel", false);
-    setDataServiceStatus("RAD-DATA-001 - Servico de dados indisponivel.", false);
+    setStatusElement(elements.mercadoLivreStatus, "Mercado Livre: fonte temporariamente indisponivel", false);
+    setStatusElement(elements.amazonStatus, "Amazon: fonte temporariamente indisponivel", false);
+    setDataServiceStatus("Radar temporariamente indisponivel.", false);
     return;
   }
 
@@ -406,26 +406,26 @@ function renderServerStatus() {
     config.mercadoLivreConfigured
       ? "Mercado Livre: conectado"
       : IS_LOCALHOST
-        ? "Mercado Livre: RAD-ML-002 - Fonte aguardando credencial."
-        : "Mercado Livre: RAD-ML-002 - Fonte aguardando credencial.",
+        ? "Mercado Livre: RAD-ML-002 - Fonte aguardando autorizacao."
+        : "Mercado Livre: RAD-ML-002 - Fonte aguardando autorizacao.",
     config.mercadoLivreConfigured,
   );
   setStatusElement(
     elements.amazonStatus,
-    config.amazonConfigured ? `Amazon: ${config.amazonProvider} ativo` : "Amazon: RAD-AMZ-002 - Fonte aguardando credencial.",
+    config.amazonConfigured ? `Amazon: ${config.amazonProvider} ativo` : "Amazon: RAD-AMZ-002 - Fonte aguardando autorizacao.",
     config.amazonConfigured,
   );
   setDataServiceStatus(
     config.dataServiceConfigured
-      ? "Servico de dados ativo"
-      : "RAD-DATA-001 - Servico de dados aguardando configuracao.",
+      ? "Radar ativo para sua conta"
+      : "Entre para ativar seus alertas de preco.",
     config.dataServiceConfigured,
   );
 }
 
 function applyAutomaticDemoFallback(hasSavedConfig) {
   if (!state.serverConfig || hasSavedConfig) return;
-  setConnectionText("Modo real aguardando credenciais");
+  setConnectionText("Radar aguardando fontes");
 }
 
 function setStatusElement(element, text, ready) {
@@ -733,7 +733,7 @@ function renderCatalogSuggestions() {
   if (!state.catalogSuggestions.length) {
     const empty = document.createElement("div");
     empty.className = "catalog-suggestion-empty";
-    empty.textContent = "Nenhum produto catalogado encontrado. Abra Produtos ou aguarde a proxima coleta automatica.";
+    empty.textContent = "Nenhum produto encontrado ainda. Abra Produtos e escolha uma oportunidade do catalogo.";
     container.append(empty);
     return;
   }
@@ -822,7 +822,7 @@ async function submitPriceAlert(event) {
     state.selectedCatalogProduct = null;
     state.catalogSuggestions = [];
     prefillAlertContacts();
-    setDataServiceStatus("Alerta salvo. O radar vai comparar nas proximas coletas.", true);
+    setDataServiceStatus("Alerta salvo. O radar vai procurar oportunidades no preco ideal.", true);
   } catch (error) {
     setDataServiceStatus(publicErrorMessage(error.message, "Falha ao salvar alerta."), false);
   } finally {
@@ -1106,7 +1106,7 @@ function renderPriceAlertsArea() {
     elements.sessionUserName.textContent = user.name || "Usuario conectado";
   }
   if (elements.sessionUserEmail) {
-    elements.sessionUserEmail.textContent = user.email || "Sincronizado com a plataforma";
+    elements.sessionUserEmail.textContent = user.email || "Radar ativo para sua conta";
   }
 
   prefillAlertContacts();
@@ -1366,19 +1366,19 @@ async function refreshProducts() {
     state.products = withChanges((payload.products || []).filter((product) => product.id && product.title));
     state.lastUpdated = payload.fetchedAt ? new Date(payload.fetchedAt) : new Date();
     if (state.feedActive && state.products.length) {
-      setConnectionText("Feed atualizado");
+      setConnectionText("Catalogo atualizado");
     } else if (state.feedActive) {
       setConnectionText("Aguardando produtos");
     } else if (state.fallbackActive && payload.fallback?.source === "public-offers") {
       setConnectionText("Ofertas publicas ativas");
     } else if (state.fallbackActive || (config.demoEnabled && !state.serverConfig?.realSourcesReady && !config.mercadoLivreEnabled && !config.amazonEnabled)) {
-      setConnectionText("Demo local ativo");
+      setConnectionText("Oportunidades publicas ativas");
     } else if (state.sourceErrors.some((message) => message.includes("sem itens publicados"))) {
       setConnectionText("Sem anuncios na conta");
     } else if (state.sourceErrors.some((message) => message.includes("HTTP 403"))) {
       setConnectionText("Permissoes pendentes");
     } else {
-      setConnectionText(state.sourceErrors.length ? "Credenciais pendentes" : "Atualizado agora");
+      setConnectionText(state.sourceErrors.length ? "Fontes em revisao" : "Atualizado agora");
     }
   } catch (error) {
     state.products = [];
@@ -1726,7 +1726,7 @@ function render() {
   if (elements.lastUpdatedText) {
     elements.lastUpdatedText.textContent = state.lastUpdated
       ? `${state.lastUpdated.toLocaleDateString("pt-BR")} ${state.lastUpdated.toLocaleTimeString("pt-BR")}`
-      : "Nenhuma coleta realizada";
+      : "Nenhuma atualizacao realizada";
   }
 }
 
@@ -1772,7 +1772,7 @@ function renderDashboardStatus() {
   const nextRun = new Date(lastRun.getTime() + getConfig().refreshInterval);
   if (elements.automationLastRun) elements.automationLastRun.textContent = state.lastUpdated
     ? `${state.lastUpdated.toLocaleDateString("pt-BR")} ${state.lastUpdated.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
-    : "Aguardando coleta";
+    : "Aguardando atualizacao";
   if (elements.automationNextRun) elements.automationNextRun.textContent = state.live
     ? `${nextRun.toLocaleDateString("pt-BR")} ${nextRun.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
     : "Atualização pausada";
@@ -2019,14 +2019,14 @@ function renderProducts(products) {
   if (!state.feedActive && !state.sourceErrors.length && !products.length) {
     const warning = document.createElement("div");
     warning.className = "warning-state";
-    warning.textContent = "RAD-FEED-001 - Aguardando entrada de produtos do motor de coleta.";
+    warning.textContent = "O radar esta aguardando novas oportunidades para mostrar aqui.";
     elements.productGrid.append(warning);
   }
 
   if (state.fallbackActive) {
     const warning = document.createElement("div");
     warning.className = "warning-state";
-    warning.textContent = state.fallbackReason || "Modo demonstracao ativo enquanto as fontes reais sao configuradas.";
+    warning.textContent = state.fallbackReason || "O radar esta usando oportunidades publicas enquanto novas ofertas sao avaliadas.";
     elements.productGrid.append(warning);
   }
 
@@ -2138,10 +2138,10 @@ function renderTimeline() {
 
 function formatSourceErrorForDisplay(message) {
   if (/RAD-ML-002|credencial|integracao/i.test(message) && /Mercado Livre|mercadolivre|ML/i.test(message)) {
-    return "RAD-ML-002 - Fonte Mercado Livre aguardando credencial de integracao.";
+    return "RAD-ML-002 - Fonte Mercado Livre aguardando autorizacao.";
   }
   if (message.includes("sem itens publicados")) {
-    return "RAD-ML-003 - Conta Mercado Livre conectada sem anuncios proprios retornados.";
+    return "RAD-ML-003 - Conta Mercado Livre conectada sem anuncios publicados.";
   }
   return publicErrorMessage(message, "Falha em uma fonte monitorada.");
 }
