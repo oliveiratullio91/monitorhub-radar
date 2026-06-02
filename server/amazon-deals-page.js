@@ -221,12 +221,15 @@ function normalizeAapiPromotion(promotion, index, fetchedAt) {
 }
 
 function extractWidgetConfig(html) {
-  const rawConfig = extractJsonObjectAfter(html, "assets.mountWidget('slot-14'");
-  if (rawConfig) {
+  const widgetSlots = [...String(html || "").matchAll(/assets\.mountWidget\('([^']+)'/g)].map((match) => match[1]);
+  for (const slot of widgetSlots) {
+    const rawConfig = extractJsonObjectAfter(html, `assets.mountWidget('${slot}'`);
+    if (!rawConfig || !rawConfig.includes("productSearchResponse")) continue;
     try {
-      return JSON.parse(rawConfig);
+      const config = JSON.parse(rawConfig);
+      if (config?.productSearchResponse) return config;
     } catch {
-      // Fall back to the embedded response below.
+      // Try the next widget before falling back to the embedded response.
     }
   }
 
