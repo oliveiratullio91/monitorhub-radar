@@ -1,5 +1,10 @@
 import { getProducts } from "../server/marketplaces.js";
-import { indexCatalogProducts, listProductCatalog } from "../server/supabase-alerts.js";
+import { getN8nProducts } from "../server/n8n-feed.js";
+import {
+  buildCatalogSuggestionsFromProducts,
+  indexCatalogProducts,
+  listProductCatalog,
+} from "../server/supabase-alerts.js";
 import {
   decodeMercadoLivreTokenCookie,
   mercadoLivreTokenCookie,
@@ -10,7 +15,7 @@ export default async function handler(request, response) {
     const url = new URL(request.url || "/api/products", `https://${request.headers.host || "localhost"}`);
     if (url.searchParams.get("catalog") === "1") {
       response.setHeader("Cache-Control", "no-store");
-      response.status(200).json(await listProductCatalog(url.searchParams));
+      response.status(200).json(await getCatalogProducts(url.searchParams));
       return;
     }
 
@@ -30,4 +35,24 @@ export default async function handler(request, response) {
       error: error.message || "Erro inesperado",
     });
   }
+}
+
+async function getCatalogProducts(searchParams) {
+  try {
+    return await listProductCatalog(searchParams);
+  } catch (error) {
+    const fallbackProducts = await getCatalogFallbackProducts(searchParams);
+    return {
+      ...buildCatalogSuggestionsFromProducts(fallbackProducts, searchParams),
+      catalogFallback: true,
+      warning: error.message || "Catalogo Supabase indisponivel; usando feed local.",
+    };
+  }
+}
+
+async function getCatalogFallbackProducts(searchParams) {
+  const limit = Math.max(200, Math.min(Number(searchParams.get("sourceLimit") || 2000), 2000));
+  const feed = await getN8nProducts(new URLSearchParams({ limit: String(limit) })).catch(() => null);
+  if (feed?.products?.length) return feed.products;
+  return [];
 }

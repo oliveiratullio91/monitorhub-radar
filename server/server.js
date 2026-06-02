@@ -14,6 +14,7 @@ import { getN8nProducts, ingestN8nProducts } from "./n8n-feed.js";
 import { getMercadoLivreOffers } from "./mercadolivre-offers-page.js";
 import { getAmazonDeals } from "./amazon-deals-page.js";
 import {
+  buildCatalogSuggestionsFromProducts,
   canEvaluateAlerts,
   createPriceAlert,
   deletePriceAlert,
@@ -58,7 +59,7 @@ const server = createServer(async (request, response) => {
 
     if (url.pathname === "/api/products") {
       if (url.searchParams.get("catalog") === "1") {
-        return sendJson(response, await listProductCatalog(url.searchParams));
+        return sendJson(response, await getCatalogProducts(url.searchParams));
       }
       const payload = await getProducts(url.searchParams);
       const catalog = await indexCatalogProducts(payload.products || []);
@@ -68,7 +69,7 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/catalog/products") {
       if (request.method === "OPTIONS") return sendEmpty(response, 204);
       if (request.method !== "GET") return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
-      return sendJson(response, await listProductCatalog(url.searchParams));
+      return sendJson(response, await getCatalogProducts(url.searchParams));
     }
 
     if (url.pathname === "/api/mercadolivre/offers") {
@@ -181,6 +182,20 @@ const server = createServer(async (request, response) => {
 server.listen(port, "127.0.0.1", () => {
   console.log(`Radar de Produtos em http://127.0.0.1:${port}`);
 });
+
+async function getCatalogProducts(searchParams) {
+  try {
+    return await listProductCatalog(searchParams);
+  } catch (error) {
+    const limit = Math.max(200, Math.min(Number(searchParams.get("sourceLimit") || 2000), 2000));
+    const feed = await getN8nProducts(new URLSearchParams({ limit: String(limit) })).catch(() => null);
+    return {
+      ...buildCatalogSuggestionsFromProducts(feed?.products || [], searchParams),
+      catalogFallback: true,
+      warning: error.message || "Catalogo Supabase indisponivel; usando feed local.",
+    };
+  }
+}
 
 async function startMercadoLivreOAuth(body, response) {
   const clientId = String(body.clientId || "").trim();
