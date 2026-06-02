@@ -160,7 +160,7 @@ create policy "monitorhub users can read own notifications"
 -- Fluxo sugerido no n8n:
 -- 1. Apos atualizar /api/n8n/products, chame GET ou POST /api/alerts/evaluate?limit=1000
 --    com markNotified=true para criar registros pendentes em monitorhub_alert_notifications.
--- 2. Chame GET /api/alerts/notifications para listar pendencias.
--- 3. Envie por Gmail/SMTP/WhatsApp no n8n.
--- 4. Marque cada notificacao com PATCH /api/alerts/notifications:
+-- 2. Chame POST /api/alerts/dispatch?evaluate=true para enviar pela API.
+-- 3. Opcionalmente, chame GET /api/alerts/notifications para listar pendencias.
+-- 4. Se enviar por outro sistema, marque cada notificacao com PATCH /api/alerts/notifications:
 --    { "id": "...", "status": "sent" } ou { "id": "...", "status": "failed", "errorMessage": "..." }.

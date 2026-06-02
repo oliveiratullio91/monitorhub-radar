@@ -8,6 +8,7 @@
     "dev": "node server/server.js"
   },
   "dependencies": {
-    "amazon-creators-api": "^1.2.2"
+    "amazon-creators-api": "^1.2.2",
+    "nodemailer": "^8.0.10"
   }
 }

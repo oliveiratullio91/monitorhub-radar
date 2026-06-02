@@ -351,7 +351,9 @@ export async function listPendingAlertNotifications(options = {}) {
     limit: String(limit),
   });
   const records = await supabaseRestFetch(`/${NOTIFICATIONS_TABLE}?${params.toString()}`, { service: true });
-  return Array.isArray(records) ? records.map(normalizeNotificationRecord) : [];
+  if (!Array.isArray(records) || !records.length) return [];
+  const enriched = await enrichNotificationRecords(records);
+  return enriched.map(normalizeNotificationRecord);
 }
 
 export async function updateAlertNotificationStatus(body = {}) {
@@ -683,6 +685,10 @@ function normalizeNotificationRecord(record = {}) {
     id: String(record.id || ""),
     alertId: String(record.alert_id || ""),
     userId: String(record.user_id || ""),
+    userEmail: String(record.user_email || record.alert_user_email || ""),
+    userName: String(record.user_name || record.alert_user_name || ""),
+    whatsappPhone: String(record.whatsapp_phone || record.alert_whatsapp_phone || ""),
+    notificationChannel: normalizeNotificationChannel(record.notification_channel || record.alert_notification_channel || record.channel || "email"),
     channel: String(record.channel || ""),
     productKey: String(record.product_key || ""),
     productTitle: String(record.product_title || ""),
@@ -694,6 +700,29 @@ function normalizeNotificationRecord(record = {}) {
     sentAt: String(record.sent_at || ""),
     createdAt: String(record.created_at || ""),
   };
+}
+
+async function enrichNotificationRecords(records) {
+  const alertIds = [...new Set(records.map((record) => String(record.alert_id || "")).filter(isUuid))];
+  if (!alertIds.length) return records;
+
+  const params = new URLSearchParams({
+    select: "id,user_email,user_name,whatsapp_phone,notification_channel",
+    id: `in.(${alertIds.join(",")})`,
+  });
+  const alerts = await supabaseRestFetch(`/${ALERTS_TABLE}?${params.toString()}`, { service: true }).catch(() => []);
+  const alertsById = new Map((Array.isArray(alerts) ? alerts : []).map((alert) => [String(alert.id || ""), alert]));
+
+  return records.map((record) => {
+    const alert = alertsById.get(String(record.alert_id || "")) || {};
+    return {
+      ...record,
+      alert_user_email: alert.user_email,
+      alert_user_name: alert.user_name,
+      alert_whatsapp_phone: alert.whatsapp_phone,
+      alert_notification_channel: alert.notification_channel,
+    };
+  });
 }
 
 function normalizeAuthPayload(payload = {}) {

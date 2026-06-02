@@ -29,6 +29,10 @@ Este documento traduz os codigos exibidos ao usuario em causas provaveis e ponto
 | RAD-ML-003 | Mercado Livre | Conta Mercado Livre conectada sem anuncios proprios retornados. | Conta autorizada nao possui anuncios proprios, mas a vitrine pode seguir usando ofertas publicas. | Verificar se o fallback `public-offers` esta ativo e se `/api/mercadolivre/offers` retorna itens. |
 | RAD-AMZ-001 | Amazon | Fonte Amazon temporariamente indisponivel. | Pagina de ofertas mudou, paginacao falhou, captcha ou timeout. | Conferir `/api/amazon/deals?limit=500&pages=20`, parser do widget e logs de erro. |
 | RAD-AMZ-002 | Amazon | Fonte Amazon aguardando credencial de integracao. | API oficial sem credenciais, quando usada em modo autenticado. | Conferir `AMAZON_PARTNER_TAG`, `AMAZON_CREDENTIAL_ID`, `AMAZON_CREDENTIAL_SECRET` e `AMAZON_CREDENTIAL_VERSION`. |
+| RAD-NOTIFY-001 | Avisos | Falha ao enviar aviso. | Provedor respondeu erro, limite atingido, payload invalido ou indisponibilidade temporaria. | Conferir logs da rota `/api/alerts/dispatch`, resposta do provedor e status da notificacao. |
+| RAD-NOTIFY-002 | Avisos | Envio de e-mail aguardando configuracao. | Nenhum provedor de e-mail ativo ou remetente/destinatario ausente. | Configurar `EMAIL_FROM` e uma opcao: `RESEND_API_KEY`, `SENDGRID_API_KEY` ou `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS`. |
+| RAD-NOTIFY-003 | Avisos | Envio por WhatsApp aguardando configuracao. | Token, phone number id ou telefone de destino ausente. | Configurar `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` e validar telefone do alerta. |
+| RAD-NOTIFY-004 | Avisos | Envio por Telegram aguardando configuracao. | Bot token ou chat id ausente. | Configurar `TELEGRAM_ALERTS_ENABLED`, `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`. |
 | RAD-GEN-001 | Geral | Falha operacional. Consulte o codigo informado. | Erro nao classificado. | Revisar response da API, console/logs do servidor e reproduzir o fluxo. |
 
 ## Observacoes

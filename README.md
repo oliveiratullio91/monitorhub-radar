@@ -98,13 +98,23 @@ Tambem funciona via `POST /api/alerts/evaluate` com:
 
 Se `N8N_INGEST_TOKEN` estiver configurado, envie o mesmo valor no header `X-N8N-Token`.
 
-Depois da avaliacao, o n8n deve buscar a fila em:
+Depois da avaliacao, existem duas formas de disparar avisos.
+
+1. Disparo automatico pela propria API:
+
+```text
+POST https://monitorhub-radar.vercel.app/api/alerts/dispatch?evaluate=true
+```
+
+Esse endpoint avalia os alertas, envia e-mail/WhatsApp quando os provedores estiverem configurados e marca a notificacao como `sent` ou `failed`.
+
+2. Integracao externa ainda pode buscar a fila em:
 
 ```text
 GET https://monitorhub-radar.vercel.app/api/alerts/notifications
 ```
 
-Depois que enviar por Gmail, SMTP ou WhatsApp, marque a notificacao:
+Depois que enviar por outro sistema, marque a notificacao:
 
 ```json
 {
@@ -114,6 +124,10 @@ Depois que enviar por Gmail, SMTP ou WhatsApp, marque a notificacao:
 ```
 
 Use `PATCH /api/alerts/notifications` para essa atualizacao. Em caso de falha, envie `status: "failed"` e `errorMessage`.
+
+Para e-mail real, configure uma das opcoes em `.env`: `RESEND_API_KEY`, `SENDGRID_API_KEY` ou `SMTP_HOST`/`SMTP_USER`/`SMTP_PASS`, sempre com `EMAIL_FROM`.
+Para WhatsApp real, configure `WHATSAPP_ACCESS_TOKEN` e `WHATSAPP_PHONE_NUMBER_ID`.
+Para Telegram opcional, configure `TELEGRAM_ALERTS_ENABLED=true`, `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`.
 
 ### Login com Google
 

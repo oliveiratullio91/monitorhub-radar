@@ -13,6 +13,7 @@ import {
 import { getFeedProducts, getN8nProducts, ingestN8nProducts } from "./n8n-feed.js";
 import { getMercadoLivreOffers } from "./mercadolivre-offers-page.js";
 import { getAmazonDeals } from "./amazon-deals-page.js";
+import { dispatchPendingAlertNotifications } from "./notification-dispatcher.js";
 import {
   buildCatalogSuggestionsFromProducts,
   canEvaluateAlerts,
@@ -154,6 +155,32 @@ const server = createServer(async (request, response) => {
         return sendJson(response, { ok: true, notifications, count: notifications.length });
       }
       return sendJson(response, { ok: true, notification: await updateAlertNotificationStatus(await readJson(request)) });
+    }
+
+    if (url.pathname === "/api/alerts/dispatch") {
+      if (request.method === "OPTIONS") return sendEmpty(response, 204);
+      if (!["GET", "POST"].includes(request.method)) return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
+      if (!canEvaluateAlerts(request)) return sendJson(response, { ok: false, code: "RAD-FEED-002", error: "RAD-FEED-002 - Token de ingestao invalido" }, 401);
+      const body = request.method === "POST" ? await readJson(request).catch(() => ({})) : {};
+      let evaluation = null;
+      if (parseBoolean(body.evaluate ?? url.searchParams.get("evaluate"))) {
+        const products = Array.isArray(body.products)
+          ? body.products
+          : (await getN8nProducts(new URLSearchParams({ limit: String(body.productLimit || url.searchParams.get("productLimit") || 1000) }))).products;
+        evaluation = await evaluatePriceAlerts(products, {
+          limit: body.productLimit || url.searchParams.get("productLimit") || 1000,
+          markNotified: true,
+        });
+      }
+      return sendJson(response, {
+        ok: true,
+        evaluation,
+        dispatch: await dispatchPendingAlertNotifications({
+          limit: body.limit || url.searchParams.get("limit") || 100,
+          dryRun: body.dryRun ?? url.searchParams.get("dryRun"),
+          channel: body.channel || url.searchParams.get("channel") || "",
+        }),
+      });
     }
 
     if (url.pathname === "/api/feed/products") {
