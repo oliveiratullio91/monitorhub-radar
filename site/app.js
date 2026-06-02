@@ -167,6 +167,7 @@ const elements = {
   reloadAlertsButton: document.querySelector("#reloadAlertsButton"),
   priceAlertsList: document.querySelector("#priceAlertsList"),
   userChips: document.querySelectorAll("[data-user-chip]"),
+  loginCtas: document.querySelectorAll("[data-login-cta]"),
   googleLoginButtons: document.querySelectorAll("[data-google-login]"),
 };
 
@@ -1121,6 +1122,12 @@ function renderUserHeader() {
   const displayName = isLoggedIn ? displayUserName(user) : "Visitante";
   const status = isLoggedIn ? "Radar ativo" : "Entrar para alertas";
   const initials = userInitials(displayName, user.email);
+
+  elements.loginCtas?.forEach((cta) => {
+    cta.classList.toggle("is-hidden", isLoggedIn);
+    cta.setAttribute("aria-hidden", isLoggedIn ? "true" : "false");
+    cta.tabIndex = isLoggedIn ? -1 : 0;
+  });
 
   elements.userChips.forEach((chip) => {
     const avatar = chip.querySelector("[data-user-avatar]");
