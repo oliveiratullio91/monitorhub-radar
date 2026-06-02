@@ -149,6 +149,7 @@ async function fetchAapiDealsPage({ config, cookieHeader, startIndex, pageSize }
 }
 
 function normalizeHtmlProduct(product, index, fetchedAt) {
+  const asin = String(product?.asin || `amazon-deal-${index + 1}`);
   const price = toNumber(product?.price?.priceToPay?.price);
   const originalPrice = toNumber(product?.price?.basisPrice?.price);
   const badge = fragmentText(product?.dealBadge?.label);
@@ -158,13 +159,13 @@ function normalizeHtmlProduct(product, index, fetchedAt) {
   const image = buildImageUrl(product?.image?.hiRes) || buildImageUrl(product?.image?.lowRes);
 
   return {
-    id: String(product?.asin || `amazon-deal-${index + 1}`),
+    id: asin,
     title: String(product?.title || product?.image?.altText || "").trim(),
     price,
     originalPrice,
     discountPercent,
     currency: "BRL",
-    url: normalizeAmazonUrl(product?.link),
+    url: normalizeAmazonProductUrl(product?.link, asin),
     image,
     seller: "Amazon",
     availability: messaging || dealDetails.state || "Oferta Amazon",
@@ -182,6 +183,7 @@ function normalizeHtmlProduct(product, index, fetchedAt) {
 
 function normalizeAapiPromotion(promotion, index, fetchedAt) {
   const entity = promotion?.product?.entity || {};
+  const asin = String(entity.asin || `amazon-deal-${index + 1}`);
   const buyingOption = entity.buyingOptions?.[0] || {};
   const priceEntity = buyingOption.price?.entity || {};
   const dealBadge = buyingOption.dealBadge?.entity || {};
@@ -198,13 +200,13 @@ function normalizeAapiPromotion(promotion, index, fetchedAt) {
   const brand = entity.brandLogo?.entity?.logo?.entity?.altText || "Amazon";
 
   return {
-    id: String(entity.asin || `amazon-deal-${index + 1}`),
+    id: asin,
     title: String(title).trim(),
     price,
     originalPrice,
     discountPercent,
     currency: priceEntity.priceToPay?.moneyValueOrRange?.value?.currencyCode || "BRL",
-    url: normalizeAmazonUrl(entity.links?.entity?.viewOnAmazon?.url),
+    url: normalizeAmazonProductUrl(entity.links?.entity?.viewOnAmazon?.url, asin),
     image,
     seller: String(brand).trim(),
     availability: messaging || dealDetails.state || "Oferta Amazon",
@@ -290,6 +292,10 @@ function normalizeAmazonUrl(rawUrl) {
   } catch {
     return "";
   }
+}
+
+function normalizeAmazonProductUrl(rawUrl, asin) {
+  return normalizeAmazonUrl(rawUrl) || (asin ? normalizeAmazonUrl(`/dp/${encodeURIComponent(asin)}`) : "");
 }
 
 function firstAapiImage(images = []) {
