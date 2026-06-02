@@ -1,4 +1,4 @@
-import { getN8nProducts, ingestN8nProducts } from "../../server/n8n-feed.js";
+import { getFeedProducts, getN8nProducts, ingestN8nProducts } from "../../server/n8n-feed.js";
 
 export default async function handler(request, response) {
   setCorsHeaders(response);
@@ -10,10 +10,11 @@ export default async function handler(request, response) {
 
   try {
     const url = new URL(request.url || "/api/n8n/products", `https://${request.headers.host || "localhost"}`);
+    const publicFeed = url.pathname === "/api/feed/products" || url.searchParams.get("publicFeed") === "1";
 
     if (request.method === "GET") {
       response.setHeader("Cache-Control", "no-store");
-      response.status(200).json(await getN8nProducts(url.searchParams));
+      response.status(200).json(await (publicFeed ? getFeedProducts(url.searchParams) : getN8nProducts(url.searchParams)));
       return;
     }
 

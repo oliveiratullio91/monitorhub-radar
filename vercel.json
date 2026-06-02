@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/feed/products",
+      "destination": "/api/n8n/products?publicFeed=1"
+    },
+    {
       "source": "/api/catalog/products",
       "destination": "/api/products?catalog=1"
     },
