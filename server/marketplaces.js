@@ -6,6 +6,8 @@ import {
   SearchItemsResource,
   TypedDefaultApi,
 } from "amazon-creators-api";
+import { getAmazonDeals } from "./amazon-deals-page.js";
+import { getMercadoLivreOffers } from "./mercadolivre-offers-page.js";
 
 const envPath = path.resolve(process.cwd(), ".env");
 const localEnvPath = path.resolve(process.cwd(), ".env.local");
@@ -183,7 +185,8 @@ export async function authorizeMercadoLivreFromCode({ code, redirectUri, codeVer
 }
 
 export async function getProducts(searchParams, options = {}) {
-  const limit = clamp(Number(searchParams.get("limit") || 12), 1, 50);
+  const requestedLimit = clamp(Number(searchParams.get("limit") || 12), 1, 2000);
+  const apiLimit = Math.min(requestedLimit, 50);
   const sources = parseSources(searchParams.get("sources") || "mercadolivre,amazon");
   const fallbackMode = String(searchParams.get("fallback") || "none").toLowerCase();
   const allowDemoFallback = !["0", "false", "none", "off"].includes(fallbackMode);
@@ -195,7 +198,7 @@ export async function getProducts(searchParams, options = {}) {
 
   if (sources.has("demo")) {
     productGroups.push(
-      getDemoProducts({ limit }).catch((error) => {
+      getDemoProducts({ limit: requestedLimit }).catch((error) => {
         errors.push(formatSourceError("Demo", error));
         return [];
       }),
@@ -204,7 +207,7 @@ export async function getProducts(searchParams, options = {}) {
 
   if (sources.has("mercadolivre") && toBool(env.MERCADO_LIVRE_ENABLED, true)) {
     productGroups.push(
-      getMercadoLivreProducts({ query: mercadoLivreQuery, limit }, options).catch((error) => {
+      getMercadoLivreProducts({ query: mercadoLivreQuery, limit: apiLimit }, options).catch((error) => {
         errors.push(formatSourceError("Mercado Livre", error));
         return [];
       }),
@@ -213,7 +216,7 @@ export async function getProducts(searchParams, options = {}) {
 
   if (sources.has("amazon") && toBool(env.AMAZON_ENABLED, true)) {
     productGroups.push(
-      getAmazonProducts({ query: amazonQuery, limit }).catch((error) => {
+      getAmazonProducts({ query: amazonQuery, limit: apiLimit }).catch((error) => {
         errors.push(formatSourceError("Amazon", error));
         return [];
       }),
@@ -221,8 +224,24 @@ export async function getProducts(searchParams, options = {}) {
   }
 
   let products = (await Promise.all(productGroups)).flat();
+  if (hasRealSourceRequest(sources) && products.length < requestedLimit) {
+    const publicOffers = await getPublicOfferProducts({ sources, limit: requestedLimit - products.length });
+    products = mergeProductsByKey(products, publicOffers.products, requestedLimit);
+
+    if (publicOffers.products.length) {
+      fallback = {
+        active: true,
+        source: "public-offers",
+        reason: "Ofertas publicas reais ativas: a vitrine esta usando as paginas de ofertas do Mercado Livre e da Amazon enquanto o n8n sincroniza.",
+      };
+      errors.splice(0, errors.length, ...errors.filter((error) => !isResolvedByPublicOffers(error)));
+    } else {
+      errors.push(...publicOffers.errors);
+    }
+  }
+
   if (!products.length && allowDemoFallback && !sources.has("demo") && hasRealSourceRequest(sources) && errors.length) {
-    products = await getDemoProducts({ limit });
+    products = await getDemoProducts({ limit: requestedLimit });
     fallback = {
       active: true,
       source: "demo",
@@ -233,12 +252,74 @@ export async function getProducts(searchParams, options = {}) {
   return {
     ok: errors.length === 0,
     partial: errors.length > 0 && products.length > 0,
-    products,
+    products: products.slice(0, requestedLimit),
     errors,
     fallback,
     fetchedAt: new Date().toISOString(),
     config: publicConfig(options),
   };
+}
+
+async function getPublicOfferProducts({ sources, limit }) {
+  const tasks = [];
+  const perSourceLimit = Math.min(Math.max(limit, 1), 500);
+  const mercadoLivrePages = Math.min(20, Math.max(1, Math.ceil(perSourceLimit / 45)));
+  const amazonPages = Math.min(20, Math.max(1, Math.ceil(perSourceLimit / 30)));
+
+  if (sources.has("mercadolivre") && toBool(env.MERCADO_LIVRE_ENABLED, true)) {
+    tasks.push(
+      getMercadoLivreOffers(new URLSearchParams({
+        limit: String(perSourceLimit),
+        pages: String(mercadoLivrePages),
+      })).then((payload) => ({
+        source: "Mercado Livre",
+        products: payload.products || [],
+        errors: payload.errors || [],
+      })).catch((error) => ({
+        source: "Mercado Livre",
+        products: [],
+        errors: [error.message || "falha ao consultar ofertas publicas"],
+      })),
+    );
+  }
+
+  if (sources.has("amazon") && toBool(env.AMAZON_ENABLED, true)) {
+    tasks.push(
+      getAmazonDeals(new URLSearchParams({
+        limit: String(perSourceLimit),
+        pages: String(amazonPages),
+      })).then((payload) => ({
+        source: "Amazon",
+        products: payload.products || [],
+        errors: payload.errors || [],
+      })).catch((error) => ({
+        source: "Amazon",
+        products: [],
+        errors: [error.message || "falha ao consultar ofertas publicas"],
+      })),
+    );
+  }
+
+  const payloads = await Promise.all(tasks);
+  return {
+    products: payloads.flatMap((payload) => payload.products),
+    errors: payloads.flatMap((payload) => payload.errors.map((error) => `${payload.source} ofertas: ${error}`)),
+  };
+}
+
+function mergeProductsByKey(currentProducts = [], nextProducts = [], limit = 2000) {
+  const byKey = new Map();
+  for (const product of [...currentProducts, ...nextProducts]) {
+    if (!product?.id || !product?.title) continue;
+    const key = `${product.sourceKind || product.source || "fonte"}:${product.id || product.url || product.title}`;
+    if (!byKey.has(key)) byKey.set(key, product);
+    if (byKey.size >= limit) break;
+  }
+  return [...byKey.values()];
+}
+
+function isResolvedByPublicOffers(error) {
+  return /MERCADO_LIVRE_ACCESS_TOKEN|AMAZON_PARTNER_TAG|AMAZON_CREDENTIAL|conta conectada sem itens|sem itens publicados|HTTP 403|permissoes/i.test(String(error || ""));
 }
 
 function loadEnvFiles(filePaths) {

@@ -433,7 +433,7 @@ function normalizeRadarSourceSelection(changedElement = null) {
 
 async function fetchProductsFromBackend(config) {
   const n8nPayload = await fetchN8nProducts(config.itemLimit);
-  if (n8nPayload && (n8nPayload.products?.length || n8nPayload.updatedAt || n8nPayload.errors?.length)) {
+  if (n8nPayload?.products?.length) {
     setStatusElement(elements.mercadoLivreStatus, "n8n: feed conectado ao dashboard", true);
     return n8nPayload;
   }
@@ -1230,6 +1230,8 @@ async function refreshProducts() {
       setConnectionText("Feed n8n atualizado");
     } else if (state.n8nFeedActive) {
       setConnectionText("Aguardando produtos do n8n");
+    } else if (state.fallbackActive && payload.fallback?.source === "public-offers") {
+      setConnectionText("Ofertas publicas ativas");
     } else if (state.fallbackActive || (config.demoEnabled && !state.serverConfig?.realSourcesReady && !config.mercadoLivreEnabled && !config.amazonEnabled)) {
       setConnectionText("Demo local ativo");
     } else if (state.sourceErrors.some((message) => message.includes("sem itens publicados"))) {
