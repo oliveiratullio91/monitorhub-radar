@@ -14,7 +14,7 @@ Este repositorio contem o kit inicial para montar o projeto no n8n:
 - `server/server.js`: backend local que consulta Mercado Livre e Amazon sem expor credenciais no navegador.
 - `api/config.js`, `api/products.js` e `api/n8n/products.js`: funcoes serverless preparadas para Vercel.
 - `api/mercadolivre/offers.js` e `api/amazon/deals.js`: endpoints serverless para coletar ofertas publicas.
-- `api/auth/*`, `api/alerts.js` e `api/alerts/evaluate.js`: cadastro, login e alertas personalizados com Supabase.
+- `api/auth/*`, `api/alerts.js`, `api/alerts/evaluate.js` e `api/products.js?catalog=1`: cadastro, login, catalogo normalizado e alertas personalizados com Supabase.
 - `templates/google-sheets-historico.csv`: cabecalho da aba `historico` no Google Sheets.
 - `docs/plano-n8n.md`: arquitetura, configuracao e roteiro de implementacao.
 - `docs/plano-plataforma.md`: etapas da plataforma publica para Amazon, Mercado Livre e Vercel.
@@ -71,7 +71,7 @@ Os workflows de coleta recorrente usam cron fixo `0 0,30 * * * *`, ou seja, exec
 
 ## Alertas personalizados com Supabase
 
-O dashboard possui a area `Meus Alertas`, onde o usuario cria conta, entra e salva um produto desejado com preco maximo. Quando o alerta nasce a partir de um card de produto, o backend tambem salva o item exato, imagem, link, fonte e preco atual. O backend compara esses alertas contra o feed real do n8n e gera notificacoes pendentes no Supabase.
+O dashboard possui a area `Meus Alertas`, onde o usuario cria conta, entra e salva um produto desejado com preco maximo. Os produtos escolhidos agora precisam existir no catalogo normalizado `monitorhub_product_catalog`, alimentado pelo feed do n8n e pelas buscas reais. Assim, variacoes como `TV`, `Televisao` e `Smart TV 75 Samsung` podem ser agrupadas em um unico nome canonico. Quando o alerta nasce a partir de um card de produto, o backend tambem salva o item exato, imagem, link, fonte e preco atual. O backend compara esses alertas contra o feed real do n8n e gera notificacoes pendentes no Supabase.
 
 1. No Supabase, crie ou abra um projeto.
 2. Va em `SQL Editor` e rode `docs/supabase-alertas.sql`.

@@ -82,6 +82,10 @@ const state = {
   priceAlerts: [],
   alertsLoading: false,
   selectedAlertProduct: null,
+  selectedCatalogProduct: null,
+  catalogSuggestions: [],
+  catalogLoading: false,
+  catalogSearchTimer: null,
 };
 
 const elements = {
@@ -149,6 +153,7 @@ const elements = {
   priceAlertForm: document.querySelector("#priceAlertForm"),
   selectedProductPreview: document.querySelector("#selectedProductPreview"),
   alertProductQuery: document.querySelector("#alertProductQuery"),
+  catalogSuggestions: document.querySelector("#catalogSuggestions"),
   alertBrand: document.querySelector("#alertBrand"),
   alertTargetPrice: document.querySelector("#alertTargetPrice"),
   alertSource: document.querySelector("#alertSource"),
@@ -492,6 +497,122 @@ async function loadPriceAlerts() {
   }
 }
 
+function scheduleCatalogSearch() {
+  clearTimeout(state.catalogSearchTimer);
+  const query = elements.alertProductQuery?.value.trim() || "";
+  clearSelectedCatalogIfInputChanged(query);
+  state.catalogSearchTimer = setTimeout(() => loadCatalogSuggestions(query), 220);
+}
+
+async function loadCatalogSuggestions(query) {
+  if (!elements.catalogSuggestions) return;
+  const cleanQuery = String(query || "").trim();
+  if (cleanQuery.length < 2) {
+    state.catalogSuggestions = [];
+    state.catalogLoading = false;
+    renderCatalogSuggestions();
+    return;
+  }
+
+  state.catalogLoading = true;
+  renderCatalogSuggestions();
+  try {
+    const params = new URLSearchParams({ catalog: "1", query: cleanQuery, limit: "8" });
+    const payload = await apiRequest(`/api/products?${params.toString()}`, { skipAuth: true });
+    state.catalogSuggestions = Array.isArray(payload.products) ? payload.products : [];
+  } catch (error) {
+    state.catalogSuggestions = [];
+    setSupabaseStatus(error.message || "Falha ao buscar produtos catalogados.", false);
+  } finally {
+    state.catalogLoading = false;
+    renderCatalogSuggestions();
+  }
+}
+
+function clearSelectedCatalogIfInputChanged(query) {
+  const selectedName = state.selectedCatalogProduct?.canonicalName || state.selectedAlertProduct?.title || "";
+  if (!selectedName || query === selectedName) return;
+  state.selectedCatalogProduct = null;
+  state.selectedAlertProduct = null;
+  renderSelectedProductPreview();
+}
+
+function selectCatalogSuggestion(product) {
+  state.selectedCatalogProduct = product;
+  state.selectedAlertProduct = catalogSuggestionToSelectedProduct(product);
+  if (elements.alertProductQuery) {
+    elements.alertProductQuery.value = product.canonicalName || "";
+    elements.alertProductQuery.setAttribute("aria-expanded", "false");
+  }
+  if (elements.alertBrand && !elements.alertBrand.value && product.brand) {
+    elements.alertBrand.value = product.brand;
+  }
+  if (elements.alertSource && product.sources?.length === 1) {
+    const source = normalizeSourceValue(product.sources[0]);
+    if (source !== "all") elements.alertSource.value = source;
+  }
+  state.catalogSuggestions = [];
+  renderCatalogSuggestions();
+  renderSelectedProductPreview();
+}
+
+function renderCatalogSuggestions() {
+  const container = elements.catalogSuggestions;
+  if (!container) return;
+  container.textContent = "";
+  const query = elements.alertProductQuery?.value.trim() || "";
+  const shouldShow = state.catalogLoading || query.length >= 2;
+  container.classList.toggle("is-hidden", !shouldShow || Boolean(state.selectedCatalogProduct));
+  elements.alertProductQuery?.setAttribute("aria-expanded", shouldShow && !state.selectedCatalogProduct ? "true" : "false");
+  if (!shouldShow || state.selectedCatalogProduct) return;
+
+  if (state.catalogLoading) {
+    const loading = document.createElement("div");
+    loading.className = "catalog-suggestion-empty";
+    loading.textContent = "Buscando no catalogo...";
+    container.append(loading);
+    return;
+  }
+
+  if (!state.catalogSuggestions.length) {
+    const empty = document.createElement("div");
+    empty.className = "catalog-suggestion-empty";
+    empty.textContent = "Nenhum produto catalogado encontrado. Abra Produtos ou aguarde a proxima coleta do n8n.";
+    container.append(empty);
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  state.catalogSuggestions.forEach((product) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "catalog-suggestion";
+    button.setAttribute("role", "option");
+    button.addEventListener("click", () => selectCatalogSuggestion(product));
+
+    const image = document.createElement("img");
+    image.src = product.sampleImage || placeholderImage(product.sources?.[0] || product.productType);
+    image.alt = "";
+
+    const copy = document.createElement("span");
+    const title = document.createElement("strong");
+    title.textContent = product.canonicalName || "Produto catalogado";
+    const meta = document.createElement("small");
+    meta.textContent = [
+      product.brand || product.productType,
+      product.sources?.join(" + ") || "",
+      product.lastPrice ? formatMoney(product.lastPrice, product.currency) : "",
+    ].filter(Boolean).join(" | ");
+    copy.append(title, meta);
+
+    const count = document.createElement("em");
+    count.textContent = `${product.seenCount || 1}x`;
+    button.append(image, copy, count);
+    fragment.append(button);
+  });
+  container.append(fragment);
+}
+
 async function submitPriceAlert(event) {
   event.preventDefault();
   if (!state.auth?.session?.accessToken) {
@@ -505,6 +626,12 @@ async function submitPriceAlert(event) {
     setSupabaseStatus("Informe produto e preco maximo.", false);
     return;
   }
+  if (!state.selectedCatalogProduct && !state.selectedAlertProduct) {
+    setSupabaseStatus("Escolha um produto sugerido pelo catalogo antes de criar o alerta.", false);
+    elements.alertProductQuery?.focus();
+    await loadCatalogSuggestions(productQuery);
+    return;
+  }
 
   setAlertFormLoading(true);
   try {
@@ -512,6 +639,10 @@ async function submitPriceAlert(event) {
       method: "POST",
       body: {
         productQuery,
+        catalogProductId: state.selectedCatalogProduct?.id || "",
+        canonicalProductKey: state.selectedCatalogProduct?.canonicalKey || "",
+        canonicalProductName: state.selectedCatalogProduct?.canonicalName || "",
+        catalogProduct: state.selectedCatalogProduct,
         brand: elements.alertBrand.value,
         targetPrice,
         source: elements.alertSource.value,
@@ -524,6 +655,8 @@ async function submitPriceAlert(event) {
     state.priceAlerts = [payload.alert, ...state.priceAlerts];
     elements.priceAlertForm.reset();
     state.selectedAlertProduct = null;
+    state.selectedCatalogProduct = null;
+    state.catalogSuggestions = [];
     prefillAlertContacts();
     setSupabaseStatus("Alerta salvo. O n8n vai comparar nas proximas coletas.", true);
   } catch (error) {
@@ -653,6 +786,7 @@ function applyStoredAlertDraft() {
 
 function applyAlertDraft(draft) {
   state.selectedAlertProduct = draft.product || null;
+  state.selectedCatalogProduct = draft.catalogProduct || null;
   if (elements.alertProductQuery) elements.alertProductQuery.value = draft.productQuery || "";
   if (elements.alertBrand) elements.alertBrand.value = draft.brand || "";
   if (elements.alertTargetPrice) elements.alertTargetPrice.value = draft.targetPrice || "";
@@ -690,13 +824,14 @@ function renderSelectedProductPreview() {
 
   const content = document.createElement("div");
   const label = document.createElement("span");
-  label.textContent = "Produto selecionado";
+  label.textContent = state.selectedCatalogProduct ? "Produto catalogado" : "Produto selecionado";
   const title = document.createElement("strong");
-  title.textContent = product.title || "Produto do catalogo";
+  title.textContent = state.selectedCatalogProduct?.canonicalName || product.title || "Produto do catalogo";
   const meta = document.createElement("p");
   meta.textContent = [
     product.source || "Fonte",
     product.currentPrice ? `preco atual ${formatMoney(product.currentPrice, product.currency)}` : "",
+    state.selectedCatalogProduct?.seenCount ? `${state.selectedCatalogProduct.seenCount} ofertas agrupadas` : "",
   ].filter(Boolean).join(" | ");
   content.append(label, title, meta);
 
@@ -706,6 +841,10 @@ function renderSelectedProductPreview() {
   clearButton.textContent = "Remover";
   clearButton.addEventListener("click", () => {
     state.selectedAlertProduct = null;
+    state.selectedCatalogProduct = null;
+    if (elements.alertProductQuery) elements.alertProductQuery.value = "";
+    state.catalogSuggestions = [];
+    renderCatalogSuggestions();
     renderSelectedProductPreview();
   });
 
@@ -813,7 +952,7 @@ function renderSavedPriceAlerts() {
     header.className = "saved-alert-header";
     const titleWrap = document.createElement("div");
     const title = document.createElement("strong");
-    title.textContent = alert.productTitle || alert.productQuery;
+    title.textContent = alert.canonicalProductName || alert.productQuery || alert.productTitle;
     const meta = document.createElement("p");
     meta.textContent = [
       sourceLabel(alert.source),
@@ -835,7 +974,7 @@ function renderSavedPriceAlerts() {
       image.alt = "";
       const productCopy = document.createElement("div");
       const productTitle = document.createElement("span");
-      productTitle.textContent = alert.productQuery;
+      productTitle.textContent = alert.productTitle || alert.productQuery;
       const productMeta = document.createElement("small");
       productMeta.textContent = [
         alert.productSourceLabel || sourceLabel(alert.source),
@@ -1560,6 +1699,28 @@ function compactSourceName(source = "") {
   return source || "Fonte";
 }
 
+function normalizeSourceValue(source = "") {
+  const normalized = String(source || "").toLowerCase();
+  if (normalized.includes("mercado")) return "mercadolivre";
+  if (normalized.includes("amazon")) return "amazon";
+  return "all";
+}
+
+function catalogSuggestionToSelectedProduct(product = {}) {
+  return {
+    id: String(product.sampleProductId || product.id || ""),
+    key: String(product.canonicalKey || ""),
+    title: String(product.sampleTitle || product.canonicalName || ""),
+    url: String(product.sampleUrl || ""),
+    image: String(product.sampleImage || ""),
+    source: product.sources?.[0] || compactSourceName(product.productType || "Catalogo"),
+    sourceKind: normalizeSourceValue(product.sources?.[0] || ""),
+    currentPrice: product.lastPrice ?? null,
+    originalPrice: null,
+    currency: product.currency || "BRL",
+  };
+}
+
 function renderProducts(products) {
   if (!elements.productGrid || !elements.productTemplate) return;
   elements.productGrid.textContent = "";
@@ -1985,11 +2146,13 @@ function bindEvents() {
     button.addEventListener("click", () => startGoogleLogin(`${window.location.pathname}${window.location.search}${window.location.hash}`));
   });
   elements.logoutButton?.addEventListener("click", clearAuthSession);
-  elements.alertProductQuery?.addEventListener("input", () => {
-    if (state.selectedAlertProduct && elements.alertProductQuery.value.trim() !== state.selectedAlertProduct.title) {
-      state.selectedAlertProduct = null;
-      renderSelectedProductPreview();
-    }
+  elements.alertProductQuery?.addEventListener("input", scheduleCatalogSearch);
+  elements.alertProductQuery?.addEventListener("focus", () => renderCatalogSuggestions());
+  elements.alertProductQuery?.addEventListener("blur", () => {
+    setTimeout(() => {
+      elements.catalogSuggestions?.classList.add("is-hidden");
+      elements.alertProductQuery?.setAttribute("aria-expanded", "false");
+    }, 160);
   });
   elements.priceAlertForm?.addEventListener("submit", submitPriceAlert);
   elements.reloadAlertsButton?.addEventListener("click", loadPriceAlerts);

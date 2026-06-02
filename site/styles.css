@@ -1041,6 +1041,12 @@ tbody tr:hover {
   gap: 6px;
 }
 
+.field-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
 .field-group span {
   color: var(--soft);
   font-size: 0.75rem;
@@ -1175,6 +1181,96 @@ select option {
 .alert-builder .alert-product-query-field,
 .alert-builder .alert-email-field {
   grid-column: span 2;
+}
+
+.alert-product-query-field {
+  position: relative;
+}
+
+.catalog-suggestions {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 40;
+  display: grid;
+  width: min(100%, 680px);
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 22px 48px rgba(13, 61, 43, 0.14);
+  padding: 8px;
+}
+
+.catalog-suggestion {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text);
+  padding: 10px;
+  text-align: left;
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.catalog-suggestion:hover,
+.catalog-suggestion:focus-visible {
+  background: #eef9f3;
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.catalog-suggestion img {
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(24, 57, 46, 0.08);
+  border-radius: 12px;
+  background: #fff;
+  object-fit: contain;
+  padding: 5px;
+}
+
+.catalog-suggestion span,
+.catalog-suggestion strong,
+.catalog-suggestion small {
+  display: block;
+  min-width: 0;
+}
+
+.catalog-suggestion strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.96rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-suggestion small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.catalog-suggestion em {
+  border-radius: 999px;
+  background: #def5e9;
+  color: var(--green);
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 900;
+  padding: 5px 8px;
+}
+
+.catalog-suggestion-empty {
+  color: var(--muted);
+  font-weight: 700;
+  padding: 12px;
 }
 
 .selected-product-preview {
@@ -7645,6 +7741,22 @@ video {
 }
 
 @media (max-width: 760px) {
+  .catalog-suggestions {
+    position: static;
+    width: 100%;
+    max-height: 280px;
+    margin-top: 4px;
+  }
+
+  .catalog-suggestion {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .catalog-suggestion em {
+    grid-column: 2;
+    justify-self: start;
+  }
+
   .selected-product-preview,
   .saved-alert-product {
     grid-template-columns: 52px minmax(0, 1fr);

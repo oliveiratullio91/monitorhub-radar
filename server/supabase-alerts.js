@@ -8,7 +8,65 @@ const env = loadEnvFiles([
 
 const ALERTS_TABLE = "monitorhub_price_alerts";
 const NOTIFICATIONS_TABLE = "monitorhub_alert_notifications";
+const CATALOG_TABLE = "monitorhub_product_catalog";
 const DEFAULT_MATCH_LIMIT = 1000;
+const CATALOG_ALIAS_LIMIT = 12;
+const CATALOG_CHUNK_SIZE = 80;
+
+const PRODUCT_TYPES = [
+  { key: "smart-tv", label: "Smart TV", terms: ["smart tv", "tv", "televisao", "televisor"] },
+  { key: "notebook", label: "Notebook", terms: ["notebook", "laptop", "ultrabook"] },
+  { key: "iphone", label: "iPhone", terms: ["iphone"] },
+  { key: "smartphone", label: "Smartphone", terms: ["smartphone", "celular", "telefone"] },
+  { key: "monitor", label: "Monitor", terms: ["monitor"] },
+  { key: "headphone", label: "Fone de ouvido", terms: ["fone de ouvido", "fone bluetooth", "headphone", "headset", "earbud"] },
+  { key: "smartwatch", label: "Smartwatch", terms: ["smartwatch", "relogio inteligente", "watch"] },
+  { key: "tablet", label: "Tablet", terms: ["tablet", "ipad"] },
+  { key: "console", label: "Console", terms: ["playstation", "ps5", "xbox", "nintendo switch", "console"] },
+  { key: "cafeteira", label: "Cafeteira", terms: ["cafeteira", "espresso", "nespresso"] },
+  { key: "air-fryer", label: "Air Fryer", terms: ["air fryer", "fritadeira"] },
+  { key: "aspirador", label: "Aspirador", terms: ["aspirador", "robo aspirador"] },
+  { key: "power-bank", label: "Power Bank", terms: ["power bank", "carregador portatil"] },
+  { key: "teclado", label: "Teclado", terms: ["teclado"] },
+  { key: "mouse", label: "Mouse", terms: ["mouse"] },
+  { key: "caixa-som", label: "Caixa de som", terms: ["caixa de som", "speaker", "jbl flip"] },
+];
+
+const BRAND_NAMES = [
+  "samsung",
+  "lg",
+  "tcl",
+  "philips",
+  "sony",
+  "xiaomi",
+  "apple",
+  "motorola",
+  "dell",
+  "lenovo",
+  "acer",
+  "asus",
+  "jbl",
+  "anker",
+  "redragon",
+  "logitech",
+  "kingston",
+  "sandisk",
+  "wd",
+  "seagate",
+  "mondial",
+  "philco",
+  "midea",
+  "electrolux",
+  "consul",
+  "brastemp",
+  "multilaser",
+  "positivo",
+  "amazon",
+  "nintendo",
+  "microsoft",
+  "playstation",
+  "hp",
+];
 
 export function publicSupabaseConfig() {
   return {
@@ -103,9 +161,58 @@ export async function listPriceAlerts(user) {
   return Array.isArray(records) ? records.map(normalizeAlertRecord) : [];
 }
 
+export async function listProductCatalog(searchParams = new URLSearchParams()) {
+  ensureSupabaseConfigured();
+  const rawQuery = String(searchParams.get("query") || searchParams.get("q") || "").trim();
+  const terms = tokenize(rawQuery);
+  const limit = clamp(Number(searchParams.get("limit") || 30), 1, 100);
+  const params = new URLSearchParams({
+    select: "*",
+    order: "last_seen_at.desc",
+    limit: String(terms.length ? 1000 : limit),
+  });
+
+  const records = await supabaseRestFetch(`/${CATALOG_TABLE}?${params.toString()}`, { service: true });
+  let products = Array.isArray(records) ? records.map(normalizeCatalogRecord) : [];
+
+  if (terms.length) {
+    products = products
+      .map((product) => ({
+        ...product,
+        matchScore: scoreCatalogProduct(product, terms),
+      }))
+      .filter((product) => product.matchScore > 0)
+      .sort((a, b) => b.matchScore - a.matchScore || b.seenCount - a.seenCount)
+      .slice(0, limit);
+  }
+
+  return {
+    ok: true,
+    products: products.slice(0, limit),
+    count: Math.min(products.length, limit),
+    query: rawQuery,
+  };
+}
+
+export async function indexCatalogProducts(products = []) {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, skipped: true, reason: "supabase-not-configured" };
+  }
+
+  try {
+    const records = buildCatalogRecords(products);
+    if (!records.length) return { ok: true, indexed: 0, products: [] };
+    const indexed = await upsertCatalogRecords(records);
+    return { ok: true, indexed: indexed.length, products: indexed };
+  } catch (error) {
+    return { ok: false, indexed: 0, error: error.message || "Falha ao indexar catalogo" };
+  }
+}
+
 export async function createPriceAlert(user, body = {}) {
   ensureSupabaseConfigured();
-  const record = validatePriceAlertPayload(body, user);
+  const catalogProduct = await resolveCatalogProductForAlert(body);
+  const record = validatePriceAlertPayload(body, user, catalogProduct);
   const params = new URLSearchParams({ select: "*" });
   const created = await supabaseRestFetch(`/${ALERTS_TABLE}?${params.toString()}`, {
     method: "POST",
@@ -251,7 +358,7 @@ async function getActiveAlertsForMatching() {
 
 function findBestProductMatch(alert, products) {
   const source = normalizeSourceFilter(alert.source);
-  const queryTerms = tokenize(alert.productQuery);
+  const queryTerms = tokenize(alert.canonicalProductName || alert.productQuery);
   const brandTerms = tokenize(alert.brand);
   let bestMatch = null;
   let bestScore = -1;
@@ -270,15 +377,19 @@ function findBestProductMatch(alert, products) {
       continue;
     }
 
+    const productCatalog = canonicalizeProduct(product.title, product);
     const text = normalizeSearchText([
       product.title,
       product.seller,
       product.source,
       product.query,
+      productCatalog.canonicalName,
+      productCatalog.searchText,
     ].join(" "));
-    if (!termsMatch(text, queryTerms) || !termsMatch(text, brandTerms)) continue;
+    if (!productTermsMatch(text, queryTerms) || !termsMatch(text, brandTerms)) continue;
 
-    const score = queryTerms.length + brandTerms.length + Math.max(0, alert.targetPrice - price) / Math.max(alert.targetPrice, 1);
+    const termHits = queryTerms.filter((term) => text.includes(term)).length;
+    const score = termHits + brandTerms.length + Math.max(0, alert.targetPrice - price) / Math.max(alert.targetPrice, 1);
     if (score > bestScore) {
       bestMatch = product;
       bestScore = score;
@@ -304,6 +415,14 @@ function termsMatch(text, terms) {
   return terms.every((term) => text.includes(term));
 }
 
+function productTermsMatch(text, terms) {
+  if (!terms.length) return true;
+  const numericTerms = terms.filter((term) => /^\d/.test(term));
+  if (!termsMatch(text, numericTerms)) return false;
+  const hits = terms.filter((term) => text.includes(term)).length;
+  return hits >= Math.max(1, Math.ceil(terms.length * 0.65));
+}
+
 function shouldNotify(alert, product) {
   const key = productKey(product);
   if (alert.matchedProductKey !== key) return true;
@@ -322,6 +441,7 @@ function buildAlertMatch(alert, product) {
     whatsappPhone: alert.whatsappPhone,
     notificationChannel: alert.notificationChannel,
     productQuery: alert.productQuery,
+    canonicalProductName: alert.canonicalProductName,
     targetPrice: alert.targetPrice,
     product: {
       id: String(product.id || ""),
@@ -391,8 +511,8 @@ function channelsForNotification(channel) {
   return channel === "both" ? ["email", "whatsapp"] : [normalizeNotificationChannel(channel)];
 }
 
-function validatePriceAlertPayload(body, user) {
-  const productQuery = String(body.productQuery || body.product_query || "").trim();
+function validatePriceAlertPayload(body, user, catalogProduct) {
+  const productQuery = String(catalogProduct?.canonicalName || body.productQuery || body.product_query || "").trim();
   const brand = String(body.brand || "").trim();
   const targetPrice = normalizePrice(body.targetPrice ?? body.target_price);
   const source = normalizeSourceFilter(body.source || "all");
@@ -400,6 +520,8 @@ function validatePriceAlertPayload(body, user) {
   const notificationEmail = normalizeEmail(body.notificationEmail || body.notification_email || user.email);
   const whatsappPhone = normalizePhone(body.whatsappPhone || body.whatsapp_phone || user.phone);
   const selectedProduct = normalizeSelectedProduct(body.product || body.selectedProduct || body.selected_product || {});
+  const catalogSample = catalogProductToSelectedProduct(catalogProduct);
+  const savedProduct = selectedProduct.title || selectedProduct.id || selectedProduct.url ? selectedProduct : catalogSample;
 
   if (productQuery.length < 3) throw httpError("Informe o produto com pelo menos 3 caracteres.", 400);
   if (!targetPrice || targetPrice <= 0) throw httpError("Informe um preco alvo valido.", 400);
@@ -416,15 +538,18 @@ function validatePriceAlertPayload(body, user) {
     user_name: user.name || "",
     whatsapp_phone: whatsappPhone,
     product_query: productQuery,
-    product_id: selectedProduct.id,
-    product_key: selectedProduct.key,
-    product_title: selectedProduct.title,
-    product_url: selectedProduct.url,
-    product_image: selectedProduct.image,
-    product_source_label: selectedProduct.source,
-    product_current_price: selectedProduct.currentPrice,
-    product_original_price: selectedProduct.originalPrice,
-    product_currency: selectedProduct.currency,
+    catalog_product_id: catalogProduct?.id || null,
+    canonical_product_key: catalogProduct?.canonicalKey || "",
+    canonical_product_name: catalogProduct?.canonicalName || productQuery,
+    product_id: savedProduct.id,
+    product_key: savedProduct.key,
+    product_title: savedProduct.title,
+    product_url: savedProduct.url,
+    product_image: savedProduct.image,
+    product_source_label: savedProduct.source,
+    product_current_price: savedProduct.currentPrice,
+    product_original_price: savedProduct.originalPrice,
+    product_currency: savedProduct.currency,
     brand,
     source,
     target_price: targetPrice,
@@ -441,6 +566,9 @@ function normalizeAlertRecord(record = {}) {
     userName: String(record.user_name || ""),
     whatsappPhone: String(record.whatsapp_phone || ""),
     productQuery: String(record.product_query || ""),
+    catalogProductId: String(record.catalog_product_id || ""),
+    canonicalProductKey: String(record.canonical_product_key || ""),
+    canonicalProductName: String(record.canonical_product_name || ""),
     productId: String(record.product_id || ""),
     productKey: String(record.product_key || ""),
     productTitle: String(record.product_title || ""),
@@ -460,6 +588,11 @@ function normalizeAlertRecord(record = {}) {
       currentPrice: normalizePrice(record.product_current_price, { allowNull: true }),
       originalPrice: normalizePrice(record.product_original_price, { allowNull: true }),
       currency: String(record.product_currency || "BRL"),
+    },
+    catalogProduct: {
+      id: String(record.catalog_product_id || ""),
+      canonicalKey: String(record.canonical_product_key || ""),
+      canonicalName: String(record.canonical_product_name || ""),
     },
     brand: String(record.brand || ""),
     source: normalizeSourceFilter(record.source || "all"),
@@ -561,6 +694,378 @@ function normalizeUser(user = {}) {
     phone: normalizePhone(metadata.phone || user.phone || ""),
     avatarUrl: String(metadata.avatar_url || metadata.picture || user.avatar_url || "").trim(),
   };
+}
+
+async function resolveCatalogProductForAlert(body = {}) {
+  const catalogId = String(body.catalogProductId || body.catalog_product_id || body.catalogProduct?.id || "").trim();
+  if (catalogId) return getCatalogProductBy("id", catalogId);
+
+  const catalogKey = String(
+    body.canonicalProductKey
+    || body.canonical_product_key
+    || body.catalogProduct?.canonicalKey
+    || body.catalogProduct?.canonical_key
+    || "",
+  ).trim();
+  if (catalogKey) return getCatalogProductBy("canonical_key", catalogKey);
+
+  const selectedProduct = normalizeSelectedProduct(body.product || body.selectedProduct || body.selected_product || {});
+  if (selectedProduct.title || selectedProduct.id || selectedProduct.url) {
+    const records = buildCatalogRecords([{
+      id: selectedProduct.id,
+      title: selectedProduct.title,
+      price: selectedProduct.currentPrice,
+      originalPrice: selectedProduct.originalPrice,
+      currency: selectedProduct.currency,
+      url: selectedProduct.url,
+      image: selectedProduct.image,
+      source: selectedProduct.source,
+      sourceKind: selectedProduct.sourceKind,
+    }]);
+    if (!records.length) throw httpError("Produto selecionado invalido para o catalogo.", 400);
+    const indexed = await upsertCatalogRecords(records, { throwOnError: true });
+    return indexed[0] || getCatalogProductBy("canonical_key", records[0].canonical_key);
+  }
+
+  const productQuery = String(body.productQuery || body.product_query || "").trim();
+  if (productQuery) {
+    const canonical = canonicalizeProduct(productQuery);
+    const existing = await getCatalogProductBy("canonical_key", canonical.canonicalKey).catch(() => null);
+    if (existing) return existing;
+  }
+
+  throw httpError("Escolha um produto ja catalogado antes de criar o alerta.", 400);
+}
+
+async function getCatalogProductBy(column, value) {
+  const cleanValue = String(value || "").trim();
+  if (!cleanValue) throw httpError("Produto do catalogo nao informado.", 400);
+
+  const params = new URLSearchParams({
+    select: "*",
+    [column]: `eq.${cleanValue}`,
+    limit: "1",
+  });
+  const records = await supabaseRestFetch(`/${CATALOG_TABLE}?${params.toString()}`, { service: true });
+  if (!Array.isArray(records) || !records[0]) {
+    throw httpError("Produto selecionado nao existe mais no catalogo.", 400);
+  }
+  return normalizeCatalogRecord(records[0]);
+}
+
+function buildCatalogRecords(products = []) {
+  const byKey = new Map();
+  const now = new Date().toISOString();
+
+  for (const product of Array.isArray(products) ? products : []) {
+    const item = product || {};
+    const title = String(item.title || item.name || "").trim();
+    if (title.length < 3) continue;
+
+    const canonical = canonicalizeProduct(title, item);
+    if (!canonical.canonicalKey || canonical.canonicalName.length < 3) continue;
+
+    const source = compactSourceName(item.source || item.sourceKind || "");
+    const existing = byKey.get(canonical.canonicalKey);
+    const alias = title.slice(0, 220);
+    const record = existing || {
+      canonical_key: canonical.canonicalKey,
+      canonical_name: canonical.canonicalName,
+      product_type: canonical.productType,
+      brand: canonical.brand,
+      specs: canonical.specs,
+      aliases: [],
+      sources: [],
+      sample_title: title,
+      sample_product_id: String(item.id || "").trim(),
+      sample_url: String(item.url || "").trim(),
+      sample_image: String(item.image || "").trim(),
+      last_price: normalizePrice(item.price ?? item.currentPrice, { allowNull: true }),
+      currency: String(item.currency || "BRL").trim().toUpperCase() || "BRL",
+      search_text: canonical.searchText,
+      seen_count: 0,
+      first_seen_at: now,
+      last_seen_at: now,
+    };
+
+    record.aliases = mergeTextList(record.aliases, [alias], CATALOG_ALIAS_LIMIT);
+    record.sources = mergeTextList(record.sources, [source].filter(Boolean), 6);
+    record.seen_count += 1;
+    record.last_seen_at = now;
+    if (!record.sample_image && item.image) record.sample_image = String(item.image).trim();
+    if (!record.sample_url && item.url) record.sample_url = String(item.url).trim();
+    if (!record.sample_product_id && item.id) record.sample_product_id = String(item.id).trim();
+    if (item.price ?? item.currentPrice) record.last_price = normalizePrice(item.price ?? item.currentPrice, { allowNull: true });
+    record.search_text = normalizeSearchText([
+      record.search_text,
+      title,
+      item.query,
+      item.seller,
+      source,
+    ].join(" "));
+    byKey.set(canonical.canonicalKey, record);
+  }
+
+  return [...byKey.values()];
+}
+
+async function upsertCatalogRecords(records, options = {}) {
+  if (!records.length) return [];
+  try {
+    const existingByKey = await fetchCatalogRecordsByKeys(records.map((record) => record.canonical_key));
+    const mergedRecords = records.map((record) => mergeCatalogRecord(record, existingByKey.get(record.canonical_key)));
+    const upserted = [];
+
+    for (const chunk of chunksOf(mergedRecords, CATALOG_CHUNK_SIZE)) {
+      const params = new URLSearchParams({
+        on_conflict: "canonical_key",
+        select: "*",
+      });
+      const payload = await supabaseRestFetch(`/${CATALOG_TABLE}?${params.toString()}`, {
+        method: "POST",
+        service: true,
+        prefer: "resolution=merge-duplicates,return=representation",
+        body: chunk,
+      });
+      if (Array.isArray(payload)) upserted.push(...payload.map(normalizeCatalogRecord));
+    }
+
+    return upserted;
+  } catch (error) {
+    if (options.throwOnError) throw error;
+    return [];
+  }
+}
+
+async function fetchCatalogRecordsByKeys(keys) {
+  const uniqueKeys = [...new Set(keys.filter(Boolean))];
+  const byKey = new Map();
+  if (!uniqueKeys.length) return byKey;
+
+  for (const chunk of chunksOf(uniqueKeys, CATALOG_CHUNK_SIZE)) {
+    const params = new URLSearchParams({
+      select: "*",
+      canonical_key: `in.(${chunk.join(",")})`,
+    });
+    const records = await supabaseRestFetch(`/${CATALOG_TABLE}?${params.toString()}`, { service: true });
+    for (const record of Array.isArray(records) ? records : []) {
+      byKey.set(record.canonical_key, normalizeCatalogRecord(record));
+    }
+  }
+
+  return byKey;
+}
+
+function mergeCatalogRecord(record, existing) {
+  if (!existing) return record;
+  return {
+    ...record,
+    id: existing.id,
+    aliases: mergeTextList(existing.aliases, record.aliases, CATALOG_ALIAS_LIMIT),
+    sources: mergeTextList(existing.sources, record.sources, 6),
+    sample_title: existing.sampleTitle || record.sample_title,
+    sample_product_id: existing.sampleProductId || record.sample_product_id,
+    sample_url: existing.sampleUrl || record.sample_url,
+    sample_image: existing.sampleImage || record.sample_image,
+    seen_count: Number(existing.seenCount || 0) + Number(record.seen_count || 0),
+    first_seen_at: existing.firstSeenAt || record.first_seen_at,
+    search_text: normalizeSearchText([
+      existing.searchText,
+      record.search_text,
+      ...(existing.aliases || []),
+      ...(record.aliases || []),
+    ].join(" ")),
+  };
+}
+
+function normalizeCatalogRecord(record = {}) {
+  return {
+    id: String(record.id || ""),
+    canonicalKey: String(record.canonical_key || ""),
+    canonicalName: String(record.canonical_name || ""),
+    productType: String(record.product_type || ""),
+    brand: String(record.brand || ""),
+    specs: normalizeJsonObject(record.specs),
+    aliases: normalizeTextArray(record.aliases),
+    sources: normalizeTextArray(record.sources),
+    sampleTitle: String(record.sample_title || ""),
+    sampleProductId: String(record.sample_product_id || ""),
+    sampleUrl: String(record.sample_url || ""),
+    sampleImage: String(record.sample_image || ""),
+    lastPrice: normalizePrice(record.last_price, { allowNull: true }),
+    currency: String(record.currency || "BRL"),
+    seenCount: Number(record.seen_count || 0),
+    firstSeenAt: String(record.first_seen_at || ""),
+    lastSeenAt: String(record.last_seen_at || ""),
+    searchText: String(record.search_text || ""),
+  };
+}
+
+function catalogProductToSelectedProduct(catalogProduct) {
+  if (!catalogProduct) return normalizeSelectedProduct({});
+  const source = catalogProduct.sources?.[0] || "";
+  return normalizeSelectedProduct({
+    id: catalogProduct.sampleProductId || catalogProduct.id,
+    key: catalogProduct.canonicalKey,
+    title: catalogProduct.sampleTitle || catalogProduct.canonicalName,
+    url: catalogProduct.sampleUrl,
+    image: catalogProduct.sampleImage,
+    source,
+    price: catalogProduct.lastPrice,
+    currency: catalogProduct.currency,
+  });
+}
+
+function scoreCatalogProduct(product, terms) {
+  const text = normalizeSearchText([
+    product.canonicalName,
+    product.brand,
+    product.productType,
+    product.searchText,
+    ...(product.aliases || []),
+    ...(product.sources || []),
+  ].join(" "));
+  const hits = terms.filter((term) => text.includes(term)).length;
+  if (!hits) return 0;
+  const numericTerms = terms.filter((term) => /^\d/.test(term));
+  const numericHits = numericTerms.filter((term) => text.includes(term)).length;
+  if (numericTerms.length && numericHits !== numericTerms.length) return 0;
+  const exactBoost = text.includes(normalizeSearchText(terms.join(" "))) ? 4 : 0;
+  return hits * 10 + exactBoost + Math.min(product.seenCount || 0, 20);
+}
+
+function canonicalizeProduct(title, product = {}) {
+  const normalizedTitle = normalizeSearchText(title);
+  const productType = detectProductType(normalizedTitle);
+  const brand = detectBrand(normalizedTitle);
+  const specs = extractProductSpecs(normalizedTitle, productType);
+  const fallbackName = compactProductFallbackName(normalizedTitle);
+  const parts = [
+    productType?.label || fallbackName,
+    brand?.label && !sameText(productType?.label, brand.label) ? brand.label : "",
+    ...specs.primary,
+  ].filter(Boolean);
+  const canonicalName = compactSpaces(parts.join(" ")).slice(0, 120) || String(title || "").trim().slice(0, 120);
+  const canonicalKey = slugify(canonicalName);
+  const typeTerms = productType ? [productType.label, ...productType.terms] : [];
+  const searchText = normalizeSearchText([
+    canonicalName,
+    title,
+    product.query,
+    product.seller,
+    brand?.label,
+    ...typeTerms,
+    ...specs.search,
+  ].join(" "));
+
+  return {
+    canonicalKey,
+    canonicalName,
+    productType: productType?.key || "",
+    brand: brand?.label || "",
+    specs: specs.value,
+    searchText,
+  };
+}
+
+function detectProductType(text) {
+  return PRODUCT_TYPES.find((type) => type.terms.some((term) => containsNormalizedTerm(text, normalizeSearchText(term)))) || null;
+}
+
+function detectBrand(text) {
+  const brand = BRAND_NAMES.find((item) => containsNormalizedTerm(text, normalizeSearchText(item)));
+  if (!brand) return null;
+  return {
+    key: brand,
+    label: brand.split(/\s+/).map(titleCaseToken).join(" "),
+  };
+}
+
+function extractProductSpecs(text, productType) {
+  const primary = [];
+  const search = [];
+  const value = {};
+
+  const model = extractModelSpec(text);
+  if (model) {
+    primary.push(model);
+    search.push(model);
+    value.model = model;
+  }
+
+  const inches = extractInchesSpec(text, productType);
+  if (inches) {
+    const spec = `${inches}"`;
+    primary.push(spec);
+    search.push(spec, `${inches} polegadas`, `${inches} pol`);
+    value.inches = inches;
+  }
+
+  const storage = firstMatch(text, /\b(\d+)\s*(tb|gb)\b/);
+  if (storage) {
+    const spec = `${storage[1]}${storage[2].toUpperCase()}`;
+    if (!primary.includes(spec)) primary.push(spec);
+    search.push(spec);
+    value.storage = spec;
+  }
+
+  const refreshRate = firstMatch(text, /\b(\d{2,3})\s*hz\b/);
+  if (refreshRate) {
+    const spec = `${refreshRate[1]}Hz`;
+    primary.push(spec);
+    search.push(spec);
+    value.refreshRate = spec;
+  }
+
+  const capacity = firstMatch(text, /\b(\d+(?:[,.]\d+)?)\s*l\b/);
+  if (capacity && ["air-fryer", "cafeteira"].includes(productType?.key)) {
+    const spec = `${capacity[1].replace(",", ".")}L`;
+    primary.push(spec);
+    search.push(spec);
+    value.capacity = spec;
+  }
+
+  return {
+    primary: [...new Set(primary)].slice(0, 4),
+    search: [...new Set(search)],
+    value,
+  };
+}
+
+function extractModelSpec(text) {
+  const patterns = [
+    /\biphone\s*(\d{1,2}(?:\s*(?:pro|max|plus|mini))?)\b/,
+    /\bgalaxy\s*([a-z]\d{2,3})\b/,
+    /\baspire\s*(\d)\b/,
+    /\bplaystation\s*(5|4)\b/,
+    /\bps\s*(5|4)\b/,
+    /\bxbox\s*series\s*([sx])\b/,
+    /\becho\s*dot\s*(\d)?\b/,
+    /\bjbl\s*(?:tune|flip)?\s*([a-z]?\d{2,4}[a-z]*)\b/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = firstMatch(text, pattern);
+    if (!match) continue;
+    return titleCaseWords(match[0].replace(/\s+/g, " "));
+  }
+  return "";
+}
+
+function extractInchesSpec(text, productType) {
+  const explicit = firstMatch(text, /\b([2-9][0-9]|1[0-1][0-9])\s*(?:pol|polegadas|inch|")\b/);
+  if (explicit) return explicit[1];
+  if (productType?.key === "smart-tv" || productType?.key === "monitor") {
+    const loose = firstMatch(text, /\b([2-9][0-9]|1[0-1][0-9])\b/);
+    if (loose) return loose[1];
+  }
+  return "";
+}
+
+function compactProductFallbackName(text) {
+  const stop = new Set(["com", "para", "sem", "por", "de", "da", "do", "das", "dos", "em", "novo", "original", "oferta", "promocao"]);
+  const tokens = text.split(" ").filter((token) => token.length > 2 && !stop.has(token));
+  return titleCaseWords(tokens.slice(0, 4).join(" ")) || "Produto";
 }
 
 function normalizeSelectedProduct(product = {}) {
@@ -674,6 +1179,94 @@ function normalizeSearchText(value) {
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function compactSourceName(value) {
+  const source = String(value || "").trim();
+  const normalized = normalizeSourceFilter(source);
+  if (normalized === "amazon") return "Amazon";
+  if (normalized === "mercadolivre") return "Mercado Livre";
+  return source;
+}
+
+function normalizeJsonObject(value) {
+  if (!value) return {};
+  if (typeof value === "object" && !Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(String(value));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function normalizeTextArray(value) {
+  if (Array.isArray(value)) return value.map((item) => String(item || "").trim()).filter(Boolean);
+  if (typeof value === "string" && value.startsWith("{") && value.endsWith("}")) {
+    return value.slice(1, -1).split(",").map((item) => item.trim().replace(/^"|"$/g, "")).filter(Boolean);
+  }
+  if (typeof value === "string" && value.trim()) return [value.trim()];
+  return [];
+}
+
+function mergeTextList(current = [], next = [], limit = 10) {
+  const byKey = new Map();
+  for (const item of [...normalizeTextArray(current), ...normalizeTextArray(next)]) {
+    const clean = String(item || "").trim();
+    if (!clean) continue;
+    const key = normalizeSearchText(clean);
+    if (!byKey.has(key)) byKey.set(key, clean);
+  }
+  return [...byKey.values()].slice(0, limit);
+}
+
+function chunksOf(items, size) {
+  const chunks = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
+function containsNormalizedTerm(text, term) {
+  if (!text || !term) return false;
+  if (term.includes(" ")) return text.includes(term);
+  return new RegExp(`(^| )${escapeRegExp(term)}( |$)`).test(text);
+}
+
+function sameText(left, right) {
+  return normalizeSearchText(left) === normalizeSearchText(right);
+}
+
+function compactSpaces(value) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
+function slugify(value) {
+  return normalizeSearchText(value).replace(/\s+/g, "-").slice(0, 140);
+}
+
+function titleCaseToken(value) {
+  const upper = new Set(["lg", "tcl", "jbl", "hp", "wd"]);
+  const lower = String(value || "").toLowerCase();
+  if (upper.has(lower)) return lower.toUpperCase();
+  if (lower === "iphone") return "iPhone";
+  if (lower === "ipad") return "iPad";
+  if (lower === "ps5") return "PS5";
+  return lower ? `${lower[0].toUpperCase()}${lower.slice(1)}` : "";
+}
+
+function titleCaseWords(value) {
+  return String(value || "").split(/\s+/).filter(Boolean).map(titleCaseToken).join(" ");
+}
+
+function firstMatch(text, pattern) {
+  const match = String(text || "").match(pattern);
+  return match || null;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function normalizeComparable(value) {

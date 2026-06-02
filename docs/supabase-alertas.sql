@@ -3,6 +3,27 @@
 
 create extension if not exists pgcrypto;
 
+create table if not exists public.monitorhub_product_catalog (
+  id uuid primary key default gen_random_uuid(),
+  canonical_key text not null unique,
+  canonical_name text not null,
+  product_type text,
+  brand text,
+  specs jsonb not null default '{}'::jsonb,
+  aliases text[] not null default '{}'::text[],
+  sources text[] not null default '{}'::text[],
+  sample_title text,
+  sample_product_id text,
+  sample_url text,
+  sample_image text,
+  last_price numeric(12, 2),
+  currency text not null default 'BRL',
+  search_text text not null default '',
+  seen_count integer not null default 1,
+  first_seen_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now()
+);
+
 create table if not exists public.monitorhub_price_alerts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -10,6 +31,9 @@ create table if not exists public.monitorhub_price_alerts (
   user_name text,
   whatsapp_phone text,
   product_query text not null,
+  catalog_product_id uuid references public.monitorhub_product_catalog(id) on delete set null,
+  canonical_product_key text,
+  canonical_product_name text,
   product_id text,
   product_key text,
   product_title text,
@@ -35,6 +59,9 @@ create table if not exists public.monitorhub_price_alerts (
 );
 
 alter table public.monitorhub_price_alerts
+  add column if not exists catalog_product_id uuid references public.monitorhub_product_catalog(id) on delete set null,
+  add column if not exists canonical_product_key text,
+  add column if not exists canonical_product_name text,
   add column if not exists product_id text,
   add column if not exists product_key text,
   add column if not exists product_title text,
@@ -65,6 +92,15 @@ create table if not exists public.monitorhub_alert_notifications (
 create index if not exists monitorhub_price_alerts_user_idx
   on public.monitorhub_price_alerts (user_id, created_at desc);
 
+create index if not exists monitorhub_product_catalog_key_idx
+  on public.monitorhub_product_catalog (canonical_key);
+
+create index if not exists monitorhub_product_catalog_seen_idx
+  on public.monitorhub_product_catalog (last_seen_at desc);
+
+create index if not exists monitorhub_price_alerts_catalog_idx
+  on public.monitorhub_price_alerts (catalog_product_id);
+
 create index if not exists monitorhub_price_alerts_active_idx
   on public.monitorhub_price_alerts (status, source, target_price);
 
@@ -76,6 +112,14 @@ create index if not exists monitorhub_alert_notifications_alert_idx
 
 alter table public.monitorhub_price_alerts enable row level security;
 alter table public.monitorhub_alert_notifications enable row level security;
+alter table public.monitorhub_product_catalog enable row level security;
+
+drop policy if exists "monitorhub authenticated can read catalog" on public.monitorhub_product_catalog;
+create policy "monitorhub authenticated can read catalog"
+  on public.monitorhub_product_catalog
+  for select
+  to authenticated
+  using (true);
 
 drop policy if exists "monitorhub users can read own alerts" on public.monitorhub_price_alerts;
 create policy "monitorhub users can read own alerts"

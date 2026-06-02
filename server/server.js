@@ -19,6 +19,8 @@ import {
   deletePriceAlert,
   evaluatePriceAlerts,
   getUserFromAuthorizationHeader,
+  indexCatalogProducts,
+  listProductCatalog,
   listPendingAlertNotifications,
   listPriceAlerts,
   publicSupabaseConfig,
@@ -55,7 +57,18 @@ const server = createServer(async (request, response) => {
     }
 
     if (url.pathname === "/api/products") {
-      return sendJson(response, await getProducts(url.searchParams));
+      if (url.searchParams.get("catalog") === "1") {
+        return sendJson(response, await listProductCatalog(url.searchParams));
+      }
+      const payload = await getProducts(url.searchParams);
+      const catalog = await indexCatalogProducts(payload.products || []);
+      return sendJson(response, { ...payload, catalogIndexed: catalog.indexed || 0 });
+    }
+
+    if (url.pathname === "/api/catalog/products") {
+      if (request.method === "OPTIONS") return sendEmpty(response, 204);
+      if (request.method !== "GET") return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
+      return sendJson(response, await listProductCatalog(url.searchParams));
     }
 
     if (url.pathname === "/api/mercadolivre/offers") {

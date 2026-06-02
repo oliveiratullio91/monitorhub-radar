@@ -133,7 +133,18 @@
             <form class="alert-builder" id="priceAlertForm">
               <label class="field-group alert-product-query-field">
                 <span>Produto desejado</span>
-                <input id="alertProductQuery" type="text" placeholder="TV 75 Samsung" required />
+                <input
+                  id="alertProductQuery"
+                  type="text"
+                  placeholder="Digite e escolha um produto ja catalogado"
+                  autocomplete="off"
+                  aria-autocomplete="list"
+                  aria-controls="catalogSuggestions"
+                  aria-expanded="false"
+                  required
+                />
+                <div class="catalog-suggestions is-hidden" id="catalogSuggestions" role="listbox"></div>
+                <small class="field-hint">Use um produto que ja apareceu na aba Produtos ou foi salvo pelo n8n.</small>
               </label>
               <div class="selected-product-preview is-hidden" id="selectedProductPreview" aria-live="polite"></div>
               <label class="field-group">
@@ -183,6 +194,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=google-auth2" defer></script>
+    <script src="./app.js?v=catalog-alerts1" defer></script>
   </body>
 </html>

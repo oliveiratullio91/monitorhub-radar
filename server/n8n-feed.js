@@ -2,8 +2,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
+import { indexCatalogProducts } from "./supabase-alerts.js";
 
 const MAX_PRODUCTS = 2000;
+const CATALOG_SYNC_INTERVAL_MS = 2 * 60 * 1000;
 const feedDir = process.env.VERCEL
   ? path.join(os.tmpdir(), "monitorhub-radar")
   : path.resolve(process.cwd(), ".site-local");
@@ -16,10 +18,12 @@ let memoryFeed = {
   runId: "",
   source: "n8n",
 };
+let lastCatalogSyncAt = 0;
 
 export async function getN8nProducts(searchParams = new URLSearchParams()) {
   const limit = clamp(Number(searchParams.get("limit") || 50), 1, MAX_PRODUCTS);
   const feed = readFeed();
+  const catalog = await syncCatalogProducts(feed.products);
 
   return {
     ok: true,
@@ -29,6 +33,7 @@ export async function getN8nProducts(searchParams = new URLSearchParams()) {
     count: feed.products.length,
     updatedAt: feed.updatedAt || "",
     runId: feed.runId || "",
+    catalogIndexed: catalog.indexed || 0,
     fallback: { active: false },
     fetchedAt: new Date().toISOString(),
   };
@@ -55,14 +60,26 @@ export async function ingestN8nProducts(payload = {}) {
   };
 
   writeFeed(feed);
+  const catalog = await syncCatalogProducts(feed.products, { force: true });
 
   return {
     ok: true,
     accepted: products.length,
     count: feed.products.length,
+    catalogIndexed: catalog.indexed || 0,
     updatedAt: feed.updatedAt,
     runId: feed.runId,
   };
+}
+
+async function syncCatalogProducts(products, options = {}) {
+  if (!Array.isArray(products) || !products.length) return { indexed: 0 };
+  const now = Date.now();
+  if (!options.force && now - lastCatalogSyncAt < CATALOG_SYNC_INTERVAL_MS) {
+    return { indexed: 0, skipped: true };
+  }
+  lastCatalogSyncAt = now;
+  return indexCatalogProducts(products);
 }
 
 function extractProductArray(payload) {

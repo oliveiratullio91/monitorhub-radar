@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/catalog/products",
+      "destination": "/api/products?catalog=1"
+    },
+    {
       "source": "/",
       "destination": "/site/index.html"
     },
