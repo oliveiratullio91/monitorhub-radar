@@ -319,7 +319,7 @@ function mergeProductsByKey(currentProducts = [], nextProducts = [], limit = 200
 }
 
 function isResolvedByPublicOffers(error) {
-  return /MERCADO_LIVRE_ACCESS_TOKEN|AMAZON_PARTNER_TAG|AMAZON_CREDENTIAL|conta conectada sem itens|sem itens publicados|HTTP 403|permissoes/i.test(String(error || ""));
+  return /RAD-AMZ-002|RAD-ML-002|MERCADO_LIVRE_ACCESS_TOKEN|AMAZON_PARTNER_TAG|AMAZON_CREDENTIAL|aguardando autorizacao|credencial|conta conectada sem itens|sem itens publicados|HTTP 403|permissoes/i.test(String(error || ""));
 }
 
 function loadEnvFiles(filePaths) {

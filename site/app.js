@@ -1364,6 +1364,9 @@ async function refreshProducts() {
     state.fallbackActive = Boolean(payload.fallback?.active);
     state.fallbackReason = payload.fallback?.reason || "";
     state.products = withChanges((payload.products || []).filter((product) => product.id && product.title));
+    if (state.products.length) {
+      state.sourceErrors = state.sourceErrors.filter((message) => !isOperationalSourceMessage(message));
+    }
     state.lastUpdated = payload.fetchedAt ? new Date(payload.fetchedAt) : new Date();
     if (state.feedActive && state.products.length) {
       setConnectionText("Catalogo atualizado");
@@ -2023,17 +2026,21 @@ function renderProducts(products) {
     elements.productGrid.append(warning);
   }
 
-  if (state.fallbackActive) {
+  if (state.fallbackActive && !products.length) {
     const warning = document.createElement("div");
     warning.className = "warning-state";
-    warning.textContent = state.fallbackReason || "O radar esta usando oportunidades publicas enquanto novas ofertas sao avaliadas.";
+    warning.textContent = state.fallbackReason || "O radar esta avaliando novas oportunidades.";
     elements.productGrid.append(warning);
   }
 
-  if (state.sourceErrors.length) {
+  const visibleSourceErrors = products.length
+    ? state.sourceErrors.filter((message) => !isOperationalSourceMessage(message))
+    : state.sourceErrors;
+
+  if (visibleSourceErrors.length) {
     const error = document.createElement("div");
-    error.className = products.length || state.sourceErrors.every(isOperationalSourceMessage) ? "warning-state" : "error-state";
-    error.textContent = state.sourceErrors.map(formatSourceErrorForDisplay).join(" | ");
+    error.className = products.length || visibleSourceErrors.every(isOperationalSourceMessage) ? "warning-state" : "error-state";
+    error.textContent = visibleSourceErrors.map(formatSourceErrorForDisplay).join(" | ");
     elements.productGrid.append(error);
   }
 
@@ -2147,7 +2154,7 @@ function formatSourceErrorForDisplay(message) {
 }
 
 function isOperationalSourceMessage(message) {
-  return /sem itens publicados|RAD-ML-002|RAD-ML-003|credencial|integracao/i.test(message);
+  return /sem itens publicados|RAD-ML-002|RAD-ML-003|RAD-AMZ-002|credencial|integracao|aguardando autorizacao/i.test(message);
 }
 
 function resetProductPageAndRender() {
