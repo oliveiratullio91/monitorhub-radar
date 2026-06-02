@@ -1,6 +1,7 @@
 import { readJsonBody, setCorsHeaders } from "../_body.js";
 import {
   getUserFromAuthorizationHeader,
+  refreshPriceAlertSession,
   resolveSupabaseOAuthRedirect,
   signInPriceAlertUser,
   signUpPriceAlertUser,
@@ -22,6 +23,11 @@ export default async function handler(request, response) {
     if (action === "signup") {
       if (request.method !== "POST") return methodNotAllowed(response, "POST");
       return response.status(200).json(await signUpPriceAlertUser(await readJsonBody(request)));
+    }
+
+    if (action === "refresh") {
+      if (request.method !== "POST") return methodNotAllowed(response, "POST");
+      return response.status(200).json(await refreshPriceAlertSession(await readJsonBody(request)));
     }
 
     if (action === "me") {

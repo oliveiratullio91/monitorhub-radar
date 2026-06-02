@@ -25,6 +25,7 @@ import {
   listPendingAlertNotifications,
   listPriceAlerts,
   publicSupabaseConfig,
+  refreshPriceAlertSession,
   resolveSupabaseOAuthRedirect,
   signInPriceAlertUser,
   signUpPriceAlertUser,
@@ -90,6 +91,12 @@ const server = createServer(async (request, response) => {
       if (request.method === "OPTIONS") return sendEmpty(response, 204);
       if (request.method !== "POST") return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
       return sendJson(response, await signInPriceAlertUser(await readJson(request)));
+    }
+
+    if (url.pathname === "/api/auth/refresh") {
+      if (request.method === "OPTIONS") return sendEmpty(response, 204);
+      if (request.method !== "POST") return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
+      return sendJson(response, await refreshPriceAlertSession(await readJson(request)));
     }
 
     if (url.pathname === "/api/auth/me") {

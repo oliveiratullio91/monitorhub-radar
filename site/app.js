@@ -10,6 +10,7 @@ const IS_LOCALHOST = ["localhost", "127.0.0.1", "::1"].includes(window.location.
 const IS_HOME_PAGE = document.body.classList.contains("home-page");
 const PRICE_RANGE_DEFAULT_MAX = 10000;
 const PRICE_RANGE_STEP = 1;
+const SESSION_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 const AUTH_ERROR_MESSAGES = {
   "google-provider-disabled": "Login com Google ainda nao esta ativo no Supabase. Configure o provider Google ou entre com e-mail e senha por enquanto.",
   "google-provider-error": "Nao foi possivel iniciar o login com Google agora. Tente novamente ou use e-mail e senha.",
@@ -183,6 +184,87 @@ function writeStorage(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function createApiError(payload, status) {
+  const error = new Error(payload?.error || `HTTP ${status}`);
+  error.status = Number(status || 0);
+  error.payload = payload || {};
+  return error;
+}
+
+function getSessionExpiryTime(session = {}) {
+  const value = session.expiresAt || session.expires_at || "";
+  if (!value) return 0;
+
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return numeric > 1_000_000_000_000 ? numeric : numeric * 1000;
+  }
+
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isSessionExpiringSoon(session = state.auth?.session) {
+  const expiresAt = getSessionExpiryTime(session);
+  return Boolean(expiresAt && expiresAt - Date.now() <= SESSION_REFRESH_THRESHOLD_MS);
+}
+
+function canValidateAuthInCurrentEnvironment() {
+  return state.serverConfig?.supabaseAuthConfigured !== false;
+}
+
+function isAuthFailure(error) {
+  const status = Number(error?.status || 0);
+  const message = String(error?.message || "");
+  return [401, 403].includes(status) || /sessao|session|jwt|token|expirad|expired|invalid/i.test(message);
+}
+
+function isEnvironmentAuthUnavailable(error) {
+  const status = Number(error?.status || 0);
+  const message = String(error?.message || "");
+  return status === 503 || /configure supabase|supabase.*configure/i.test(message);
+}
+
+function setSessionSyncUnavailableStatus() {
+  setSupabaseStatus(
+    "Sessao mantida. Configure o Supabase neste ambiente para sincronizar alertas.",
+    false,
+  );
+}
+
+async function refreshAuthSession() {
+  const refreshToken = state.auth?.session?.refreshToken || state.auth?.session?.refresh_token || "";
+  if (!refreshToken || !canValidateAuthInCurrentEnvironment()) return false;
+
+  const response = await fetch("/api/auth/refresh", {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ refreshToken }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.ok === false || !payload.session?.accessToken) {
+    throw createApiError(payload, response.status);
+  }
+
+  handleAuthPayload(payload);
+  return true;
+}
+
+async function ensureFreshAuthSession(options = {}) {
+  if (!state.auth?.session?.accessToken) return false;
+  if (!options.force && !isSessionExpiringSoon()) return true;
+  try {
+    return await refreshAuthSession();
+  } catch (error) {
+    if (isAuthFailure(error)) return false;
+    throw error;
+  }
+}
+
 async function consumeOAuthRedirect() {
   const params = new URLSearchParams(window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "");
   const accessToken = params.get("access_token");
@@ -216,8 +298,14 @@ async function consumeOAuthRedirect() {
     writeStorage(ALERT_AUTH_KEY, state.auth);
     setSupabaseStatus("Login com Google confirmado.", true);
   } catch (error) {
-    clearAuthSession();
-    setSupabaseStatus(error.message || "Nao foi possivel concluir o login com Google.", false);
+    if (isEnvironmentAuthUnavailable(error)) {
+      writeStorage(ALERT_AUTH_KEY, state.auth);
+      setSessionSyncUnavailableStatus();
+      renderUserHeader();
+    } else {
+      clearAuthSession();
+      setSupabaseStatus(error.message || "Nao foi possivel concluir o login com Google.", false);
+    }
   }
 }
 
@@ -398,13 +486,36 @@ async function verifyStoredSession() {
     return;
   }
 
+  if (!canValidateAuthInCurrentEnvironment()) {
+    setSessionSyncUnavailableStatus();
+    renderPriceAlertsArea();
+    return;
+  }
+
   try {
     const payload = await apiRequest("/api/auth/me");
     state.auth.user = payload.user;
     writeStorage(ALERT_AUTH_KEY, state.auth);
     await loadPriceAlerts();
-  } catch {
-    clearAuthSession();
+  } catch (error) {
+    if (isAuthFailure(error)) {
+      try {
+        if (await ensureFreshAuthSession({ force: true })) {
+          const payload = await apiRequest("/api/auth/me", { skipRefresh: true });
+          state.auth.user = payload.user;
+          writeStorage(ALERT_AUTH_KEY, state.auth);
+          await loadPriceAlerts();
+        } else {
+          clearAuthSession();
+        }
+      } catch {
+        clearAuthSession();
+      }
+    } else if (isEnvironmentAuthUnavailable(error)) {
+      setSessionSyncUnavailableStatus();
+    } else {
+      setSupabaseStatus(error.message || "Sessao mantida, mas nao foi possivel sincronizar agora.", false);
+    }
   }
   renderPriceAlertsArea();
 }
@@ -465,9 +576,14 @@ async function submitLogin(event) {
 
 function handleAuthPayload(payload) {
   if (!payload?.session?.accessToken) return;
+  const previousSession = state.auth?.session || {};
   state.auth = {
-    user: payload.user,
-    session: payload.session,
+    user: payload.user || state.auth?.user || {},
+    session: {
+      ...previousSession,
+      ...payload.session,
+      refreshToken: payload.session.refreshToken || previousSession.refreshToken || previousSession.refresh_token || "",
+    },
   };
   writeStorage(ALERT_AUTH_KEY, state.auth);
   prefillAlertContacts();
@@ -484,13 +600,23 @@ function clearAuthSession() {
 
 async function loadPriceAlerts() {
   if (!state.auth?.session?.accessToken) return;
+  if (!canValidateAuthInCurrentEnvironment()) {
+    setSessionSyncUnavailableStatus();
+    return;
+  }
   state.alertsLoading = true;
   renderPriceAlertsArea();
   try {
     const payload = await apiRequest("/api/alerts");
     state.priceAlerts = Array.isArray(payload.alerts) ? payload.alerts : [];
   } catch (error) {
-    setSupabaseStatus(error.message || "Falha ao carregar alertas.", false);
+    if (isAuthFailure(error)) {
+      clearAuthSession();
+    } else if (isEnvironmentAuthUnavailable(error)) {
+      setSessionSyncUnavailableStatus();
+    } else {
+      setSupabaseStatus(error.message || "Falha ao carregar alertas.", false);
+    }
   } finally {
     state.alertsLoading = false;
     renderPriceAlertsArea();
@@ -696,6 +822,35 @@ async function toggleSavedAlert(alert) {
 }
 
 async function apiRequest(url, options = {}) {
+  if (!options.skipAuth && !options.skipRefresh) {
+    await ensureFreshAuthSession();
+  }
+
+  let response = await fetchWithAuth(url, options);
+  let payload = await response.json().catch(() => ({}));
+
+  if (
+    !options.skipAuth
+    && !options.skipRefresh
+    && (response.status === 401 || response.status === 403 || payload.ok === false && isAuthFailure(createApiError(payload, response.status)))
+  ) {
+    try {
+      if (await ensureFreshAuthSession({ force: true })) {
+        response = await fetchWithAuth(url, options);
+        payload = await response.json().catch(() => ({}));
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  if (!response.ok || payload.ok === false) {
+    throw createApiError(payload, response.status);
+  }
+  return payload;
+}
+
+function fetchWithAuth(url, options = {}) {
   const headers = {
     Accept: "application/json",
     "Content-Type": "application/json",
@@ -704,17 +859,12 @@ async function apiRequest(url, options = {}) {
     headers.Authorization = `Bearer ${state.auth.session.accessToken}`;
   }
 
-  const response = await fetch(url, {
+  return fetch(url, {
     method: options.method || "GET",
     cache: "no-store",
     headers,
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok || payload.ok === false) {
-    throw new Error(payload.error || `HTTP ${response.status}`);
-  }
-  return payload;
 }
 
 function setAuthLoading(loading) {

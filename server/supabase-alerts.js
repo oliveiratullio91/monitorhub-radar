@@ -138,6 +138,19 @@ export async function signInPriceAlertUser(body = {}) {
   return normalizeAuthPayload(payload);
 }
 
+export async function refreshPriceAlertSession(body = {}) {
+  ensureSupabaseAuthConfigured();
+  const refreshToken = String(body.refreshToken || body.refresh_token || "").trim();
+  if (!refreshToken) throw httpError("Refresh token ausente.", 401);
+
+  const payload = await supabaseAuthFetch("/auth/v1/token?grant_type=refresh_token", {
+    method: "POST",
+    body: { refresh_token: refreshToken },
+  });
+
+  return normalizeAuthPayload(payload);
+}
+
 export async function getUserFromAuthorizationHeader(authHeader = "") {
   ensureSupabaseAuthConfigured();
   const token = extractBearerToken(authHeader);
@@ -676,17 +689,35 @@ function normalizeAuthPayload(payload = {}) {
   const user = normalizeUser(payload.user || payload, payload.access_token || payload.session?.access_token || "");
   const accessToken = payload.access_token || payload.session?.access_token || "";
   const refreshToken = payload.refresh_token || payload.session?.refresh_token || "";
+  const expiresIn = payload.expires_in || payload.session?.expires_in || "";
   return {
     ok: true,
     user,
     session: accessToken ? {
       accessToken,
       refreshToken,
-      expiresAt: payload.expires_at || "",
-      expiresIn: payload.expires_in || "",
+      expiresAt: normalizeSessionExpiresAt(payload.expires_at || payload.session?.expires_at || "", expiresIn),
+      expiresIn,
     } : null,
     requiresEmailConfirmation: Boolean(user.id && !accessToken),
   };
+}
+
+function normalizeSessionExpiresAt(expiresAt, expiresIn) {
+  if (expiresAt) {
+    const raw = String(expiresAt).trim();
+    const numeric = Number(raw);
+    if (Number.isFinite(numeric) && numeric > 0) {
+      return new Date(numeric * 1000).toISOString();
+    }
+    const parsed = Date.parse(raw);
+    if (Number.isFinite(parsed)) return new Date(parsed).toISOString();
+  }
+
+  const seconds = Number(expiresIn || 0);
+  return Number.isFinite(seconds) && seconds > 0
+    ? new Date(Date.now() + seconds * 1000).toISOString()
+    : "";
 }
 
 async function inspectSupabaseOAuthUrl(authUrl, provider) {
