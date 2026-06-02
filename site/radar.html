@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Radar de precos Garimpanda com alertas personalizados." />
     <title>Garimpanda - Radar</title>
-    <link rel="stylesheet" href="./styles.css?v=supabase1" />
+    <link rel="stylesheet" href="./styles.css?v=ops-codes1" />
   </head>
   <body class="page-body radar-page">
     <div class="dashboard-shell">
@@ -46,7 +46,7 @@
           <div>
             <span class="hero-kicker">Radar de precos</span>
             <h1>Crie alertas para comprar no valor certo</h1>
-            <p>Cadastre produto, preco maximo e canal de aviso. O n8n cruza seus alertas com o feed em cada coleta.</p>
+            <p>Cadastre produto, preco maximo e canal de aviso. O radar cruza seus alertas com o feed em cada coleta.</p>
           </div>
           <img src="./assets/garimpanda-panda-cutout.png" alt="" />
         </section>
@@ -60,7 +60,7 @@
             <button class="secondary-button compact is-hidden" id="logoutButton" type="button">Sair</button>
           </div>
 
-          <div class="supabase-warning" id="supabaseStatus">Supabase aguardando configuracao.</div>
+          <div class="data-service-warning" id="dataServiceStatus">Servico de dados aguardando configuracao.</div>
 
           <div class="radar-guide">
             <article>
@@ -70,7 +70,7 @@
             </article>
             <article>
               <span aria-hidden="true">2</span>
-              <strong>O n8n compara ofertas</strong>
+              <strong>O radar compara ofertas</strong>
               <p>A cada coleta, o radar cruza seus alertas com produtos reais do feed.</p>
             </article>
             <article>
@@ -117,7 +117,7 @@
                 <span aria-hidden="true">G</span>
                 Entrar com Google
               </button>
-              <p class="panel-subtitle">Depois do login, seus alertas ficam vinculados ao usuario no Supabase.</p>
+              <p class="panel-subtitle">Depois do login, seus alertas ficam vinculados ao seu usuario.</p>
             </form>
           </div>
 
@@ -126,7 +126,7 @@
               <span class="status-dot"></span>
               <div>
                 <strong id="sessionUserName">Usuario conectado</strong>
-                <p id="sessionUserEmail">Sincronizado com Supabase</p>
+                <p id="sessionUserEmail">Sincronizado com a plataforma</p>
               </div>
             </div>
 
@@ -144,7 +144,7 @@
                   required
                 />
                 <div class="catalog-suggestions is-hidden" id="catalogSuggestions" role="listbox"></div>
-                <small class="field-hint">Use um produto que ja apareceu na aba Produtos ou foi salvo pelo n8n.</small>
+                <small class="field-hint">Use um produto que ja apareceu na aba Produtos ou foi salvo pelo radar.</small>
               </label>
               <div class="selected-product-preview is-hidden" id="selectedProductPreview" aria-live="polite"></div>
               <label class="field-group">
@@ -194,6 +194,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=public-offers-fix1" defer></script>
+    <script src="./app.js?v=ops-codes1" defer></script>
   </body>
 </html>

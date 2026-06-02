@@ -8,14 +8,30 @@ const statusText = document.querySelector("#entryLoginStatus");
 const googleLoginButton = document.querySelector("#entryGoogleLogin");
 
 const AUTH_ERROR_MESSAGES = {
-  "google-provider-disabled": "Login com Google ainda nao esta ativo no Supabase. Configure o provider Google ou entre com e-mail e senha por enquanto.",
-  "google-provider-error": "Nao foi possivel iniciar o login com Google agora. Tente novamente ou use e-mail e senha.",
+  "google-provider-disabled": "RAD-AUTH-003 - Login social temporariamente indisponivel. Use e-mail e senha por enquanto.",
+  "google-provider-error": "RAD-AUTH-004 - Nao foi possivel iniciar o login social agora. Tente novamente ou use e-mail e senha.",
 };
 
 function setStatus(message, ready = false) {
   if (!statusText) return;
   statusText.textContent = message;
   statusText.classList.toggle("ready", ready);
+}
+
+function codeFromErrorMessage(message, fallbackCode = "RAD-GEN-001") {
+  const value = String(message || "");
+  const existingCode = value.match(/RAD-[A-Z]+-\d{3}/i)?.[0];
+  if (existingCode) return existingCode.toUpperCase();
+  if (/google-provider-disabled|unsupported provider|provider is not enabled/i.test(value)) return "RAD-AUTH-003";
+  if (/sessao|session|jwt|bearer|token expirad|invalid token|refresh token/i.test(value)) return "RAD-AUTH-002";
+  if (/schema cache|monitorhub_|Could not find the table|Could not find the column/i.test(value)) return "RAD-DATA-001";
+  if (/google|oauth|provider|callback|autoriz/i.test(value)) return "RAD-AUTH-004";
+  return fallbackCode;
+}
+
+function publicErrorMessage(message, fallbackText = "Falha operacional. Consulte o codigo informado.") {
+  const code = codeFromErrorMessage(message);
+  return `${code} - ${fallbackText}`;
 }
 
 function setLoading(loading) {
@@ -43,7 +59,7 @@ async function consumeOAuthRedirect() {
 
   if (error) {
     history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
-    setStatus(`Login com Google interrompido: ${error}`);
+    setStatus("RAD-AUTH-004 - Login social interrompido antes da conclusao.");
     return;
   }
 
@@ -66,7 +82,7 @@ async function consumeOAuthRedirect() {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload.ok === false || !payload.user) {
-      throw new Error(payload.error || "Nao foi possivel validar sua conta Google.");
+      throw new Error(payload.error || "RAD-AUTH-004 - Nao foi possivel validar sua conta.");
     }
 
     localStorage.setItem(ALERT_AUTH_KEY, JSON.stringify({
@@ -80,7 +96,7 @@ async function consumeOAuthRedirect() {
     setStatus("Login com Google confirmado. Abrindo produtos...", true);
     window.location.href = "./produtos.html";
   } catch (error) {
-    setStatus(error.message || "Falha ao concluir login com Google.");
+    setStatus(publicErrorMessage(error.message, "Falha ao concluir login social."));
     setLoading(false);
   }
 }
@@ -111,7 +127,7 @@ form?.addEventListener("submit", async (event) => {
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload.ok === false || !payload.session?.accessToken) {
-      throw new Error(payload.error || "Nao foi possivel entrar.");
+      throw new Error(payload.error || "RAD-AUTH-002 - Nao foi possivel validar o acesso.");
     }
 
     localStorage.setItem(ALERT_AUTH_KEY, JSON.stringify({
@@ -121,7 +137,7 @@ form?.addEventListener("submit", async (event) => {
     setStatus("Login confirmado. Abrindo produtos...", true);
     window.location.href = "./produtos.html";
   } catch (error) {
-    setStatus(error.message || "Falha ao entrar. Voce ainda pode acessar sem login.");
+    setStatus(publicErrorMessage(error.message, "Falha ao entrar. Voce ainda pode acessar sem login."));
   } finally {
     setLoading(false);
     if (passwordInput) passwordInput.value = "";

@@ -9,7 +9,7 @@ export default async function handler(request, response) {
 
   try {
     if (!canEvaluateAlerts(request)) {
-      return response.status(401).json({ ok: false, error: "Token do n8n invalido" });
+      return response.status(401).json({ ok: false, code: "RAD-FEED-002", error: "RAD-FEED-002 - Token de ingestao invalido" });
     }
 
     const url = new URL(request.url || "/api/alerts/evaluate", `https://${request.headers.host || "localhost"}`);

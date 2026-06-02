@@ -1106,7 +1106,7 @@ select option {
   margin-bottom: 14px;
 }
 
-.supabase-warning {
+.data-service-warning {
   border: 1px solid rgba(255, 138, 0, 0.28);
   border-radius: var(--radius);
   background: rgba(255, 138, 0, 0.08);
@@ -1115,13 +1115,13 @@ select option {
   padding: 12px 14px;
 }
 
-.supabase-warning.ready {
+.data-service-warning.ready {
   border-color: rgba(36, 199, 111, 0.3);
   background: rgba(36, 199, 111, 0.1);
   color: var(--green);
 }
 
-.supabase-warning.missing {
+.data-service-warning.missing {
   border-color: rgba(255, 91, 91, 0.3);
   background: rgba(255, 91, 91, 0.08);
   color: #ff8b8b;
@@ -2486,13 +2486,13 @@ select option {
   z-index: 1;
 }
 
-.supabase-warning {
+.data-service-warning {
   border-color: rgba(15, 163, 115, 0.18);
   background: #eef8f3;
   color: #166b51;
 }
 
-.supabase-warning.missing {
+.data-service-warning.missing {
   border-color: rgba(255, 178, 31, 0.32);
   background: #fff8e8;
   color: #946409;

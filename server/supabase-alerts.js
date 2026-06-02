@@ -69,13 +69,12 @@ const BRAND_NAMES = [
 ];
 
 export function publicSupabaseConfig() {
+  const dataServiceConfigured = isSupabaseConfigured();
   return {
-    supabaseConfigured: isSupabaseConfigured(),
-    supabaseAuthConfigured: Boolean(env.SUPABASE_URL && env.SUPABASE_ANON_KEY),
-    supabaseDatabaseConfigured: isSupabaseConfigured(),
-    supabaseRequiredEnv: isSupabaseConfigured()
-      ? []
-      : ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"].filter((key) => !env[key]),
+    dataServiceConfigured,
+    authServiceConfigured: Boolean(env.SUPABASE_URL && env.SUPABASE_ANON_KEY),
+    databaseServiceConfigured: dataServiceConfigured,
+    requiredServiceCodes: dataServiceConfigured ? [] : ["RAD-AUTH-001", "RAD-DATA-001"],
   };
 }
 
@@ -738,7 +737,7 @@ async function inspectSupabaseOAuthUrl(authUrl, provider) {
       return {
         ok: false,
         code: `${provider || "google"}-provider-disabled`,
-        message: "Login com Google ainda nao foi habilitado no Supabase.",
+        message: "RAD-AUTH-003 - Login social ainda nao foi habilitado.",
       };
     }
 
@@ -1306,7 +1305,7 @@ async function supabaseFetch(pathname, options = {}) {
 
   if (!response.ok) {
     const detail = payload?.msg || payload?.message || payload?.error_description || payload?.error || payload?.hint || payload?.raw || response.statusText;
-    throw httpError(`Supabase HTTP ${response.status}: ${detail}`, response.status);
+    throw httpError(`RAD-DATA-001 - Servico de dados respondeu HTTP ${response.status}.`, response.status);
   }
 
   return payload;
@@ -1314,20 +1313,20 @@ async function supabaseFetch(pathname, options = {}) {
 
 function ensureSupabaseAuthConfigured() {
   if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
-    throw httpError("Configure SUPABASE_URL e SUPABASE_ANON_KEY.", 503);
+    throw httpError("RAD-AUTH-001 - Servico de autenticacao aguardando configuracao.", 503);
   }
 }
 
 function ensureSupabaseConfigured() {
   if (!isSupabaseConfigured()) {
-    throw httpError("Configure SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY.", 503);
+    throw httpError("RAD-DATA-001 - Servico de dados aguardando configuracao.", 503);
   }
 }
 
 function firstRecord(payload) {
   if (Array.isArray(payload) && payload[0]) return payload[0];
   if (payload && typeof payload === "object" && !Array.isArray(payload)) return payload;
-  throw httpError("Registro nao encontrado no Supabase.", 404);
+  throw httpError("RAD-DATA-004 - Registro nao encontrado.", 404);
 }
 
 function productKey(product) {

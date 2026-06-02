@@ -129,9 +129,9 @@ export function publicConfig(options = {}) {
     amazonConfigured,
     amazonProvider: env.AMAZON_ENDPOINT_URL ? "endpoint" : "creators",
     realSourcesReady: mercadoLivreConfigured || mercadoLivreSessionConfigured || amazonConfigured,
-    requiredEnv: {
-      mercadoLivre: mercadoLivreConfigured || mercadoLivreSessionConfigured ? [] : ["MERCADO_LIVRE_ACCESS_TOKEN"],
-      amazon: amazonConfigured ? [] : missingAmazonKeys(),
+    requiredSourceCodes: {
+      mercadoLivre: mercadoLivreConfigured || mercadoLivreSessionConfigured ? [] : ["RAD-ML-002"],
+      amazon: amazonConfigured ? [] : ["RAD-AMZ-002"],
     },
   };
 }
@@ -165,7 +165,7 @@ export function buildMercadoLivreAuthorizationUrl({ clientId, redirectUri, state
 
 export async function authorizeMercadoLivreFromCode({ code, redirectUri, codeVerifier }) {
   if (!env.MERCADO_LIVRE_CLIENT_ID || !env.MERCADO_LIVRE_CLIENT_SECRET) {
-    throw new Error("preencha MERCADO_LIVRE_CLIENT_ID e MERCADO_LIVRE_CLIENT_SECRET");
+    throw new Error("RAD-ML-002 - Credenciais OAuth ausentes.");
   }
 
   const payload = await requestMercadoLivreToken({
@@ -232,7 +232,7 @@ export async function getProducts(searchParams, options = {}) {
       fallback = {
         active: true,
         source: "public-offers",
-        reason: "Ofertas publicas reais ativas: a vitrine esta usando as paginas de ofertas do Mercado Livre e da Amazon enquanto o n8n sincroniza.",
+        reason: "Ofertas publicas reais ativas: a vitrine esta usando as paginas de ofertas do Mercado Livre e da Amazon enquanto o motor de coleta sincroniza.",
       };
       errors.splice(0, errors.length, ...errors.filter((error) => !isResolvedByPublicOffers(error)));
     } else {
@@ -408,7 +408,7 @@ async function getDemoProducts({ limit }) {
 async function getMercadoLivreProducts({ query, limit }, options = {}) {
   const accessToken = await ensureMercadoLivreAccessToken(options);
   if (!accessToken) {
-    throw new Error("conecte o Mercado Livre ou preencha MERCADO_LIVRE_ACCESS_TOKEN no .env");
+    throw new Error("RAD-ML-002 - Fonte Mercado Livre aguardando credencial de integracao.");
   }
 
   const authHeaders = {
@@ -575,7 +575,7 @@ async function getAmazonFromEndpoint({ query, limit }) {
 async function getAmazonFromCreatorsApi({ query, limit }) {
   const missing = missingAmazonKeys();
   if (missing.length) {
-    throw new Error(`preencha ${missing.join(", ")} no .env`);
+    throw new Error("RAD-AMZ-002 - Fonte Amazon aguardando credencial de integracao.");
   }
 
   const apiClient = new ApiClient();

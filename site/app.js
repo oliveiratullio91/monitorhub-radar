@@ -12,8 +12,8 @@ const PRICE_RANGE_DEFAULT_MAX = 10000;
 const PRICE_RANGE_STEP = 1;
 const SESSION_REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 const AUTH_ERROR_MESSAGES = {
-  "google-provider-disabled": "Login com Google ainda nao esta ativo no Supabase. Configure o provider Google ou entre com e-mail e senha por enquanto.",
-  "google-provider-error": "Nao foi possivel iniciar o login com Google agora. Tente novamente ou use e-mail e senha.",
+  "google-provider-disabled": "RAD-AUTH-003 - Login social temporariamente indisponivel. Use e-mail e senha por enquanto.",
+  "google-provider-error": "RAD-AUTH-004 - Nao foi possivel iniciar o login social agora. Tente novamente ou use e-mail e senha.",
 };
 
 const dashboardFormatter = new Intl.NumberFormat("pt-BR");
@@ -69,8 +69,8 @@ const state = {
   loading: false,
   lastUpdated: null,
   serverConfig: null,
-  n8nFeedActive: false,
-  n8nUpdatedAt: "",
+  feedActive: false,
+  feedUpdatedAt: "",
   fallbackActive: false,
   fallbackReason: "",
   selectedCategory: "all",
@@ -137,7 +137,7 @@ const elements = {
   productTemplate: document.querySelector("#productCardTemplate"),
   timelineTemplate: document.querySelector("#timelineItemTemplate"),
   categoryButtons: document.querySelectorAll(".category-button"),
-  supabaseStatus: document.querySelector("#supabaseStatus"),
+  dataServiceStatus: document.querySelector("#dataServiceStatus"),
   authForms: document.querySelector("#authForms"),
   signupForm: document.querySelector("#signupForm"),
   signupName: document.querySelector("#signupName"),
@@ -210,7 +210,7 @@ function isSessionExpiringSoon(session = state.auth?.session) {
 }
 
 function canValidateAuthInCurrentEnvironment() {
-  return state.serverConfig?.supabaseAuthConfigured !== false;
+  return state.serverConfig?.authServiceConfigured !== false;
 }
 
 function isAuthFailure(error) {
@@ -222,14 +222,38 @@ function isAuthFailure(error) {
 function isEnvironmentAuthUnavailable(error) {
   const status = Number(error?.status || 0);
   const message = String(error?.message || "");
-  return status === 503 || /configure supabase|supabase.*configure/i.test(message);
+  return status === 503 || /RAD-(AUTH|DATA)-001/i.test(message);
 }
 
 function setSessionSyncUnavailableStatus() {
-  setSupabaseStatus(
-    "Sessao mantida. Configure o Supabase neste ambiente para sincronizar alertas.",
+  setDataServiceStatus(
+    "RAD-DATA-001 - Sessao mantida, mas a sincronizacao esta indisponivel neste ambiente.",
     false,
   );
+}
+
+function operationalMessage(code, text) {
+  return `${code} - ${text}`;
+}
+
+function codeFromErrorMessage(message, fallbackCode = "RAD-GEN-001") {
+  const value = String(message || "");
+  const existingCode = value.match(/RAD-[A-Z]+-\d{3}/i)?.[0];
+  if (existingCode) return existingCode.toUpperCase();
+  if (/google-provider-disabled|unsupported provider|provider is not enabled/i.test(value)) return "RAD-AUTH-003";
+  if (/sessao|session|jwt|bearer|token expirad|invalid token|refresh token/i.test(value)) return "RAD-AUTH-002";
+  if (/schema cache|monitorhub_|catalog_product|canonical_product|Could not find the table|Could not find the column/i.test(value)) return "RAD-DATA-001";
+  if (/catalogo|catalog/i.test(value)) return "RAD-DATA-002";
+  if (/feed|ingest|coleta/i.test(value)) return "RAD-FEED-001";
+  if (/Mercado Livre|mercadolivre|OAuth|APP ID|Secret Key/i.test(value)) return "RAD-ML-001";
+  if (/Amazon/i.test(value)) return "RAD-AMZ-001";
+  if (/environment variables|ambiente online/i.test(value)) return "RAD-ENV-001";
+  return fallbackCode;
+}
+
+function publicErrorMessage(message, fallbackText = "Falha operacional. Consulte o codigo informado.") {
+  const code = codeFromErrorMessage(message);
+  return operationalMessage(code, fallbackText);
 }
 
 async function refreshAuthSession() {
@@ -272,7 +296,7 @@ async function consumeOAuthRedirect() {
 
   if (error) {
     history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
-    setSupabaseStatus(`Login com Google interrompido: ${error}`, false);
+    setDataServiceStatus("RAD-AUTH-004 - Login social interrompido antes da conclusao.", false);
     return;
   }
 
@@ -296,7 +320,7 @@ async function consumeOAuthRedirect() {
     const payload = await apiRequest("/api/auth/me");
     state.auth.user = payload.user;
     writeStorage(ALERT_AUTH_KEY, state.auth);
-    setSupabaseStatus("Login com Google confirmado.", true);
+    setDataServiceStatus("Login com Google confirmado.", true);
   } catch (error) {
     if (isEnvironmentAuthUnavailable(error)) {
       writeStorage(ALERT_AUTH_KEY, state.auth);
@@ -304,7 +328,7 @@ async function consumeOAuthRedirect() {
       renderUserHeader();
     } else {
       clearAuthSession();
-      setSupabaseStatus(error.message || "Nao foi possivel concluir o login com Google.", false);
+      setDataServiceStatus(publicErrorMessage(error.message, "Nao foi possivel concluir o login social."), false);
     }
   }
 }
@@ -317,7 +341,7 @@ function consumeAuthQueryMessage() {
   params.delete("authError");
   const query = params.toString();
   history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
-  setSupabaseStatus(AUTH_ERROR_MESSAGES[code] || AUTH_ERROR_MESSAGES["google-provider-error"], false);
+  setDataServiceStatus(AUTH_ERROR_MESSAGES[code] || AUTH_ERROR_MESSAGES["google-provider-error"], false);
 }
 
 function startGoogleLogin(targetPath = `${window.location.pathname}${window.location.search}`) {
@@ -369,27 +393,29 @@ function renderServerStatus() {
   if (!config) {
     setStatusElement(elements.mercadoLivreStatus, "Mercado Livre: servidor indisponivel", false);
     setStatusElement(elements.amazonStatus, "Amazon: servidor indisponivel", false);
-    setSupabaseStatus("Supabase: servidor indisponivel", false);
+    setDataServiceStatus("RAD-DATA-001 - Servico de dados indisponivel.", false);
     return;
   }
 
   setStatusElement(
     elements.mercadoLivreStatus,
     config.mercadoLivreConfigured
-      ? "Mercado Livre: token ativo"
+      ? "Mercado Livre: conectado"
       : IS_LOCALHOST
-        ? "Mercado Livre: local sem token"
-        : "Mercado Livre: falta MERCADO_LIVRE_ACCESS_TOKEN",
+        ? "Mercado Livre: RAD-ML-002 - Fonte aguardando credencial."
+        : "Mercado Livre: RAD-ML-002 - Fonte aguardando credencial.",
     config.mercadoLivreConfigured,
   );
   setStatusElement(
     elements.amazonStatus,
-    config.amazonConfigured ? `Amazon: ${config.amazonProvider} ativo` : "Amazon: faltam credenciais ou endpoint",
+    config.amazonConfigured ? `Amazon: ${config.amazonProvider} ativo` : "Amazon: RAD-AMZ-002 - Fonte aguardando credencial.",
     config.amazonConfigured,
   );
-  setSupabaseStatus(
-    config.supabaseConfigured ? "Supabase: cadastro e alertas ativos" : `Supabase: configure ${config.supabaseRequiredEnv?.join(", ") || "variaveis"}`,
-    config.supabaseConfigured,
+  setDataServiceStatus(
+    config.dataServiceConfigured
+      ? "Servico de dados ativo"
+      : "RAD-DATA-001 - Servico de dados aguardando configuracao.",
+    config.dataServiceConfigured,
   );
 }
 
@@ -405,11 +431,11 @@ function setStatusElement(element, text, ready) {
   element.classList.toggle("missing", !ready);
 }
 
-function setSupabaseStatus(text, ready) {
-  if (!elements.supabaseStatus) return;
-  elements.supabaseStatus.textContent = text;
-  elements.supabaseStatus.classList.toggle("ready", Boolean(ready));
-  elements.supabaseStatus.classList.toggle("missing", !ready);
+function setDataServiceStatus(text, ready) {
+  if (!elements.dataServiceStatus) return;
+  elements.dataServiceStatus.textContent = text;
+  elements.dataServiceStatus.classList.toggle("ready", Boolean(ready));
+  elements.dataServiceStatus.classList.toggle("missing", !ready);
 }
 
 function prepareDemoMode() {
@@ -432,10 +458,10 @@ function normalizeRadarSourceSelection(changedElement = null) {
 }
 
 async function fetchProductsFromBackend(config) {
-  const n8nPayload = await fetchN8nProducts(config.itemLimit);
-  if (n8nPayload?.products?.length) {
-    setStatusElement(elements.mercadoLivreStatus, "n8n: feed conectado ao dashboard", true);
-    return n8nPayload;
+  const feedPayload = await fetchFeedProducts(config.itemLimit);
+  if (feedPayload?.products?.length) {
+    setStatusElement(elements.mercadoLivreStatus, "Feed operacional conectado", true);
+    return feedPayload;
   }
 
   const selectedSources = [];
@@ -460,16 +486,16 @@ async function fetchProductsFromBackend(config) {
   return payload;
 }
 
-async function fetchN8nProducts(limit) {
+async function fetchFeedProducts(limit) {
   try {
     const params = new URLSearchParams({ limit: String(limit) });
-    const response = await fetch(`/api/n8n/products?${params.toString()}`, { cache: "no-store" });
+    const response = await fetch(`/api/feed/products?${params.toString()}`, { cache: "no-store" });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
 
     return {
       ...payload,
-      source: "n8n",
+      source: "feed",
       products: Array.isArray(payload.products) ? payload.products : [],
       errors: Array.isArray(payload.errors) ? payload.errors : [],
       fallback: payload.fallback || { active: false },
@@ -514,7 +540,7 @@ async function verifyStoredSession() {
     } else if (isEnvironmentAuthUnavailable(error)) {
       setSessionSyncUnavailableStatus();
     } else {
-      setSupabaseStatus(error.message || "Sessao mantida, mas nao foi possivel sincronizar agora.", false);
+      setDataServiceStatus(publicErrorMessage(error.message, "Sessao mantida, mas a sincronizacao falhou."), false);
     }
   }
   renderPriceAlertsArea();
@@ -536,14 +562,14 @@ async function submitSignup(event) {
     });
     handleAuthPayload(payload);
     if (payload.requiresEmailConfirmation) {
-      setSupabaseStatus("Cadastro criado. Confirme o e-mail no Supabase antes de entrar.", true);
+      setDataServiceStatus("Cadastro criado. Confirme o e-mail antes de entrar.", true);
     } else {
-      setSupabaseStatus("Conta criada e conectada.", true);
+      setDataServiceStatus("Conta criada e conectada.", true);
       await loadPriceAlerts();
     }
     elements.signupPassword.value = "";
   } catch (error) {
-    setSupabaseStatus(error.message || "Falha ao cadastrar usuario.", false);
+    setDataServiceStatus(publicErrorMessage(error.message, "Falha ao cadastrar usuario."), false);
   } finally {
     setAuthLoading(false);
     renderPriceAlertsArea();
@@ -563,11 +589,11 @@ async function submitLogin(event) {
       skipAuth: true,
     });
     handleAuthPayload(payload);
-    setSupabaseStatus("Usuario conectado ao Supabase.", true);
+    setDataServiceStatus("Usuario conectado.", true);
     elements.loginPassword.value = "";
     await loadPriceAlerts();
   } catch (error) {
-    setSupabaseStatus(error.message || "Falha ao entrar.", false);
+    setDataServiceStatus(publicErrorMessage(error.message, "Falha ao entrar."), false);
   } finally {
     setAuthLoading(false);
     renderPriceAlertsArea();
@@ -615,7 +641,7 @@ async function loadPriceAlerts() {
     } else if (isEnvironmentAuthUnavailable(error)) {
       setSessionSyncUnavailableStatus();
     } else {
-      setSupabaseStatus(error.message || "Falha ao carregar alertas.", false);
+      setDataServiceStatus(publicErrorMessage(error.message, "Falha ao carregar alertas."), false);
     }
   } finally {
     state.alertsLoading = false;
@@ -648,7 +674,7 @@ async function loadCatalogSuggestions(query) {
     state.catalogSuggestions = Array.isArray(payload.products) ? payload.products : [];
   } catch (error) {
     state.catalogSuggestions = [];
-    setSupabaseStatus(error.message || "Falha ao buscar produtos catalogados.", false);
+    setDataServiceStatus(publicErrorMessage(error.message, "Falha ao buscar produtos catalogados."), false);
   } finally {
     state.catalogLoading = false;
     renderCatalogSuggestions();
@@ -703,7 +729,7 @@ function renderCatalogSuggestions() {
   if (!state.catalogSuggestions.length) {
     const empty = document.createElement("div");
     empty.className = "catalog-suggestion-empty";
-    empty.textContent = "Nenhum produto catalogado encontrado. Abra Produtos ou aguarde a proxima coleta do n8n.";
+    empty.textContent = "Nenhum produto catalogado encontrado. Abra Produtos ou aguarde a proxima coleta automatica.";
     container.append(empty);
     return;
   }
@@ -742,18 +768,18 @@ function renderCatalogSuggestions() {
 async function submitPriceAlert(event) {
   event.preventDefault();
   if (!state.auth?.session?.accessToken) {
-    setSupabaseStatus("Entre na sua conta para criar alertas.", false);
+    setDataServiceStatus("Entre na sua conta para criar alertas.", false);
     return;
   }
 
   const productQuery = elements.alertProductQuery.value.trim();
   const targetPrice = Number(elements.alertTargetPrice.value);
   if (!productQuery || !targetPrice) {
-    setSupabaseStatus("Informe produto e preco maximo.", false);
+    setDataServiceStatus("Informe produto e preco maximo.", false);
     return;
   }
   if (!state.selectedCatalogProduct && !state.selectedAlertProduct) {
-    setSupabaseStatus("Escolha um produto sugerido pelo catalogo antes de criar o alerta.", false);
+    setDataServiceStatus("Escolha um produto sugerido pelo catalogo antes de criar o alerta.", false);
     elements.alertProductQuery?.focus();
     await loadCatalogSuggestions(productQuery);
     return;
@@ -784,9 +810,9 @@ async function submitPriceAlert(event) {
     state.selectedCatalogProduct = null;
     state.catalogSuggestions = [];
     prefillAlertContacts();
-    setSupabaseStatus("Alerta salvo. O n8n vai comparar nas proximas coletas.", true);
+    setDataServiceStatus("Alerta salvo. O radar vai comparar nas proximas coletas.", true);
   } catch (error) {
-    setSupabaseStatus(error.message || "Falha ao salvar alerta.", false);
+    setDataServiceStatus(publicErrorMessage(error.message, "Falha ao salvar alerta."), false);
   } finally {
     setAlertFormLoading(false);
     renderPriceAlertsArea();
@@ -797,9 +823,9 @@ async function deleteSavedAlert(id) {
   try {
     await apiRequest(`/api/alerts?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     state.priceAlerts = state.priceAlerts.filter((alert) => alert.id !== id);
-    setSupabaseStatus("Alerta removido.", true);
+    setDataServiceStatus("Alerta removido.", true);
   } catch (error) {
-    setSupabaseStatus(error.message || "Falha ao remover alerta.", false);
+    setDataServiceStatus(publicErrorMessage(error.message, "Falha ao remover alerta."), false);
   } finally {
     renderPriceAlertsArea();
   }
@@ -813,9 +839,9 @@ async function toggleSavedAlert(alert) {
       body: { id: alert.id, status: nextStatus },
     });
     state.priceAlerts = state.priceAlerts.map((item) => item.id === alert.id ? payload.alert : item);
-    setSupabaseStatus(nextStatus === "active" ? "Alerta reativado." : "Alerta pausado.", true);
+    setDataServiceStatus(nextStatus === "active" ? "Alerta reativado." : "Alerta pausado.", true);
   } catch (error) {
-    setSupabaseStatus(error.message || "Falha ao alterar alerta.", false);
+    setDataServiceStatus(publicErrorMessage(error.message, "Falha ao alterar alerta."), false);
   } finally {
     renderPriceAlertsArea();
   }
@@ -911,7 +937,7 @@ function prefillAlertFromProduct(product) {
 
   if (!state.auth?.session?.accessToken) {
     location.hash = "#meus-alertas";
-    setSupabaseStatus("Entre ou cadastre-se para criar alertas personalizados.", false);
+    setDataServiceStatus("Entre ou cadastre-se para criar alertas personalizados.", false);
     applyAlertDraft(draft);
     return;
   }
@@ -919,7 +945,7 @@ function prefillAlertFromProduct(product) {
   location.hash = "#meus-alertas";
   applyAlertDraft(draft);
   prefillAlertContacts();
-  setSupabaseStatus("Produto preenchido. Ajuste o preco alvo antes de salvar.", true);
+  setDataServiceStatus("Produto preenchido. Ajuste o preco alvo antes de salvar.", true);
 }
 
 function applyStoredAlertDraft() {
@@ -1013,7 +1039,7 @@ function renderPriceAlertsArea() {
     elements.sessionUserName.textContent = user.name || "Usuario conectado";
   }
   if (elements.sessionUserEmail) {
-    elements.sessionUserEmail.textContent = user.email || "Sincronizado com Supabase";
+    elements.sessionUserEmail.textContent = user.email || "Sincronizado com a plataforma";
   }
 
   prefillAlertContacts();
@@ -1209,8 +1235,8 @@ async function refreshProducts() {
 
   if (!config.demoEnabled && !config.mercadoLivreEnabled && !config.amazonEnabled) {
     state.products = [];
-    state.n8nFeedActive = false;
-    state.n8nUpdatedAt = "";
+    state.feedActive = false;
+    state.feedUpdatedAt = "";
     state.loading = false;
     setConnectionText("Nenhuma fonte ativa");
     render();
@@ -1219,17 +1245,17 @@ async function refreshProducts() {
 
   try {
     const payload = await fetchProductsFromBackend(config);
-    state.n8nFeedActive = payload.source === "n8n";
-    state.n8nUpdatedAt = payload.updatedAt || "";
+    state.feedActive = payload.source === "feed";
+    state.feedUpdatedAt = payload.updatedAt || "";
     state.sourceErrors = payload.errors || [];
     state.fallbackActive = Boolean(payload.fallback?.active);
     state.fallbackReason = payload.fallback?.reason || "";
     state.products = withChanges((payload.products || []).filter((product) => product.id && product.title));
     state.lastUpdated = payload.fetchedAt ? new Date(payload.fetchedAt) : new Date();
-    if (state.n8nFeedActive && state.products.length) {
-      setConnectionText("Feed n8n atualizado");
-    } else if (state.n8nFeedActive) {
-      setConnectionText("Aguardando produtos do n8n");
+    if (state.feedActive && state.products.length) {
+      setConnectionText("Feed atualizado");
+    } else if (state.feedActive) {
+      setConnectionText("Aguardando produtos");
     } else if (state.fallbackActive && payload.fallback?.source === "public-offers") {
       setConnectionText("Ofertas publicas ativas");
     } else if (state.fallbackActive || (config.demoEnabled && !state.serverConfig?.realSourcesReady && !config.mercadoLivreEnabled && !config.amazonEnabled)) {
@@ -1243,8 +1269,8 @@ async function refreshProducts() {
     }
   } catch (error) {
     state.products = [];
-    state.n8nFeedActive = false;
-    state.n8nUpdatedAt = "";
+    state.feedActive = false;
+    state.feedUpdatedAt = "";
     state.sourceErrors = [error.message || "Falha ao atualizar produtos"];
     state.fallbackActive = false;
     state.fallbackReason = "";
@@ -1345,7 +1371,7 @@ function curationNote(product) {
   if (isPromotion(product)) {
     const label = product.promotionName || product.promotionType || "promocao ativa";
     const discount = promotionDiscountText(product);
-    return `${label}${discount ? ` - ${discount}` : ""}. Item enviado pelo n8n por estar com preco promocional no Mercado Livre.`;
+    return `${label}${discount ? ` - ${discount}` : ""}. Item identificado por estar com preco promocional no Mercado Livre.`;
   }
   if (product.changeType === "drop") return "Queda detectada. Vale confirmar frete, garantia e vendedor antes de decidir.";
   if (product.changeType === "new") return "Novo item no radar. Acompanhe mais leituras para entender se o preco se sustenta.";
@@ -1877,10 +1903,10 @@ function renderProducts(products) {
   if (!elements.productGrid || !elements.productTemplate) return;
   elements.productGrid.textContent = "";
 
-  if (!state.n8nFeedActive && !state.sourceErrors.length && !products.length) {
+  if (!state.feedActive && !state.sourceErrors.length && !products.length) {
     const warning = document.createElement("div");
     warning.className = "warning-state";
-    warning.textContent = "Aguardando o n8n enviar produtos para /api/n8n/products.";
+    warning.textContent = "RAD-FEED-001 - Aguardando entrada de produtos do motor de coleta.";
     elements.productGrid.append(warning);
   }
 
@@ -1998,20 +2024,17 @@ function renderTimeline() {
 }
 
 function formatSourceErrorForDisplay(message) {
-  if (message.toLowerCase().startsWith("n8n:")) {
-    return message;
-  }
-  if (IS_LOCALHOST && message.includes("MERCADO_LIVRE_ACCESS_TOKEN")) {
-    return "Mercado Livre: este servidor local esta sem token. Use https://monitorhub-radar.vercel.app ou autorize o Mercado Livre localmente.";
+  if (/RAD-ML-002|credencial|integracao/i.test(message) && /Mercado Livre|mercadolivre|ML/i.test(message)) {
+    return "RAD-ML-002 - Fonte Mercado Livre aguardando credencial de integracao.";
   }
   if (message.includes("sem itens publicados")) {
-    return "Mercado Livre conectado. A conta autorizada nao retornou anuncios pela API. Autorize uma conta vendedora com anuncios publicados ou publique um item para o painel listar automaticamente.";
+    return "RAD-ML-003 - Conta Mercado Livre conectada sem anuncios proprios retornados.";
   }
-  return message;
+  return publicErrorMessage(message, "Falha em uma fonte monitorada.");
 }
 
 function isOperationalSourceMessage(message) {
-  return message.includes("sem itens publicados") || message.includes("MERCADO_LIVRE_ACCESS_TOKEN");
+  return /sem itens publicados|RAD-ML-002|RAD-ML-003|credencial|integracao/i.test(message);
 }
 
 function resetProductPageAndRender() {

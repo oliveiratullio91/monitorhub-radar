@@ -21,7 +21,7 @@ form.addEventListener("submit", async (event) => {
   }
 
   if (!isLocalhost && !serverConfig?.mercadoLivreOAuthReady && (!form.clientId.value.trim() || !form.clientSecret.value.trim())) {
-    statusBox.textContent = "Na Vercel, cadastre MERCADO_LIVRE_CLIENT_ID e MERCADO_LIVRE_CLIENT_SECRET ou preencha os campos manualmente.";
+    statusBox.textContent = "RAD-ENV-001 - Credenciais OAuth ausentes no ambiente online ou nao informadas manualmente.";
     statusBox.classList.add("missing");
     return;
   }
@@ -57,7 +57,7 @@ async function loadConfig() {
     const response = await fetch("/api/config", { cache: "no-store" });
     serverConfig = await response.json();
     if (!isLocalhost && serverConfig.mercadoLivreOAuthReady) {
-      statusBox.textContent = "Credenciais OAuth encontradas na Vercel. Clique em Autorizar Mercado Livre.";
+      statusBox.textContent = "Credenciais OAuth encontradas no ambiente online. Clique em Autorizar Mercado Livre.";
       statusBox.classList.add("ready");
     }
   } catch {

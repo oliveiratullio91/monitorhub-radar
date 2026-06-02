@@ -9,7 +9,7 @@ export default function handler(request, response) {
     config.mercadoLivreConfigured = true;
     config.mercadoLivreMode = "session";
     config.realSourcesReady = true;
-    config.requiredEnv.mercadoLivre = [];
+    config.requiredSourceCodes.mercadoLivre = [];
   }
 
   response.setHeader("Cache-Control", "no-store");

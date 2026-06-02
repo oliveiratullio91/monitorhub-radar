@@ -37,7 +37,8 @@ function startMercadoLivreOAuth(request, response) {
   if (!clientId || !clientSecret) {
     return response.status(400).json({
       ok: false,
-      error: "Cadastre MERCADO_LIVRE_CLIENT_ID e MERCADO_LIVRE_CLIENT_SECRET nas Environment Variables da Vercel.",
+      code: "RAD-ENV-001",
+      error: "RAD-ENV-001 - Credenciais OAuth ausentes no ambiente online.",
     });
   }
 
@@ -111,7 +112,7 @@ async function finishMercadoLivreOAuth(request, response) {
     ]);
     return response.status(200).send(oauthHtml(
       "Mercado Livre autorizado",
-      "Sessao conectada ao Mercado Livre. O dashboard ja pode buscar anuncios reais neste navegador. As variaveis abaixo continuam disponiveis caso voce queira persistir a integracao na Vercel.",
+      "Sessao conectada ao Mercado Livre. O dashboard ja pode buscar anuncios reais neste navegador. As variaveis abaixo continuam disponiveis caso voce queira persistir a integracao no ambiente online.",
       { success: true, env },
     ));
   } catch (exchangeError) {

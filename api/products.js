@@ -49,7 +49,7 @@ async function getCatalogProducts(searchParams) {
       ? {
         ...fallbackCatalog,
         catalogFallback: true,
-        warning: "Catalogo Supabase vazio; usando ofertas atuais.",
+        warning: "RAD-DATA-002 - Catalogo vazio; usando ofertas atuais.",
       }
       : catalog;
   } catch (error) {
@@ -57,7 +57,7 @@ async function getCatalogProducts(searchParams) {
     return {
       ...buildCatalogSuggestionsFromProducts(fallbackProducts, searchParams),
       catalogFallback: true,
-      warning: error.message || "Catalogo Supabase indisponivel; usando feed local.",
+      warning: "RAD-DATA-002 - Catalogo indisponivel; usando feed local.",
     };
   }
 }

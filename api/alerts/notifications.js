@@ -12,7 +12,7 @@ export default async function handler(request, response) {
 
   try {
     if (!canEvaluateAlerts(request)) {
-      return response.status(401).json({ ok: false, error: "Token do n8n invalido" });
+      return response.status(401).json({ ok: false, code: "RAD-FEED-002", error: "RAD-FEED-002 - Token de ingestao invalido" });
     }
 
     response.setHeader("Cache-Control", "no-store");

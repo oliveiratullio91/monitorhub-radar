@@ -10,7 +10,7 @@ import {
   publicConfig,
   updateRuntimeEnv,
 } from "./marketplaces.js";
-import { getN8nProducts, ingestN8nProducts } from "./n8n-feed.js";
+import { getFeedProducts, getN8nProducts, ingestN8nProducts } from "./n8n-feed.js";
 import { getMercadoLivreOffers } from "./mercadolivre-offers-page.js";
 import { getAmazonDeals } from "./amazon-deals-page.js";
 import {
@@ -134,7 +134,7 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/alerts/evaluate") {
       if (request.method === "OPTIONS") return sendEmpty(response, 204);
       if (!["GET", "POST"].includes(request.method)) return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
-      if (!canEvaluateAlerts(request)) return sendJson(response, { ok: false, error: "Token do n8n invalido" }, 401);
+      if (!canEvaluateAlerts(request)) return sendJson(response, { ok: false, code: "RAD-FEED-002", error: "RAD-FEED-002 - Token de ingestao invalido" }, 401);
       const body = request.method === "POST" ? await readJson(request).catch(() => ({})) : {};
       const products = Array.isArray(body.products)
         ? body.products
@@ -148,7 +148,7 @@ const server = createServer(async (request, response) => {
     if (url.pathname === "/api/alerts/notifications") {
       if (request.method === "OPTIONS") return sendEmpty(response, 204);
       if (!["GET", "PATCH"].includes(request.method)) return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
-      if (!canEvaluateAlerts(request)) return sendJson(response, { ok: false, error: "Token do n8n invalido" }, 401);
+      if (!canEvaluateAlerts(request)) return sendJson(response, { ok: false, code: "RAD-FEED-002", error: "RAD-FEED-002 - Token de ingestao invalido" }, 401);
       if (request.method === "GET") {
         const notifications = await listPendingAlertNotifications({ limit: url.searchParams.get("limit") || 100 });
         return sendJson(response, { ok: true, notifications, count: notifications.length });
@@ -156,12 +156,18 @@ const server = createServer(async (request, response) => {
       return sendJson(response, { ok: true, notification: await updateAlertNotificationStatus(await readJson(request)) });
     }
 
+    if (url.pathname === "/api/feed/products") {
+      if (request.method === "OPTIONS") return sendEmpty(response, 204);
+      if (request.method === "GET") return sendJson(response, await getFeedProducts(url.searchParams));
+      return sendJson(response, { ok: false, error: "Metodo nao permitido" }, 405);
+    }
+
     if (url.pathname === "/api/n8n/products") {
       if (request.method === "OPTIONS") return sendEmpty(response, 204);
       if (request.method === "GET") return sendJson(response, await getN8nProducts(url.searchParams));
       if (request.method === "POST") {
         if (!canWriteN8nFeed(request)) {
-          return sendJson(response, { ok: false, error: "Token do n8n invalido" }, 401);
+          return sendJson(response, { ok: false, code: "RAD-FEED-002", error: "RAD-FEED-002 - Token de ingestao invalido" }, 401);
         }
         return sendJson(response, await ingestN8nProducts(await readJson(request)));
       }
@@ -200,7 +206,7 @@ async function getCatalogProducts(searchParams) {
       ? {
         ...fallbackCatalog,
         catalogFallback: true,
-        warning: "Catalogo Supabase vazio; usando ofertas atuais.",
+        warning: "RAD-DATA-002 - Catalogo vazio; usando ofertas atuais.",
       }
       : catalog;
   } catch (error) {
@@ -208,7 +214,7 @@ async function getCatalogProducts(searchParams) {
     return {
       ...buildCatalogSuggestionsFromProducts(fallbackProducts, searchParams),
       catalogFallback: true,
-      warning: error.message || "Catalogo Supabase indisponivel; usando feed local.",
+      warning: "RAD-DATA-002 - Catalogo indisponivel; usando feed local.",
     };
   }
 }

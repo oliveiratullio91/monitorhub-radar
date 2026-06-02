@@ -19,7 +19,7 @@ export default async function handler(request, response) {
 
     if (request.method === "POST") {
       if (!canWriteFeed(request)) {
-        response.status(401).json({ ok: false, error: "Token do n8n invalido" });
+        response.status(401).json({ ok: false, code: "RAD-FEED-002", error: "RAD-FEED-002 - Token de ingestao invalido" });
         return;
       }
 

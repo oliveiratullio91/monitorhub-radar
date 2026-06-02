@@ -39,6 +39,15 @@ export async function getN8nProducts(searchParams = new URLSearchParams()) {
   };
 }
 
+export async function getFeedProducts(searchParams = new URLSearchParams()) {
+  const payload = await getN8nProducts(searchParams);
+  return {
+    ...payload,
+    source: "feed",
+    errors: normalizePublicFeedErrors(payload.errors),
+  };
+}
+
 export async function ingestN8nProducts(payload = {}) {
   const context = Array.isArray(payload) ? {} : payload || {};
   const now = new Date().toISOString();
@@ -175,7 +184,7 @@ function writeFeed(feed) {
     mkdirSync(feedDir, { recursive: true });
     writeFileSync(feedPath, JSON.stringify(memoryFeed, null, 2), "utf8");
   } catch {
-    // Vercel storage can be ephemeral; memoryFeed still serves warm invocations.
+    // Hosted storage can be ephemeral; memoryFeed still serves warm invocations.
   }
 }
 
@@ -202,6 +211,19 @@ function normalizeErrors(errors) {
   if (!errors) return [];
   if (Array.isArray(errors)) return errors.map((item) => String(item)).filter(Boolean);
   return [String(errors)].filter(Boolean);
+}
+
+function normalizePublicFeedErrors(errors) {
+  return normalizeErrors(errors).map((message) => {
+    const value = String(message || "");
+    const existingCode = value.match(/RAD-[A-Z]+-\d{3}/i)?.[0];
+    if (existingCode) return existingCode.toUpperCase();
+    if (/sem itens publicados|sem anuncios proprios/i.test(value)) return "RAD-ML-003 - Conta conectada sem anuncios proprios retornados.";
+    if (/mercado livre|mercadolivre|MERCADO_LIVRE|oauth|app id|secret key/i.test(value)) return "RAD-ML-001 - Fonte Mercado Livre temporariamente indisponivel.";
+    if (/amazon|AMAZON_/i.test(value)) return "RAD-AMZ-001 - Fonte Amazon temporariamente indisponivel.";
+    if (/feed|ingest|coleta|n8n|N8N|X-N8N/i.test(value)) return "RAD-FEED-001 - Aguardando entrada de produtos do motor de coleta.";
+    return "RAD-GEN-001 - Falha operacional. Consulte o codigo informado.";
+  });
 }
 
 function stableId({ source, url, title, index }) {
