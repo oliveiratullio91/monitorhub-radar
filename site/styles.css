@@ -1324,6 +1324,22 @@ select option {
   align-self: end;
 }
 
+.alert-builder .alert-edit-cancel {
+  align-self: end;
+}
+
+.alert-builder.is-editing-alert {
+  border-color: rgba(15, 163, 115, 0.28);
+  box-shadow: 0 18px 42px rgba(15, 163, 115, 0.1);
+}
+
+.alert-builder.is-editing-alert input:disabled,
+.alert-builder.is-editing-alert select:disabled {
+  color: var(--muted);
+  background: #f7fbf9;
+  cursor: not-allowed;
+}
+
 .saved-alerts {
   display: grid;
   gap: 14px;
@@ -1351,12 +1367,25 @@ select option {
   opacity: 0.68;
 }
 
+.saved-alert-card.is-editing {
+  border-color: rgba(15, 163, 115, 0.34);
+  background: #f2fbf6;
+}
+
 .saved-alert-header,
 .saved-alert-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.saved-alert-actions {
+  flex-wrap: wrap;
+}
+
+.saved-alert-actions .danger {
+  margin-left: auto;
 }
 
 .saved-alert-header p {

@@ -87,6 +87,7 @@ const state = {
   catalogSuggestions: [],
   catalogLoading: false,
   catalogSearchTimer: null,
+  editingAlertId: "",
 };
 
 const elements = {
@@ -161,6 +162,8 @@ const elements = {
   alertChannel: document.querySelector("#alertChannel"),
   alertNotificationEmail: document.querySelector("#alertNotificationEmail"),
   alertWhatsappPhone: document.querySelector("#alertWhatsappPhone"),
+  alertSubmitButton: document.querySelector("#alertSubmitButton"),
+  cancelAlertEditButton: document.querySelector("#cancelAlertEditButton"),
   reloadAlertsButton: document.querySelector("#reloadAlertsButton"),
   priceAlertsList: document.querySelector("#priceAlertsList"),
   userChips: document.querySelectorAll("[data-user-chip]"),
@@ -774,7 +777,15 @@ async function submitPriceAlert(event) {
 
   const productQuery = elements.alertProductQuery.value.trim();
   const targetPrice = Number(elements.alertTargetPrice.value);
-  if (!productQuery || !targetPrice) {
+  if (!targetPrice) {
+    setDataServiceStatus("Informe produto e preco maximo.", false);
+    return;
+  }
+  if (state.editingAlertId) {
+    await submitEditedPriceAlert(targetPrice);
+    return;
+  }
+  if (!productQuery) {
     setDataServiceStatus("Informe produto e preco maximo.", false);
     return;
   }
@@ -819,10 +830,59 @@ async function submitPriceAlert(event) {
   }
 }
 
+async function submitEditedPriceAlert(targetPrice) {
+  setAlertFormLoading(true);
+  try {
+    const payload = await apiRequest("/api/alerts", {
+      method: "PATCH",
+      body: {
+        id: state.editingAlertId,
+        targetPrice,
+        notificationChannel: elements.alertChannel.value,
+        notificationEmail: elements.alertNotificationEmail.value,
+        whatsappPhone: elements.alertWhatsappPhone.value,
+      },
+    });
+    state.priceAlerts = state.priceAlerts.map((item) => item.id === payload.alert.id ? payload.alert : item);
+    resetAlertBuilder();
+    setDataServiceStatus("Alerta atualizado.", true);
+  } catch (error) {
+    setDataServiceStatus(publicErrorMessage(error.message, "Falha ao atualizar alerta."), false);
+  } finally {
+    setAlertFormLoading(false);
+    renderPriceAlertsArea();
+  }
+}
+
+function resetAlertBuilder() {
+  state.editingAlertId = "";
+  state.selectedAlertProduct = null;
+  state.selectedCatalogProduct = null;
+  state.catalogSuggestions = [];
+  elements.priceAlertForm?.reset();
+  if (elements.alertProductQuery) elements.alertProductQuery.disabled = false;
+  if (elements.alertBrand) elements.alertBrand.disabled = false;
+  if (elements.alertSource) elements.alertSource.disabled = false;
+  prefillAlertContacts();
+  renderCatalogSuggestions();
+  renderSelectedProductPreview();
+  renderAlertFormMode();
+}
+
+function renderAlertFormMode() {
+  const isEditing = Boolean(state.editingAlertId);
+  elements.priceAlertForm?.classList.toggle("is-editing-alert", isEditing);
+  if (elements.alertSubmitButton) {
+    elements.alertSubmitButton.textContent = isEditing ? "Salvar alteracoes" : "Criar alerta";
+  }
+  elements.cancelAlertEditButton?.classList.toggle("is-hidden", !isEditing);
+}
+
 async function deleteSavedAlert(id) {
   try {
     await apiRequest(`/api/alerts?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     state.priceAlerts = state.priceAlerts.filter((alert) => alert.id !== id);
+    if (state.editingAlertId === id) resetAlertBuilder();
     setDataServiceStatus("Alerta removido.", true);
   } catch (error) {
     setDataServiceStatus(publicErrorMessage(error.message, "Falha ao remover alerta."), false);
@@ -908,6 +968,12 @@ function setAlertFormLoading(loading) {
   elements.priceAlertForm?.querySelectorAll("button, input, select").forEach((item) => {
     item.disabled = loading;
   });
+  if (!loading && state.editingAlertId) {
+    if (elements.alertProductQuery) elements.alertProductQuery.disabled = true;
+    if (elements.alertBrand) elements.alertBrand.disabled = true;
+    if (elements.alertSource) elements.alertSource.disabled = true;
+  }
+  renderAlertFormMode();
 }
 
 function prefillAlertContacts() {
@@ -1044,6 +1110,7 @@ function renderPriceAlertsArea() {
 
   prefillAlertContacts();
   renderSelectedProductPreview();
+  renderAlertFormMode();
   renderSavedPriceAlerts();
 }
 
@@ -1123,6 +1190,7 @@ function renderSavedPriceAlerts() {
     const card = document.createElement("article");
     card.className = "saved-alert-card";
     card.dataset.status = alert.status;
+    card.classList.toggle("is-editing", state.editingAlertId === alert.id);
 
     const header = document.createElement("div");
     header.className = "saved-alert-header";
@@ -1184,12 +1252,18 @@ function renderSavedPriceAlerts() {
     toggleButton.textContent = alert.status === "paused" ? "Reativar" : "Pausar";
     toggleButton.addEventListener("click", () => toggleSavedAlert(alert));
 
+    const editButton = document.createElement("button");
+    editButton.className = "secondary-button compact";
+    editButton.type = "button";
+    editButton.textContent = "Editar";
+    editButton.addEventListener("click", () => editSavedAlert(alert));
+
     const deleteButton = document.createElement("button");
     deleteButton.className = "text-button danger";
     deleteButton.type = "button";
     deleteButton.textContent = "Excluir";
     deleteButton.addEventListener("click", () => deleteSavedAlert(alert.id));
-    actions.append(toggleButton, deleteButton);
+    actions.append(toggleButton, editButton, deleteButton);
 
     card.append(header);
     if (productSummary.childElementCount) card.append(productSummary);
@@ -1198,6 +1272,38 @@ function renderSavedPriceAlerts() {
   });
 
   list.append(fragment);
+}
+
+function editSavedAlert(alert) {
+  state.editingAlertId = alert.id;
+  state.selectedAlertProduct = null;
+  state.selectedCatalogProduct = null;
+  state.catalogSuggestions = [];
+
+  if (elements.alertProductQuery) {
+    elements.alertProductQuery.value = alert.canonicalProductName || alert.productQuery || alert.productTitle || "";
+    elements.alertProductQuery.disabled = true;
+    elements.alertProductQuery.setAttribute("aria-expanded", "false");
+  }
+  if (elements.alertBrand) {
+    elements.alertBrand.value = alert.brand || "";
+    elements.alertBrand.disabled = true;
+  }
+  if (elements.alertSource) {
+    elements.alertSource.value = alert.source || "all";
+    elements.alertSource.disabled = true;
+  }
+  if (elements.alertTargetPrice) elements.alertTargetPrice.value = alert.targetPrice || "";
+  if (elements.alertChannel) elements.alertChannel.value = alert.notificationChannel || "email";
+  if (elements.alertNotificationEmail) elements.alertNotificationEmail.value = alert.userEmail || "";
+  if (elements.alertWhatsappPhone) elements.alertWhatsappPhone.value = alert.whatsappPhone || "";
+
+  renderCatalogSuggestions();
+  renderSelectedProductPreview();
+  renderAlertFormMode();
+  elements.priceAlertForm?.scrollIntoView({ behavior: "smooth", block: "center" });
+  window.setTimeout(() => elements.alertTargetPrice?.focus(), 320);
+  setDataServiceStatus("Editando alerta salvo. Ajuste preco, e-mail ou WhatsApp.", true);
 }
 
 function alertMetric(label, value) {
@@ -2331,6 +2437,11 @@ function bindEvents() {
   });
   elements.priceAlertForm?.addEventListener("submit", submitPriceAlert);
   elements.reloadAlertsButton?.addEventListener("click", loadPriceAlerts);
+  elements.cancelAlertEditButton?.addEventListener("click", () => {
+    resetAlertBuilder();
+    setDataServiceStatus("Edicao cancelada.", true);
+    renderPriceAlertsArea();
+  });
 }
 
 async function init() {

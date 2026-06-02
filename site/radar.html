@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Radar de precos Garimpanda com alertas personalizados." />
     <title>Garimpanda - Radar</title>
-    <link rel="stylesheet" href="./styles.css?v=ops-codes1" />
+    <link rel="stylesheet" href="./styles.css?v=alert-edit1" />
   </head>
   <body class="page-body radar-page">
     <div class="dashboard-shell">
@@ -179,7 +179,8 @@
                 <span>WhatsApp</span>
                 <input id="alertWhatsappPhone" type="tel" placeholder="+55 85 99999-9999" />
               </label>
-              <button class="primary-button" type="submit">Criar alerta</button>
+              <button class="primary-button" id="alertSubmitButton" type="submit">Criar alerta</button>
+              <button class="secondary-button alert-edit-cancel is-hidden" id="cancelAlertEditButton" type="button">Cancelar edicao</button>
             </form>
 
             <div class="saved-alerts">
@@ -194,6 +195,6 @@
       </main>
     </div>
 
-    <script src="./app.js?v=ops-codes1" defer></script>
+    <script src="./app.js?v=alert-edit1" defer></script>
   </body>
 </html>

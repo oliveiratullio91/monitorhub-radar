@@ -296,6 +296,18 @@ export async function updatePriceAlert(user, body = {}) {
   if (body.notificationChannel !== undefined || body.notification_channel !== undefined) {
     patch.notification_channel = normalizeNotificationChannel(body.notificationChannel ?? body.notification_channel);
   }
+  if (body.notificationEmail !== undefined || body.notification_email !== undefined) {
+    patch.user_email = normalizeEmail(body.notificationEmail ?? body.notification_email);
+  }
+  if (body.whatsappPhone !== undefined || body.whatsapp_phone !== undefined) {
+    patch.whatsapp_phone = normalizePhone(body.whatsappPhone ?? body.whatsapp_phone);
+  }
+  if (["email", "both"].includes(patch.notification_channel) && !patch.user_email) {
+    throw httpError("Informe um e-mail para receber o alerta.", 400);
+  }
+  if (["whatsapp", "both"].includes(patch.notification_channel) && !patch.whatsapp_phone) {
+    throw httpError("Informe um WhatsApp para receber o alerta.", 400);
+  }
   if (!Object.keys(patch).length) throw httpError("Nenhuma alteracao enviada.", 400);
 
   patch.updated_at = new Date().toISOString();
