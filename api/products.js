@@ -41,7 +41,17 @@ export default async function handler(request, response) {
 
 async function getCatalogProducts(searchParams) {
   try {
-    return await listProductCatalog(searchParams);
+    const catalog = await listProductCatalog(searchParams);
+    if (catalog.products?.length) return catalog;
+    const fallbackProducts = await getCatalogFallbackProducts(searchParams);
+    const fallbackCatalog = buildCatalogSuggestionsFromProducts(fallbackProducts, searchParams);
+    return fallbackCatalog.products.length
+      ? {
+        ...fallbackCatalog,
+        catalogFallback: true,
+        warning: "Catalogo Supabase vazio; usando ofertas atuais.",
+      }
+      : catalog;
   } catch (error) {
     const fallbackProducts = await getCatalogFallbackProducts(searchParams);
     return {

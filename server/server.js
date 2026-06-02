@@ -185,19 +185,32 @@ server.listen(port, "127.0.0.1", () => {
 
 async function getCatalogProducts(searchParams) {
   try {
-    return await listProductCatalog(searchParams);
+    const catalog = await listProductCatalog(searchParams);
+    if (catalog.products?.length) return catalog;
+    const fallbackProducts = await getCatalogFallbackProducts(searchParams);
+    const fallbackCatalog = buildCatalogSuggestionsFromProducts(fallbackProducts, searchParams);
+    return fallbackCatalog.products.length
+      ? {
+        ...fallbackCatalog,
+        catalogFallback: true,
+        warning: "Catalogo Supabase vazio; usando ofertas atuais.",
+      }
+      : catalog;
   } catch (error) {
-    const limit = Math.max(200, Math.min(Number(searchParams.get("sourceLimit") || 2000), 2000));
-    const feed = await getN8nProducts(new URLSearchParams({ limit: String(limit) })).catch(() => null);
-    const fallbackProducts = feed?.products?.length
-      ? feed.products
-      : await getCatalogOfferFallbackProducts(searchParams);
+    const fallbackProducts = await getCatalogFallbackProducts(searchParams);
     return {
       ...buildCatalogSuggestionsFromProducts(fallbackProducts, searchParams),
       catalogFallback: true,
       warning: error.message || "Catalogo Supabase indisponivel; usando feed local.",
     };
   }
+}
+
+async function getCatalogFallbackProducts(searchParams) {
+  const limit = Math.max(200, Math.min(Number(searchParams.get("sourceLimit") || 2000), 2000));
+  const feed = await getN8nProducts(new URLSearchParams({ limit: String(limit) })).catch(() => null);
+  if (feed?.products?.length) return feed.products;
+  return getCatalogOfferFallbackProducts(searchParams);
 }
 
 async function getCatalogOfferFallbackProducts(searchParams) {
